@@ -1,0 +1,75 @@
+==== Content of Dockerfile ====
+###############################
+# Stage 1: Build the Consumer App
+###############################
+FROM node:20-alpine AS consumer-builder
+WORKDIR /app
+
+# Copy consumer package files and install production dependencies
+COPY package*.json ./
+RUN npm install --production
+RUN ls -lart
+RUN ls -lart /app
+
+# Copy consumer source code (adjust paths as needed)
+RUN mkdir -p src/lib
+COPY src/lib/main.js src/lib/
+RUN ls -lart
+RUN ls -lart /app
+
+# Verify Node and npm versions
+RUN node --version && npm --version
+
+###############################
+# Stage 2: Get Broker Binary
+###############################
+
+# The tansu-server binary is obtained from the tansu image (without modification)
+FROM ghcr.io/tansu-io/tansu:0.2.2 AS broker
+
+###############################
+# Stage 3: Assemble Node 20 Apline Runtime Image
+###############################
+FROM node:20-alpine
+
+# Copy the consumer application code
+COPY --from=consumer-builder /app /app
+RUN ls -lart
+RUN ls -lart /app
+
+# Copy the tansu-server binary from the broker stage
+COPY --from=broker /tansu-server /tansu-server
+
+# Copy the entrypoint script (from your build context)
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Set the working directory so that npm can find package.json
+WORKDIR /app
+
+# tansu-server environment variables
+ENV LISTENER_URL=tcp://0.0.0.0:9092/
+ENV ADVERTISED_LISTENER_URL=tcp://localhost:9092
+ENV CLUSTER_ID=tansu-sqs-bridge-cluster
+ENV STORAGE_ENGINE=memory://tansu/
+
+# tansu-sqs-bridge environment variables
+ENV BROKER_URL=localhost:9092
+ENV CONSUMER_GROUP=tansu-sqs-bridge-group
+ENV TOPIC_NAME=test
+ENV SQS_QUEUE_URL=https://sqs.region.amazonaws.com/123456789012/tansu-sqs-bridge-queue
+
+# Expose the consumer’s HTTP port
+EXPOSE 8080
+
+# Entrypoint script starts both the broker and the consumer app
+ENTRYPOINT ["/entrypoint.sh"]
+==== Content of compose.yml ====
+# compose.yml
+services:
+  tansu-consumer-to-sqs:
+    image: tansu-consumer-to-sqs:latest
+    restart: unless-stopped
+    ports:
+      - 9092:9092
+      - 9100:9100

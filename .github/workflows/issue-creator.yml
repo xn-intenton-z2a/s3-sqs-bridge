@@ -1,0 +1,86 @@
+# .github/workflows/issue-creator.yml
+#
+# This file is part of the example suite for `agentic-lib` see: https://github.com/xn-intenton-z2a/agentic-lib
+# This file is licensed under the MIT License. For details, see LICENSE-MIT
+
+name: Create Issue
+concurrency: create-issue
+run-name: "Create Issue"
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'An asset (e.g. source file) to reference in the issue. e.g. "src/lib/main.js"'
+        required: false
+        type: string
+        default: 'src/lib/main.js'
+      issueTitle:
+        description: 'Text to drive the issue title (if "house choice", a currently random prompt will be selected). e.g. "Make a small improvement."'
+        required: false
+        type: string
+        default: 'house choice'
+  schedule:
+    #- cron: '0 4 * * *' # schedule-1
+    #- cron: '0 */2 * * *' # schedule-2
+    - cron: '*/15 * * * *' # schedule-3
+
+jobs:
+
+  extract-options:
+    runs-on: ubuntu-latest
+    outputs:
+      houseChoiceOptions: ${{ steps.extract.outputs.houseChoiceOptions }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Parse Issue House Choice Options from CONTRIBUTING.md
+        id: extract
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let houseChoiceOptions = '';
+            const filePath = './CONTRIBUTING.md';
+            if (fs.existsSync(filePath)) {
+              const content = fs.readFileSync(filePath, 'utf8');
+              const lines = content.split('\n');
+              let capture = false;
+              let options = [];
+            
+              // Look for the section header; case-insensitive match for "Issue House Choice Options"
+              for (const line of lines) {
+                if (line.trim().match(/^##\s+Issue House Choice Options\s*$/i)) {
+                  capture = true;
+                  continue;
+                }
+                // Stop capturing if a new heading appears
+                if (capture && line.trim().match(/^##\s+/)) {
+                  break;
+                }
+                if (capture) {
+                  // Parse only bullet list items (lines starting with "- ")
+                  const bulletMatch = line.trim().match(/^-\s+(.*)$/);
+                  if (bulletMatch) {
+                    options.push(bulletMatch[1].trim());
+                  }
+                }
+              }
+              if (options.length > 0) {
+                houseChoiceOptions = options.join(' || ');
+              }
+            }
+            core.setOutput('houseChoiceOptions', houseChoiceOptions);
+            core.info(`houseChoiceOptions: ${houseChoiceOptions}`);
+
+  create-issue:
+    needs:
+      - extract-options
+    permissions:
+      issues: write
+      id-token: write
+    uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-create-issue.yml@2.6.6'
+    with:
+      issueTitle: ${{ inputs.issueTitle || 'house choice' }}
+      houseChoiceOptions: ${{ needs.extract-options.outputs.houseChoiceOptions }}

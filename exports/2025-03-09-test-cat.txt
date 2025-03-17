@@ -1,0 +1,355 @@
+tests/unit/main.test.js
+==== Content of tests/unit/main.test.js ====
+// tests/unit/main.test.js
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// --- MOCK NETWORK MODULES ---
+// These mocks prevent actual network calls during tests.
+vi.mock("kafkajs", () => {
+  return {
+    Kafka: class {
+      constructor(config) {
+        this.config = config;
+      }
+      consumer({ groupId: _groupId }) {
+        return {
+          connect: async () => {},
+          subscribe: async () => {},
+          run: async (opts) => {
+            if (opts && typeof opts.eachMessage === "function") {
+              await opts.eachMessage({
+                topic: "test",
+                partition: 0,
+                message: { key: Buffer.from("dummy"), value: Buffer.from("dummy"), offset: "0" }
+              });
+            }
+          },
+          disconnect: async () => {}
+        };
+      }
+    }
+  };
+});
+
+vi.mock("@aws-sdk/client-sqs", () => {
+  return {
+    SQSClient: class {},
+    SendMessageCommand: class {
+      constructor(params) {
+        this.params = params;
+      }
+    }
+  };
+});
+
+vi.mock("pg", () => {
+  class FakeClient {
+    async connect() {}
+    async query(query, values) {
+      return { rows: [] };
+    }
+  }
+  return {
+    default: { Client: FakeClient },
+    Client: FakeClient
+  };
+});
+
+// --- IMPORT THE MERGED MODULE ---
+import {
+  main,
+  diagnostics,
+  runConsumer,
+  githubProjectionLambdaHandler,
+  tansuLambdaHandler,
+  loggingLambdaHandler,
+  parseMessageBody,
+  retryOperation,
+  retryOperationDetailed,
+  buildSQSMessageParams,
+  isValidResourceEvent,
+  sendMessageToSQS,
+  convertToBoolean,
+  validateKafkaConfig,
+  logWarning,
+  sanitizeInput,
+  retryOperationExponential,
+  isValidJSON,
+  measureExecutionTime,
+  simulateProjection
+} from "@src/lib/main.js";
+
+
+describe("Merged Main Module - Unit Tests", () => {
+  let consoleSpy;
+
+  beforeEach(() => {
+    consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "debug").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("should display help text when --help is passed", async () => {
+    await main(["--help"]);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Usage: node src/lib/main.js [--help|--diagnostics|--demo|--measure-demo|--simulate-projection|--tansu-consumer-to-sqs|--sqs-to-lambda-github-projection|--sqs-to-lambda-logger]"
+    );
+  });
+
+  it("should display diagnostics text when --diagnostics is passed", async () => {
+    await main(["--diagnostics"]);
+    expect(consoleSpy).toHaveBeenCalledWith("Diagnostics: All systems operational.");
+  });
+
+  it("should display demo output when --demo is passed", async () => {
+    await main(["--demo"]);
+    expect(consoleSpy).toHaveBeenCalledWith("Demo output: This is a demo run.");
+    expect(consoleSpy).toHaveBeenCalledWith("This is a demo output for demonstration purposes.");
+  });
+
+  it("should execute measure demo when --measure-demo is passed", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    await main(["--measure-demo"]);
+    expect(logSpy).toHaveBeenCalledWith("Starting measure demo...");
+    expect(logSpy).toHaveBeenCalledWith("Measure demo complete.");
+    logSpy.mockRestore();
+  });
+
+  it("should execute simulate projection when --simulate-projection is passed", async () => {
+    const infoSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    await main(["--simulate-projection"]);
+    expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining("Simulating projection update..."));
+    expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining("Projection simulation complete."));
+    infoSpy.mockRestore();
+  });
+
+  it("should log run arguments when unrecognized options are passed", async () => {
+    const args = ["foo", "bar"];
+    await main(args);
+    expect(consoleSpy).toHaveBeenCalledWith(`Run with: ${JSON.stringify(args)}`);
+  });
+
+  it("diagnostics() should return correct diagnostics string", () => {
+    expect(diagnostics()).toEqual("Diagnostics: All systems operational.");
+  });
+});
+
+describe("Merged Main Module - API Boundary Tests", () => {
+  it("diagnostics() should return correct diagnostics string", () => {
+    expect(diagnostics()).toEqual("Diagnostics: All systems operational.");
+  });
+
+  it("main() should return undefined for all branch invocations", async () => {
+    await expect(main(["--help"]).then(() => undefined)).resolves.toBeUndefined();
+    await expect(main(["--diagnostics"]).then(() => undefined)).resolves.toBeUndefined();
+    await expect(main(["--demo"]).then(() => undefined)).resolves.toBeUndefined();
+    await expect(main(["--sqs-to-lambda-logger"]).then(() => undefined)).resolves.toBeUndefined();
+    await expect(main(["--sqs-to-lambda-github-projection"]).then(() => undefined)).resolves.toBeUndefined();
+    await expect(main(["--tansu-consumer-to-sqs"]).then(() => undefined)).resolves.toBeUndefined();
+    await expect(main(["random", "args"]).then(() => undefined)).resolves.toBeUndefined();
+  });
+
+  it("tansuLambdaHandler should behave the same as loggingLambdaHandler", async () => {
+    const sampleEvent = { Records: [{ body: "Test message" }] };
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    await tansuLambdaHandler(sampleEvent);
+    await loggingLambdaHandler(sampleEvent);
+    expect(logSpy).toHaveBeenCalled();
+    logSpy.mockRestore();
+  });
+
+  it("githubProjectionLambdaHandler should update projection with valid event", async () => {
+    const sampleEvent = {
+      Records: [
+        {
+          body: JSON.stringify({
+            resourceType: "repository",
+            resourceId: "test-repo",
+            state: { stars: 100 }
+          })
+        }
+      ]
+    };
+    const result = await githubProjectionLambdaHandler(sampleEvent);
+    expect(result.status).toEqual("success");
+  });
+
+  it("parseMessageBody should return null for invalid JSON", () => {
+    const result = parseMessageBody("invalid-json");
+    expect(result).toBeNull();
+  });
+});
+
+describe("retryOperation helper", () => {
+  it("should return value if operation succeeds", async () => {
+    const op = async () => "success";
+    const result = await retryOperation(op);
+    expect(result).toEqual("success");
+  });
+
+  it("should retry and eventually throw error after defined attempts", async () => {
+    let attempts = 0;
+    const op = async () => {
+      attempts++;
+      throw new Error("fail");
+    };
+    try {
+      await retryOperation(op, 2, 10);
+    } catch (error) {
+      expect(attempts).toEqual(2);
+      expect(error.message).toEqual("fail");
+    }
+  });
+});
+
+describe("Extended helper functions", () => {
+  it("retryOperationDetailed should return value when successful", async () => {
+    const op = async () => "detailed success";
+    const result = await retryOperationDetailed(op);
+    expect(result).toEqual("detailed success");
+  });
+
+  it("retryOperationDetailed should retry and throw error after defined attempts", async () => {
+    let attempts = 0;
+    const op = async () => {
+      attempts++;
+      throw new Error("detailed fail");
+    };
+    try {
+      await retryOperationDetailed(op, 2, 10);
+    } catch (error) {
+      expect(attempts).toEqual(2);
+      expect(error.message).toEqual("detailed fail");
+    }
+  });
+
+  it("convertToBoolean should correctly convert string values to boolean", () => {
+    expect(convertToBoolean("true")).toBe(true);
+    expect(convertToBoolean("false")).toBe(false);
+    expect(convertToBoolean(true)).toBe(true);
+    expect(convertToBoolean(false)).toBe(false);
+  });
+
+  it("validateKafkaConfig should return true for valid config", () => {
+    const conf = {
+      BROKER_URL: "broker:9092",
+      TOPIC_NAME: "topic",
+      CONSUMER_GROUP: "group"
+    };
+    expect(validateKafkaConfig(conf)).toBe(true);
+  });
+
+  it("validateKafkaConfig should return false if required fields are missing", () => {
+    const conf = {
+      BROKER_URL: "broker:9092"
+    };
+    expect(validateKafkaConfig(conf)).toBe(false);
+  });
+});
+
+describe("New library helper functions", () => {
+  it("buildSQSMessageParams should construct proper params", () => {
+    const params = buildSQSMessageParams("test", 1, "10", "hello");
+    const expectedQueueUrl = process.env.SQS_QUEUE_URL || "test-sqs-queue-url";
+    expect(params.QueueUrl).toBe(expectedQueueUrl);
+    expect(params.MessageBody).toBe("hello");
+    expect(params.MessageAttributes.Topic.StringValue).toBe("test");
+  });
+
+  it("isValidResourceEvent should return true for valid event", () => {
+    const valid = isValidResourceEvent({ resourceType: "foo", resourceId: "bar" });
+    expect(valid).toBe(true);
+  });
+
+  it("isValidResourceEvent should return false if missing keys", () => {
+    const valid = isValidResourceEvent({ resourceType: "foo" });
+    expect(valid).toBe(false);
+  });
+
+  it("sendMessageToSQS helper should send a message and return dummy message id", async () => {
+    const response = await sendMessageToSQS("test", 2, "15", "hello");
+    expect(response.MessageId).toBe("dummy-message");
+  });
+});
+
+describe("Extended New Helper Functions", () => {
+  it("logWarning should output warning messages", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    logWarning("Test warning");
+    expect(warnSpy).toHaveBeenCalledWith("[WARNING] Test warning");
+    warnSpy.mockRestore();
+  });
+
+  it("sanitizeInput should remove non-alphanumeric characters", () => {
+    expect(sanitizeInput("Hello, World!")).toBe("Hello World");
+    expect(sanitizeInput("Test123@#%")).toBe("Test123");
+  });
+
+  it("retryOperationExponential should return value when operation succeeds", async () => {
+    const op = async () => "exp success";
+    const result = await retryOperationExponential(op);
+    expect(result).toEqual("exp success");
+  });
+
+  it("retryOperationExponential should retry and eventually throw error", async () => {
+    let attempts = 0;
+    const op = async () => {
+      attempts++;
+      throw new Error("exp fail");
+    };
+    try {
+      await retryOperationExponential(op, 2, 10);
+    } catch (error) {
+      expect(attempts).toEqual(2);
+      expect(error.message).toEqual("exp fail");
+    }
+  });
+
+  it("isValidJSON should return true for valid JSON and false for invalid JSON", () => {
+    expect(isValidJSON('{"key": "value"}')).toBe(true);
+    expect(isValidJSON('invalid json')).toBe(false);
+  });
+});
+
+describe("measureExecutionTime helper", () => {
+  it("should log the execution time and return the operation result", async () => {
+    const infoSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const op = async () => { await new Promise(r => setTimeout(r, 50)); return "done"; };
+    const result = await measureExecutionTime(op);
+    expect(result).toEqual("done");
+    expect(infoSpy).toHaveBeenCalledWith(expect.stringMatching(/Operation took \d+ ms\./));
+    infoSpy.mockRestore();
+  });
+});
+tests/unit/run-main.test.js
+==== Content of tests/unit/run-main.test.js ====
+// tests/unit/run-main.test.js
+import { exec } from "child_process";
+import { describe, test, expect } from "vitest";
+
+// This is a test
+
+describe("Main Script Execution", () => {
+  test("should exit with code 0", (done) => {
+    exec(`${process.execPath} ./src/lib/main.js`, (error, stdout, stderr) => {
+      expect(error).toBeNull();
+      expect(stderr).toBe("");
+      done();
+    });
+  });
+});
+tests/unit/module-index.test.js
+==== Content of tests/unit/module-index.test.js ====
+// tests/unit/module-index.test.js
+import { describe, test, expect } from "vitest";
+import anything from "@src/index.js";
+
+describe("Index Module Exports", () => {
+  test("module index should be defined", () => {
+    expect(anything).toBeUndefined();
+  });
+});

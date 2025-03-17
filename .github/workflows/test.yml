@@ -1,0 +1,88 @@
+# .github/workflows/test.yml
+#
+# This file is part of the example suite for `agentic-lib` see: https://github.com/xn-intenton-z2a/agentic-lib
+# This file is licensed under the MIT License. For details, see LICENSE-MIT
+
+name: Tests
+run-name: 'Tests [${{ github.ref_name }}] [${{ github.event.head_commit.message }}]'
+
+on:
+  push:
+    paths:
+      - '**/*.sh'
+      - '**/*.js'
+      - '**/*.json'
+      - '**/*.yml'
+      - '**/*.properties'
+      - '!exports/**'
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - "Automerge"
+    types:
+      - completed
+  schedule:
+    #- cron: '45 */6 * * *' # schedule-1
+    #- cron: '45 */4 * * *' # schedule-2
+    - cron: '0 * * * *' # schedule-3
+
+
+jobs:
+
+
+  npm-test:
+    name: 'npm test'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm install
+
+      - run: npm test
+
+  npm-unit-test:
+    name: 'npm unit test with coverage'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm install
+
+      - run: npm run test:unit
+
+  npm-build-test-and-run-main:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm install
+
+      - name: build
+        id: build
+        shell: bash
+        run: 'npm run build'
+
+      - name: test
+        id: test
+        shell: bash
+        run: 'npm test'
+
+      - name: main
+        id: main
+        shell: bash
+        run: timeout 5m ${{ vars.MAIN_SCRIPT || 'npm run start' }}

@@ -1,0 +1,390 @@
+commit 5b5de1d27328a97f0f58d8aa6a050d0c1a3c1346
+Author: Antony at Polycode <antony@polycode.co.uk>
+Date:   Mon Mar 3 23:43:42 2025 +0000
+
+    Remove unused project content and obsolete files
+    
+    Deleted outdated documentation, scripts, and tests related to deprecated functionalities of the `tansu-sqs-bridge`. These files no longer align with the current implementation and development goals, ensuring a cleaner and more focused repository structure.
+
+diff --git a/src/lib/main.js b/src/lib/main.js
+index 2e47d48..50da8e0 100755
+--- a/src/lib/main.js
++++ b/src/lib/main.js
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env node
+-// src/lim/main.js
++// src/lib/main.js
+ 
+ import { fileURLToPath } from "url";
+ import process from "process";
+@@ -204,7 +204,7 @@ async function tansuLambdaHandler(event) {
+ // --------------------
+ export async function main(args = process.argv.slice(2)) {
+   if (args.includes("--help")) {
+-    console.log("Usage: node src/lim/main.js [--help|--diagnostics|--demo|--tansu-consumer-to-sqs|--sqs-to-lambda-github-projection|--tansu-consumer-to-sqs]");
++    console.log("Usage: node src/lib/main.js [--help|--diagnostics|--demo|--tansu-consumer-to-sqs|--sqs-to-lambda-github-projection|--tansu-consumer-to-sqs]");
+     return;
+   }
+ 
+
+commit be2dbeab5cf39392c3f593d8f9ebc0cf243fcc1b
+Author: Antony at Polycode <antony@polycode.co.uk>
+Date:   Mon Mar 3 21:48:19 2025 +0000
+
+    Refactor and modularize Tansu SQS bridge with enhancements
+    
+    Restructured the codebase for better modularity and maintainability. Introduced test environment defaults, added PostgreSQL integration for GitHub projections, and improved SQS and Kafka utilities. Upgraded Node.js version in Docker and renamed files for clarity.
+
+diff --git a/src/lib/main.js b/src/lib/main.js
+index 6614836..2e47d48 100755
+--- a/src/lib/main.js
++++ b/src/lib/main.js
+@@ -204,7 +204,7 @@ async function tansuLambdaHandler(event) {
+ // --------------------
+ export async function main(args = process.argv.slice(2)) {
+   if (args.includes("--help")) {
+-    console.log("Usage: node src/lim/main.js [--help|--diagnostics|--demo|--consumer|--github|--tansu-lambda]");
++    console.log("Usage: node src/lim/main.js [--help|--diagnostics|--demo|--tansu-consumer-to-sqs|--sqs-to-lambda-github-projection|--tansu-consumer-to-sqs]");
+     return;
+   }
+ 
+@@ -219,13 +219,13 @@ export async function main(args = process.argv.slice(2)) {
+     return;
+   }
+ 
+-  if (args.includes("--consumer")) {
++  if (args.includes("--tansu-consumer-to-sqs")) {
+     console.log("Starting Kafka consumer to send messages to SQS...");
+     await runConsumer();
+     return;
+   }
+ 
+-  if (args.includes("--github")) {
++  if (args.includes("--sqs-to-lambda-github-projection")) {
+     const sampleEvent = {
+       Records: [
+         {
+@@ -242,7 +242,7 @@ export async function main(args = process.argv.slice(2)) {
+     return;
+   }
+ 
+-  if (args.includes("--tansu-lambda")) {
++  if (args.includes("--tansu-consumer-to-sqs")) {
+     const sampleEvent = {
+       Records: [{ body: "Sample message from Tansu consumer" }],
+     };
+
+commit e78e173d9027c67acec58a5f2055a84fe9a05793
+Author: Antony at Polycode <antony@polycode.co.uk>
+Date:   Mon Mar 3 21:30:54 2025 +0000
+
+    Refactor and modularize Tansu SQS bridge with enhancements
+    
+    Restructured the codebase for better modularity and maintainability. Introduced test environment defaults, added PostgreSQL integration for GitHub projections, and improved SQS and Kafka utilities. Upgraded Node.js version in Docker and renamed files for clarity.
+
+diff --git a/src/lib/main.js b/src/lib/main.js
+index 2723236..6614836 100755
+--- a/src/lib/main.js
++++ b/src/lib/main.js
+@@ -1,47 +1,272 @@
+ #!/usr/bin/env node
+-// src/lib/main.js
++// src/lim/main.js
+ 
+ import { fileURLToPath } from "url";
++import process from "process";
++import dotenv from "dotenv";
++import { z } from "zod";
++import { Kafka } from "kafkajs";
++import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
++// import { Client as PGClient } from "pg";
++import pkg from "pg";
+ 
+-/**
+- * Main function for CLI execution.
+- * Supports multiple command options:
+- * --help         Display usage instructions.
+- * --diagnostics  Output diagnostics information.
+- * --demo         Output demo messages.
+- * 
+- * @param {string[]} args - Command line arguments.
+- */
+-export function main(args) {
+-  if (args.includes('--help')) {
+-    console.log("Usage: node src/lib/main.js [--help|--diagnostics|--demo]");
++const { Client: PGClient } = pkg;
++
++// --------------------
++// For test environment, supply default env values to avoid configuration errors.
++// --------------------
++if (process.env.VITEST) {
++  process.env.SQS_QUEUE_URL = process.env.SQS_QUEUE_URL || "test-sqs-queue-url";
++  process.env.PGHOST = process.env.PGHOST || "localhost";
++  process.env.PGUSER = process.env.PGUSER || "test";
++  process.env.PGPASSWORD = process.env.PGPASSWORD || "test";
++  process.env.PGDATABASE = process.env.PGDATABASE || "test";
++}
++
++// --------------------
++// Load environment and validate configuration
++// --------------------
++dotenv.config();
++
++const configSchema = z.object({
++  // Kafka settings
++  BROKER_URL: z.string().default("localhost:9092"),
++  TOPIC_NAME: z.string().default("test"),
++  CONSUMER_GROUP: z.string().default("tansu-sqs-bridge-group"),
++
++  // AWS SQS settings
++  SQS_QUEUE_URL: z.string().nonempty({ message: "SQS_QUEUE_URL is required" }),
++
++  // PostgreSQL settings (for GitHub Projection Lambda)
++  PGHOST: z.string().nonempty({ message: "PGHOST is required" }),
++  PGPORT: z.preprocess((val) => (val ? parseInt(val) : 5432), z.number().int().positive()),
++  PGUSER: z.string().nonempty({ message: "PGUSER is required" }),
++  PGPASSWORD: z.string().nonempty({ message: "PGPASSWORD is required" }),
++  PGDATABASE: z.string().nonempty({ message: "PGDATABASE is required" }),
++  PGSSL: z.string().optional(),
++});
++
++const parsed = configSchema.safeParse(process.env);
++if (!parsed.success) {
++  console.error("Configuration error:", parsed.error.flatten().fieldErrors);
++  process.exit(0);
++}
++const config = parsed.data;
++config.PGSSL = config.PGSSL === "true" ? { rejectUnauthorized: false } : false;
++
++// --------------------
++// Logger utility
++// --------------------
++const log = {
++  info: (...args) => console.log("[INFO]", ...args),
++  debug: (...args) => console.debug("[DEBUG]", ...args),
++  error: (...args) => console.error("[ERROR]", ...args),
++};
++
++// --------------------
++// PostgreSQL client utility (for GitHub Projection Lambda)
++// --------------------
++let pgClient;
++async function getDbClient() {
++  if (!pgClient) {
++    pgClient = new PGClient({
++      host: config.PGHOST,
++      port: config.PGPORT,
++      user: config.PGUSER,
++      password: config.PGPASSWORD,
++      database: config.PGDATABASE,
++      ssl: config.PGSSL,
++    });
++    await pgClient.connect();
++    log.info("Connected to PostgreSQL database");
++  }
++  return pgClient;
++}
++export function resetDbClient() {
++  pgClient = undefined;
++}
++
++// --------------------
++// AWS SQS client utility
++// --------------------
++function getSQSClient() {
++  return new SQSClient({});
++}
++
++// --------------------
++// Tansu Consumer: Kafka -> SQS
++// --------------------
++async function runConsumer() {
++  const kafka = new Kafka({
++    clientId: "tansu-sqs-consumer",
++    brokers: [config.BROKER_URL],
++  });
++  const consumer = kafka.consumer({ groupId: config.CONSUMER_GROUP });
++  const sqsClient = getSQSClient();
++
++  await consumer.connect();
++  log.info(`Connected to Kafka broker at ${config.BROKER_URL}`);
++
++  await consumer.subscribe({ topic: config.TOPIC_NAME, fromBeginning: true });
++  log.info(`Subscribed to Kafka topic ${config.TOPIC_NAME}`);
++
++  await consumer.run({
++    eachMessage: async ({ topic, partition, message }) => {
++      const key = message.key ? message.key.toString() : null;
++      const value = message.value ? message.value.toString() : "";
++      const offset = message.offset;
++      log.info(`Received message from topic=${topic} partition=${partition} offset=${offset}`);
++      log.debug("Message key:", key, "value:", value);
++
++      const params = {
++        QueueUrl: config.SQS_QUEUE_URL,
++        MessageBody: value,
++        MessageAttributes: {
++          Topic: { DataType: "String", StringValue: topic },
++          Partition: { DataType: "Number", StringValue: partition.toString() },
++          Offset: { DataType: "Number", StringValue: offset.toString() },
++        },
++      };
++
++      try {
++        const command = new SendMessageCommand(params);
++        const response = await sqsClient.send(command);
++        log.info(`Sent message to SQS. MessageId: ${response.MessageId}`);
++      } catch (err) {
++        log.error("Error sending message to SQS:", err);
++      }
++    },
++  });
++
++  // Graceful shutdown on SIGINT
++  process.on("SIGINT", async () => {
++    log.info("Disconnecting Kafka consumer...");
++    await consumer.disconnect();
++    process.exit(0);
++  });
++}
++
++// --------------------
++// Lambda Handlers (for AWS deployment)
++// --------------------
++async function githubProjectionLambdaHandler(event) {
++  log.info("GitHub Projection Lambda received event:", JSON.stringify(event, null, 2));
++
++  let client;
++  try {
++    client = await getDbClient();
++  } catch (error) {
++    log.error("Error connecting to Postgres", error);
++    throw error;
++  }
++
++  for (const record of event.Records) {
++    let body;
++    try {
++      body = JSON.parse(record.body);
++    } catch (error) {
++      log.error("Error parsing record body", error);
++      continue;
++    }
++    const { resourceType, resourceId, state } = body;
++    if (!resourceType || !resourceId) {
++      log.error("Missing resourceType or resourceId in event", body);
++      continue;
++    }
++
++    const query = `
++      INSERT INTO github_projections (resource_id, resource_type, state, updated_at)
++      VALUES ($1, $2, $3, NOW())
++      ON CONFLICT (resource_id)
++      DO UPDATE SET state = EXCLUDED.state, updated_at = NOW();
++    `;
++    const values = [resourceId, resourceType, JSON.stringify(state)];
++    try {
++      await client.query(query, values);
++      log.info(`Updated projection for ${resourceType} ${resourceId}`);
++    } catch (err) {
++      log.error("Error updating PostgreSQL projection", err);
++    }
++  }
++  return { status: "success" };
++}
++
++async function tansuLambdaHandler(event) {
++  log.info("Tansu Lambda received SQS event:", JSON.stringify(event, null, 2));
++  for (const record of event.Records) {
++    log.info("Tansu SQS Message:", record.body);
++  }
++  return { status: "logged" };
++}
++
++// --------------------
++// Main CLI Function
++// --------------------
++export async function main(args = process.argv.slice(2)) {
++  if (args.includes("--help")) {
++    console.log("Usage: node src/lim/main.js [--help|--diagnostics|--demo|--consumer|--github|--tansu-lambda]");
+     return;
+   }
+-  
+-  if (args.includes('--diagnostics')) {
++
++  if (args.includes("--diagnostics")) {
+     console.log("Diagnostics: All systems operational.");
+     return;
+   }
+-  
+-  console.log(`Run with: ${JSON.stringify(args)}`);
+-  
+-  if (args.includes('--demo')) {
++
++  if (args.includes("--demo")) {
+     console.log("Demo output: This is a demo run.");
+-    console.log('This is a demo output. Replace with real implementation as needed.');
++    console.log("This is a demo output. Replace with real implementation as needed.");
++    return;
++  }
++
++  if (args.includes("--consumer")) {
++    console.log("Starting Kafka consumer to send messages to SQS...");
++    await runConsumer();
++    return;
++  }
++
++  if (args.includes("--github")) {
++    const sampleEvent = {
++      Records: [
++        {
++          body: JSON.stringify({
++            resourceType: "repository",
++            resourceId: "tansu-sqs-bridge",
++            state: { stars: 285, forks: 6, openIssues: 14 },
++          }),
++        },
++      ],
++    };
++    console.log("Running GitHub Projection Lambda Handler with sample event...");
++    await githubProjectionLambdaHandler(sampleEvent);
++    return;
++  }
++
++  if (args.includes("--tansu-lambda")) {
++    const sampleEvent = {
++      Records: [{ body: "Sample message from Tansu consumer" }],
++    };
++    console.log("Running Tansu Lambda Handler with sample event...");
++    await tansuLambdaHandler(sampleEvent);
++    return;
+   }
++
++  console.log(`Run with: ${JSON.stringify(args)}`);
++  return;
+ }
+ 
+-/**
+- * Function that returns diagnostic information.
+- * Useful for testing and internal checks.
+- * 
+- * @returns {string}
+- */
++// Export diagnostics function for external use/testing.
+ export function diagnostics() {
+   return "Diagnostics: All systems operational.";
+ }
+ 
+-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+-  const args = process.argv.slice(2);
+-  main(args);
++// --------------------
++// If run directly, call main() with CLI arguments.
++// Prevent execution during test runs by checking a VITEST flag.
++// --------------------
++if (process.argv[1] === fileURLToPath(import.meta.url) && !process.env.VITEST) {
++  main(process.argv.slice(2)).catch((err) => {
++    log.error("Fatal error:", err);
++    process.exit(1);
++  });
+ }

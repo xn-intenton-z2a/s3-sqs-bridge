@@ -1,0 +1,61 @@
+# compose.yml
+services:
+  tansu-consumer-to-sqs:
+    image: tansu-consumer-to-sqs:latest
+    restart: unless-stopped
+    ports:
+      - 9092:9092
+      - 9100:9100
+    environment:
+      CLUSTER_ID: "${CLUSTER_ID:-tansu-sqs-bridge-cluster-local}"
+      STORAGE_ENGINE: "${STORAGE_ENGINE:-s3://tansu-sqs-bridge-bucket-local/}"
+      CONSUMER_GROUP: "${CONSUMER_GROUP:-tansu-sqs-bridge-group-local}"
+      TOPIC_NAME: "${TOPIC_NAME:-tansu-sqs-bridge-topic-local}"
+      USE_EXISTING_TOPIC: "${USE_EXISTING_TOPIC:-true}"
+      SQS_QUEUE_URL: "${SQS_QUEUE_URL:-https://sqs.region.amazonaws.com/123456789012/tansu-sqs-bridge-queue-local}"
+      #RUST_BACKTRACE: 1
+      #RUST_LOG: warn,tansu_server=debug,tansu_storage=debug,tansu_schema_registry=debug
+      AWS_REGION: ${AWS_REGION:-eu-west-2}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_ENDPOINT: ${AWS_ENDPOINT}
+      AWS_ALLOW_HTTP: "true"
+  minio:
+    image: quay.io/minio/minio
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio:/data
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+    healthcheck:
+      test: timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1
+      interval: 5s
+      retries: 1
+      start_period: 5s
+      timeout: 5s
+  tansu:
+    image: ghcr.io/tansu-io/tansu:0.2.2
+    restart: unless-stopped
+    environment:
+      RUST_BACKTRACE: 1
+      RUST_LOG: warn,tansu_server=debug,tansu_storage=debug,tansu_schema_registry=debug
+      AWS_REGION: ${AWS_REGION:-eu-west-2}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      #AWS_ENDPOINT: ${AWS_ENDPOINT:-https://s3.eu-west-2.amazonaws.com}
+      AWS_ALLOW_HTTP: "true"
+      KAFKA_CLUSTER_ID: ${CLUSTER_ID:-tansu-sqs-bridge-cluster-local}
+    command: |
+      --kafka-cluster-id "${CLUSTER_ID:-tansu-sqs-bridge-cluster-local}"
+      --kafka-listener-url tcp://0.0.0.0:9082/
+      --kafka-advertised-listener-url tcp://localhost:9082
+      --storage-engine "${STORAGE_ENGINE:-s3://tansu-sqs-bridge-bucket-local/}"
+    ports:
+      - 9082:9082
+      - 9180:9100
+volumes:
+  minio:
+    driver: local

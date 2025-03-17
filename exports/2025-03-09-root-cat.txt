@@ -1,0 +1,544 @@
+./README.md
+==== Content of ./README.md ====
+# tansu-sqs-bridge
+
+`tansu-sqs-bridge` is a lightweight Node.js bridge for integrating Kafka with AWS SQS, Lambda functions, and PostgreSQL projections.
+
+Tansu SQS Bridge connects a Kafka‑compatible broker to AWS SQS where messages can trigger Lambda functions. One Lambda logs messages and another builds GitHub projections in a PostgreSQL table.
+
+## Features
+
+- **Kafka to SQS Bridge:** A Dockerized service that listens to Kafka and forwards messages to an SQS queue.
+- **Lambda Integrations:** 
+  - SQS-to-Lambda Logger: Logs received messages.
+  - SQS-to-Lambda GitHub Projection: Processes GitHub events and updates a PostgreSQL projection table.
+- **Enhanced Error Handling:** 
+  - Includes new retryOperation and retryOperationDetailed helpers to support transient error handling and improve SQS message delivery reliability.
+  - Added retryOperationExponential for exponential backoff retries.
+- **Extended Library Functions:** 
+  - Refactored configuration validation into a dedicated loadConfig function.
+  - Added sendMessageToSQS utility for enhanced SQS message sending with integrated retries and logging.
+  - New helper functions: buildSQSMessageParams, isValidResourceEvent, validateKafkaConfig, convertToBoolean, retryOperationDetailed.
+  - **Newly Added:** logWarning, sanitizeInput, retryOperationExponential, isValidJSON, measureExecutionTime, and simulateProjection for additional simulation and performance measurement features.
+- **Robust and Extensible:** Implements modern, maintainable JavaScript with helper functions for parsing events, handling retries, and database updates in line with our mission of reliability and production readiness.
+- **Enhanced Test Coverage:** Improved unit tests with deep mocks to simulate external resource interactions and ensure full code coverage.
+
+## Table of Contents
+
+- [Architecture](#architecture)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Examples](#examples)
+- [Testing](#testing)
+- [Change Log](#change-log)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Architecture
+
+The solution consists of four main parts:
+
+1. **tansu-consumer-to-sqs Container:** A Dockerized Node.js application (in `src/lib/main.js`) that listens to Kafka and forwards messages to an SQS queue.
+
+2. **sqs-to-lambda-logger Lambda:** A Node.js Lambda function that logs incoming SQS messages.
+
+3. **sqs-to-lambda-github-projection Lambda:** A Node.js Lambda function that processes GitHub event messages and updates a PostgreSQL table with resource projections.
+
+4. **AWS Infrastructure:** Provisioned using AWS CDK, including SQS queues, Lambda functions, a PostgreSQL table, and an App Runner service.
+
+## Installation
+
+### Prerequisites
+
+- [Docker](https://www.docker.com/get-started)
+- [Node.js v20+](https://nodejs.org/)
+- [AWS CLI](https://aws.amazon.com/cli/) (configured with proper permissions)
+- [Java JDK 11+](https://openjdk.java.net/)
+- [Apache Maven](https://maven.apache.org/)
+- [AWS CDK 2.x](https://docs.aws.amazon.com/cdk/v2/guide/home.html)
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/your-username/tansu-sqs-bridge.git
+cd tansu-sqs-bridge
+```
+
+### Install Node.js Dependencies
+
+```bash
+npm install
+```
+
+## Usage
+
+### Running in Development Mode
+
+For local development, ensure that the environment is set to development. The application defaults to development mode if NODE_ENV is not set, which supplies default environment values. In production, set the following environment variables:
+
+- BROKER_URL
+- TOPIC_NAME
+- CONSUMER_GROUP
+- SQS_QUEUE_URL
+- PGHOST
+- PGPORT
+- PGUSER
+- PGPASSWORD
+- PGDATABASE
+
+To run the consumer locally:
+
+```bash
+npm run tansu-consumer-to-sqs
+```
+
+(For production, set NODE_ENV to a non-development value and provide the required environment variables.)
+
+### Running the Lambda Functions Locally
+
+Test the Lambda functions (each logs its events):
+
+```bash
+npm run sqs-to-lambda-logger           # Logging Lambda
+npm run sqs-to-lambda-github-projection  # GitHub Projection Lambda
+```
+
+### CLI Help
+
+View the available CLI options by running:
+
+```bash
+node src/lib/main.js --help
+```
+
+New CLI Options:
+
+- `--measure-demo`: Runs a demo to measure execution time for an operation.
+- `--simulate-projection`: Simulates a projection update without real database calls.
+
+### Running Tests
+
+Run all tests using Vitest:
+
+```bash
+npm test
+```
+
+## Examples
+
+### Example Kafka Message
+
+Using the Apache Kafka CLI:
+
+```bash
+echo "Hello, Tansu!" | kafka-console-producer --bootstrap-server localhost:9092 --topic test
+```
+
+The consumer forwards the message to SQS which then triggers the appropriate Lambda function.
+
+### Example GitHub Event Message
+
+Simulate a GitHub event (JSON) being sent to SQS:
+
+```json
+{
+  "resourceType": "repository",
+  "resourceId": "tansu-sqs-bridge",
+  "state": {
+    "stars": 285,
+    "forks": 6,
+    "openIssues": 14
+  }
+}
+```
+
+The GitHub Projection Lambda processes this event and updates the PostgreSQL table.
+
+## Change Log
+
+- **v0.1.5**: Extended features aligning with the mission statement. Legacy drift has been pruned and the code has been refactored for production readiness. The changelog and documentation have been updated to reflect these changes.
+- **v0.1.4**: Pruned deprecated demo features to align with our mission statement. Updated helper functions and enhanced error handling, configuration validation, and performance measurements.
+
+## Deployment
+
+From the `cdk/` directory:
+
+Update CDK anf acknowledge a notification:
+```bash
+cdk bootstrap aws://541134664601/eu-west-2
+cdk acknowledge 32775
+```
+
+Handy cleanup commands:
+```bash
+docker system prune --all --force --volumes
+rm -rf cdk.out
+```
+
+Build the Docker image for the consumer:
+```bash
+docker build -t tansu-consumer-to-sqs ..
+```
+
+Package the CDK, deploy the CDK stack which rebuilds the Docker image, and deploy the AWS infrastructure:
+```bash
+cd cdk
+./mvnw clean package
+npx cdk deploy
+```
+
+This deploys the necessary AWS infrastructure including SQS queues, Lambda functions, PostgreSQL table, and App Runner service.
+
+## Contributing
+
+We welcome contributions! Please review our [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to contribute effectively.
+
+## License
+
+Released under the MIT License (see [LICENSE](./LICENSE)).
+./CONTRIBUTING.md
+==== Content of ./CONTRIBUTING.md ====
+# tansu-sqs-bridge
+
+`tansu-sqs-bridge` Tansu SQS Bridge for integrating Kafka and AWS SQS/Lambda/Postgres projections.
+
+## Mission Statement
+
+Tansu SQS Bridge is an open source bridge between a Tansu Kafka‑compatible broker and AWS SQS. This lightweight solution includes:
+
+- A Dockerized Node.js tansuConsumerToSqs that listens to Tansu messages and forwards them to an SQS queue.
+- A Lambda function that processes Tansu messages from SQS.
+- A new Lambda function that listens to GitHub event messages from a separate SQS queue and creates projections of GitHub resources, storing them in a PostgresDB table for use by other Lambdas.
+- All AWS infrastructure is provisioned using AWS CDK (Java, CDK 2.x).
+
+## Guidelines
+
+- **Code Quality:**  
+  Write modern, maintainable JavaScript using Node 20 and ESM. Consider edge cases when handling container lifecycle events.
+
+- **Testing:**  
+  Robust testing is essential—please add unit and integration tests for all new features.
+
+- **Commit Messages:**  
+  Use clear, descriptive commit messages that summarize your changes effectively.
+
+- **Collaboration:**  
+  Engage actively in GitHub discussions, issues, and PR reviews. Your feedback helps us continually refine tansu-sqs-bridge.
+
+## Agentic contribution house choice options (programmatically parsed): START
+
+Workflow schedule: schedule-3
+
+## Issue House Choice Options
+
+repository specific activities:
+- Create, vary or extend as many library functions as you can that deliver the spirit of this CONTRIBUTING.md Update the Change Log in README.md (or say what was checked).
+
+generic activities:
+- Update the source file by applying the Mission Statement to prune any "drift" from the source file. Update the Change Log in README.md (or say what was checked).
+- Create, vary or extend as many features in the source file as you can inline with the Mission Statement. Update the Change Log in README.md (or say what was checked).
+
+undocumented chores:
+- Refresh the README, consulting the guidance in CONTRIBUTING.md while retaining any relevant content and pruning irrelevant content.
+- Bring test coverage up as close to 100% as possible, have single layer mocked tests and deeper tests mocking at the external resource (e.g. file system or network).
+
+## Agentic contribution house choice options (programmatically parsed): END
+
+unused generic activities:
+- Find anything that might be a "simulated" or "demo" implementation and switch to a real implementation. Update the Change Log in README.md (or say what was checked).
+- Consider alternate code paths that could be explicitly handled to improve the range of supported behaviours. Update the Change Log in README.md (or say what was checked).
+- Look for code that could be simplified using a library and introduce that library. Update the Change Log in README.md (or say what was checked).
+
+unused undocumented chores:
+- Look for any duplicated code that could be usefully abstracted out to become shared code and implement that abstraction.
+- Dry-run any examples in comments or the README against the current code and if they are not accurate or if they could cover more features, update the docs or code to be accurate.
+- Ensure the main function so that it generates some demo output without an over the wire call, and hint a CLI switch that will do the real call.
+
+
+### Deploying the AWS Infrastructure
+
+From the `cdk/` directory:
+
+```bash
+cd cdk
+mvn clean package
+cdk deploy
+```
+
+This deploys the SQS queue, Lambda functions, PostgresDB table, and App Runner service.
+
+## Contributing
+
+We welcome contributions! Please review our [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to contribute effectively.
+
+## License
+
+Released under the MIT License (see [LICENSE](./LICENSE)).
+./package.json
+==== Content of ./package.json ====
+{
+  "name": "@xn-intenton-z2a/tansu-sqs-bridge",
+  "version": "0.1.5",
+  "description": "Tansu SQS Bridge for integrating Kafka, AWS SQS, Lambda, and Postgres projections.",
+  "type": "module",
+  "main": "src/lib/main.js",
+  "scripts": {
+    "build": "echo 'Nothing to build'",
+    "formatting": "prettier --check .",
+    "formatting-fix": "prettier --write .",
+    "linting": "eslint .",
+    "linting-json": "eslint --format=@microsoft/eslint-formatter-sarif .",
+    "linting-fix": "eslint --fix .",
+    "update-to-minor": "npx ncu --upgrade --enginesNode --target minor --verbose --install always",
+    "update-to-greatest": "npx ncu --upgrade --enginesNode --target greatest --verbose --install always --reject 'alpha'",
+    "test": "vitest",
+    "test:unit": "vitest --coverage",
+    "start": "node src/lib/main.js",
+    "diagnostics": "node src/lib/main.js --diagnostics",
+    "sqs-to-lambda-logger": "node src/lib/main.js --sqs-to-lambda-logger",
+    "sqs-to-lambda-github-projection": "node src/lib/main.js --sqs-to-lambda-github-projection",
+    "tansu-consumer-to-sqs": "node src/lib/main.js --tansu-consumer-to-sqs"
+  },
+  "keywords": [
+    "kafka",
+    "sqs",
+    "lambda",
+    "postgres",
+    "aws"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.307.0",
+    "@aws-sdk/client-s3": "^3.307.0",
+    "@aws-sdk/client-sqs": "^3.307.0",
+    "dotenv": "^16.4.7",
+    "kafkajs": "^2.2.4",
+    "pg": "^8.13.3",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@microsoft/eslint-formatter-sarif": "^3.1.0",
+    "@vitest/coverage-v8": "^3.0.8",
+    "aws-cdk": "^2.1003.0",
+    "eslint": "^9.19.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-prettier": "^5.2.3",
+    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-security": "^3.0.1",
+    "eslint-plugin-sonarjs": "^3.0.2",
+    "markdown-it": "^14.1.0",
+    "markdown-it-github": "^0.5.0",
+    "npm-check-updates": "^17.1.15",
+    "prettier": "^3.5.2",
+    "vitest": "^3.0.7"
+  },
+  "overrides": {
+    "rimraf": "^4.0.0",
+    "glob": "^9.3.0",
+    "@humanwhocodes/config-array": "^0.13.0",
+    "@humanwhocodes/object-schema": "^2.0.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "package.json"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
+}
+./vitest.config.js
+==== Content of ./vitest.config.js ====
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  resolve: {
+    alias: {
+      "@dist": "/dist",
+      "@src": "/src",
+      "@tests": "/tests",
+    },
+  },
+  test: {
+    environment: "node",
+    include: ["tests/unit/*.test.js"],
+    coverage: {
+      provider: "v8",
+      reportsDirectory: "./coverage",
+      reporter: ["text", "json", "html"],
+      include: ["src/**/*.js"],
+      exclude: ["**/dist/**", "**/entrypoint/**", "**/tests/**", "**/node_modules/**", "src/index.js", "**/exports/**"],
+      threshold: {
+        statements: 85,
+        branches: 80,
+        functions: 75,
+        lines: 85,
+        perFile: {
+          statements: 70,
+          branches: 60,
+          functions: 40,
+          lines: 70,
+        },
+      },
+    },
+  },
+});
+./jsconfig.json
+==== Content of ./jsconfig.json ====
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "// Also make path changes in vitest.config.js": "",
+    "paths": {
+      "@dist/*": ["dist/*"],
+      "@src/*": ["src/*"],
+      "@tests/*": ["tests/*"]
+    }
+  }
+}
+./eslint.config.js
+==== Content of ./eslint.config.js ====
+import js from "@eslint/js";
+import google from "eslint-config-google";
+import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
+import globals from "globals";
+import promise from "eslint-plugin-promise";
+import security from "eslint-plugin-security";
+import sonarjs from "eslint-plugin-sonarjs";
+import react from "eslint-plugin-react";
+import importPlugin from "eslint-plugin-import";
+
+const modifiedGoogleConfig = { ...google, rules: { ...google.rules } };
+delete modifiedGoogleConfig.rules["valid-jsdoc"];
+delete modifiedGoogleConfig.rules["require-jsdoc"];
+
+/** @type {import('eslint').Linter.FlatConfig[]} */
+export default [
+  js.configs.recommended,
+  modifiedGoogleConfig,
+  eslintPluginPrettierRecommended,
+  {
+    plugins: {
+      promise,
+      security,
+      sonarjs,
+      react,
+      import: importPlugin,
+    },
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: "module",
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      "prettier/prettier": "error",
+      ...promise.configs.recommended.rules,
+      ...sonarjs.configs.recommended.rules,
+      "sonarjs/os-command": "off",
+
+      // Formatting and organisation
+      "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "no-extra-semi": 2,
+      "object-curly-newline": ["error", { consistent: true }],
+      "array-element-newline": ["error", "consistent", { multiline: true, minItems: 10 }],
+      "import/newline-after-import": ["error", { count: 1 }],
+      "camelcase": "off",
+
+      // ESM import rules
+      "import/no-amd": "error",
+      "import/no-commonjs": "error",
+      "import/no-import-module-exports": "error",
+      "import/no-cycle": "error",
+      "import/no-dynamic-require": "error",
+      "import/no-self-import": "off",
+      "import/no-unresolved": "off",
+      "import/no-useless-path-segments": "error",
+      "import/no-duplicates": "error",
+      "sonarjs/fixme-tag": "warn",
+    },
+  },
+  {
+    files: ["**/*.js"],
+    ignores: ["**/tests/**/*.js", "**/*.test.js", "eslint.config.js"],
+    rules: {
+      ...security.configs.recommended.rules,
+      "security/detect-non-literal-fs-filename": "off",
+      "security/detect-non-literal-regexp": "off",
+      "security/detect-object-injection": "off",
+    },
+  },
+  {
+    settings: {
+      react: {
+        version: "18",
+      },
+    },
+  },
+  {
+    ignores: ["build/", "coverage/", "dist/", "exports/", "node_modules/", "eslint.config.js"],
+  },
+];
+./.prettierrc
+==== Content of ./.prettierrc ====
+{
+  "singleQuote": false,
+  "trailingComma": "all",
+  "printWidth": 120,
+  "tabWidth": 2,
+  "useTabs": false,
+  "quoteProps": "consistent",
+  "overrides": [
+    {
+      "files": ".prettierrc",
+      "options": { "parser": "json" }
+    }
+  ]
+}
+./LICENSE
+==== Content of ./LICENSE ====
+MIT License
+
+Copyright (c) 2025 intentïon
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+./.prettierrc
+==== Content of ./.prettierrc ====
+{
+  "singleQuote": false,
+  "trailingComma": "all",
+  "printWidth": 120,
+  "tabWidth": 2,
+  "useTabs": false,
+  "quoteProps": "consistent",
+  "overrides": [
+    {
+      "files": ".prettierrc",
+      "options": { "parser": "json" }
+    }
+  ]
+}
+==== Content of Dockerfile ==== ; -exec cat Dockerfile ;

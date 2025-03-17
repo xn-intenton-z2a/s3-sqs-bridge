@@ -1,0 +1,174 @@
+tests/unit/main.test.js
+==== Content of tests/unit/main.test.js ====
+// tests/unit/main.test.js
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// --- MOCK NETWORK MODULES ---
+// These mocks prevent actual network calls during tests.
+vi.mock("kafkajs", () => {
+  return {
+    Kafka: class {
+      constructor(config) {
+        this.config = config;
+      }
+      consumer({ groupId: _groupId }) {
+        return {
+          connect: async () => {},
+          subscribe: async () => {},
+          run: async (opts) => {
+            if (opts && typeof opts.eachMessage === "function") {
+              await opts.eachMessage({
+                topic: "test",
+                partition: 0,
+                message: { key: Buffer.from("dummy"), value: Buffer.from("dummy"), offset: "0" },
+              });
+            }
+          },
+          disconnect: async () => {},
+        };
+      }
+    },
+  };
+});
+
+vi.mock("@aws-sdk/client-sqs", () => {
+  return {
+    SQSClient: class {},
+    SendMessageCommand: class {
+      constructor(params) {
+        this.params = params;
+      }
+    },
+  };
+});
+
+vi.mock("pg", () => {
+  class FakeClient {
+    async connect() {}
+    async query(query, values) {
+      return { rows: [] };
+    }
+  }
+  return {
+    default: { Client: FakeClient },
+    Client: FakeClient,
+  };
+});
+
+import {
+  main,
+  githubProjectionLambdaHandler,
+  parseMessageBody,
+  buildSQSMessageParams,
+  isValidResourceEvent,
+  sendMessageToSQS,
+  validateKafkaConfig,
+  retryOperationExponential,
+} from "@src/lib/main.js";
+
+describe("Merged Main Module - API Boundary Tests", () => {
+  it("main() should return undefined for all branch invocations", async () => {
+    await expect(main(["--help"]).then(() => undefined)).resolves.toBeUndefined();
+    // Runs on an infinite loop: await expect(main(["--tansu-consumer-to-sqs"]).then(() => undefined)).resolves.toBeUndefined();
+    await expect(main(["--sqs-to-lambda-logger"]).then(() => undefined)).resolves.toBeUndefined();
+    await expect(main(["--sqs-to-lambda-github-projection"]).then(() => undefined)).resolves.toBeUndefined();
+    await expect(main(["random", "args"]).then(() => undefined)).resolves.toBeUndefined();
+  });
+
+  it("githubProjectionLambdaHandler should update projection with valid event", async () => {
+    const sampleEvent = {
+      Records: [
+        {
+          body: JSON.stringify({
+            resourceType: "repository",
+            resourceId: "test-repo",
+            state: { stars: 100 },
+          }),
+        },
+      ],
+    };
+    const result = await githubProjectionLambdaHandler(sampleEvent);
+    expect(result.status).toEqual("success");
+  });
+
+  it("parseMessageBody should return null for invalid JSON", () => {
+    const result = parseMessageBody("invalid-json");
+    expect(result).toBeNull();
+  });
+});
+
+describe("Extended helper functions", () => {
+  it("validateKafkaConfig should return true for valid config", () => {
+    const conf = {
+      BROKER_URL: "broker:9092",
+      TOPIC_NAME: "topic",
+      CONSUMER_GROUP: "group",
+    };
+    expect(validateKafkaConfig(conf)).toBe(true);
+  });
+
+  it("validateKafkaConfig should return false if required fields are missing", () => {
+    const conf = {
+      BROKER_URL: "broker:9092",
+    };
+    expect(validateKafkaConfig(conf)).toBe(false);
+  });
+});
+
+describe("New library helper functions", () => {
+  it("buildSQSMessageParams should construct proper params", () => {
+    const params = buildSQSMessageParams("test", 1, "10", "hello");
+    const expectedQueueUrl = process.env.SQS_QUEUE_URL || "test-sqs-queue-url";
+    expect(params.QueueUrl).toBe(expectedQueueUrl);
+    expect(params.MessageBody).toBe("hello");
+    expect(params.MessageAttributes.Topic.StringValue).toBe("test");
+  });
+
+  it("isValidResourceEvent should return true for valid event", () => {
+    const valid = isValidResourceEvent({ resourceType: "foo", resourceId: "bar" });
+    expect(valid).toBe(true);
+  });
+
+  it("isValidResourceEvent should return false if missing keys", () => {
+    const valid = isValidResourceEvent({ resourceType: "foo" });
+    expect(valid).toBe(false);
+  });
+
+  it("sendMessageToSQS helper should send a message and return dummy message id", async () => {
+    const response = await sendMessageToSQS("test", 2, "15", "hello");
+    expect(response.MessageId).toBe("dummy-message");
+  });
+});
+
+describe("Extended New Helper Functions", () => {
+  it("retryOperationExponential should return value when operation succeeds", async () => {
+    const op = async () => "exp success";
+    const result = await retryOperationExponential(op);
+    expect(result).toEqual("exp success");
+  });
+
+  it("retryOperationExponential should retry and eventually throw error", async () => {
+    let attempts = 0;
+    const op = async () => {
+      attempts++;
+      throw new Error("exp fail");
+    };
+    try {
+      await retryOperationExponential(op, 2, 10);
+    } catch (error) {
+      expect(attempts).toEqual(2);
+      expect(error.message).toEqual("exp fail");
+    }
+  });
+});
+tests/unit/module-index.test.js
+==== Content of tests/unit/module-index.test.js ====
+// tests/unit/module-index.test.js
+import { describe, test, expect } from "vitest";
+import anything from "@src/index.js";
+
+describe("Index Module Exports", () => {
+  test("module index should be defined", () => {
+    expect(anything).toBeUndefined();
+  });
+});
