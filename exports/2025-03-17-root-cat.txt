@@ -1,236 +1,334 @@
 ./README.md
 ==== Content of ./README.md ====
-# tansu-sqs-bridge
+# S3 SQS Bridge (Versioned Event Replay Solution)
 
-`tansu-sqs-bridge` is a lightweight Node.js bridge for integrating Kafka with AWS SQS, Lambda functions, and PostgreSQL projections.
+This repository provides a production-ready, event-driven architecture designed for replaying versioned events stored in an AWS S3 bucket. The solution leverages AWS SQS for reliable event delivery, AWS Lambda for real-time processing, and AWS DynamoDB for durable offset tracking. It is built to run seamlessly in both AWS and local environments (via Docker Compose with MinIO and LocalStack) and has been hardened for security, cost optimization, and operational resilience.
 
-Tansu SQS Bridge connects a Kafka‑compatible broker to AWS SQS where messages can trigger Lambda functions. One Lambda logs messages and another builds GitHub projections in a PostgreSQL table.
+---
 
-## Features
+## Overview
 
-- **Kafka to SQS Bridge:** A Dockerized service that listens to Kafka and forwards messages to an SQS queue.
-- **Lambda Integrations:** 
-  - SQS-to-Lambda Logger: Logs received messages.
-  - SQS-to-Lambda GitHub Projection: Processes GitHub events and updates a PostgreSQL projection table.
+The **S3 SQS Bridge** is engineered to support use cases that require reliable event sourcing and replay capabilities. It ensures that events stored as different versions in S3 can be processed in strict chronological order, making it ideal for audit trails, data reprocessing, and rebuilding application state. Key architectural elements include:
 
-## Table of Contents
+- **Versioned Storage (S3):** All events are stored as versions in an S3 bucket.
+- **Event Replay (Reseed):** Historical events can be replayed in exact order to restore system state.
+- **Real-Time Event Processing:** Incoming events are immediately forwarded to SQS for near real-time processing.
+- **Offset Tracking:** DynamoDB is used to record processing progress for resumable and fault-tolerant replay.
 
-- [Architecture](#architecture)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Examples](#examples)
-- [Testing](#testing)
-- [Change Log](#change-log)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [License](#license)
+---
 
-## Architecture
+## Key Features
 
-The solution consists of four main parts:
+- **Reliable Storage:** Uses an AWS S3 bucket with versioning enabled to persist events.
+- **Event Replay Mechanism:** Supports a reseed job that lists, sorts, and replays S3 object versions in chronological order.
+- **Real-Time Processing:** Forwards S3 events to an SQS queue with built-in exponential backoff and retry logic.
+- **Low Idle Cost:** Designed to run on Fargate Spot with zero desired instances until needed.
+- **Enhanced Security:** Containers run as non-root users; IAM policies follow a least-privilege principle.
+- **Robust Logging and Monitoring:** Structured JSON logs facilitate monitoring and troubleshooting.
 
-1. **tansu-consumer-to-sqs Container:** A Dockerized Node.js application (in `src/lib/main.js`) that listens to Kafka and forwards messages to an SQS queue.
+---
 
-2. **sqs-to-lambda-logger Lambda:** A Node.js Lambda function that logs incoming SQS messages.
+## Project Structure
 
-3. **sqs-to-lambda-github-projection Lambda:** A Node.js Lambda function that processes GitHub event messages and updates a PostgreSQL table with resource projections.
+```text
+.
+├── Dockerfile
+├── package.json
+├── cdk.json
+├── pom.xml
+├── compose.yml
+├── entrypoint.sh
+├── src/lib/main.js
+├── aws/main/java/com/intention/S3SqsBridge/S3SqsBridgeStack.java
+├── aws/test/java/com/intentïon/S3SqsBridge/S3SqsBridgeStackTest.java
+└── tests/unit/main.test.js
+```
 
-4. **AWS Infrastructure:** Provisioned using AWS CDK, including SQS queues, Lambda functions, a PostgreSQL table, and an AppRunner service.
+Additional files include GitHub workflows (for CI/CD and maintenance scripts) and various helper scripts under the `scripts/` directory.
 
-## Installation
+---
+
+## Getting Started Locally
 
 ### Prerequisites
 
-- [Docker](https://www.docker.com/get-started)
-- [Node.js v20+](https://nodejs.org/)
-- [AWS CLI](https://aws.amazon.com/cli/) (configured with proper permissions)
-- [Java JDK 11+](https://openjdk.java.net/)
-- [Apache Maven](https://maven.apache.org/)
-- [AWS CDK 2.x](https://docs.aws.amazon.com/cdk/v2/guide/home.html)
+- [Docker Compose](https://docs.docker.com/compose/)
+- [MinIO Client (mc)](https://docs.min.io/docs/minio-client-quickstart-guide.html)
 
-### Clone the Repository
+### Start Local Services
 
-```bash
-git clone https://github.com/your-username/tansu-sqs-bridge.git
-cd tansu-sqs-bridge
-```
+1. **Launch MinIO and LocalStack:**
 
-### Install Node.js Dependencies
+   ```bash
+   docker compose up --detach
+   ```
 
-```bash
-npm install
-```
+   The Compose file sets up:
+   - **MinIO:** Simulates AWS S3 at [http://localhost:9000](http://localhost:9000) (console at port 9001).
+   - **LocalStack:** Simulates AWS S3 and SQS endpoints at [http://localhost:4566](http://localhost:4566).
 
-## Usage
+2. **Create a Bucket in MinIO:**
 
-### Running in Development Mode
+   ```bash
+   mc alias set local http://localhost:9000 minioadmin minioadmin
+   mc mb local/s3-sqs-bridge-bucket
+   mc version enable local/s3-sqs-bridge-bucket
+   ```
 
-To run a producer locally, use the following command:
+3. **Run the Consumer Service:**
 
-```bash
+   ```bash
+   docker compose up --build --detach consumer
+   ```
 
+   The consumer service listens for S3 events and forwards them to SQS using environment variables configured to target MinIO and LocalStack.
 
-For local development, ensure that the environment is set to development. The application 
-defaults to development mode if NODE_ENV is not set, which supplies default environment
-values. In production, set the following environment variables:
+4. **Trigger the Reseed Job:**
 
-- BROKER_URL
-- TOPIC_NAME
-- CONSUMER_GROUP
-- SQS_QUEUE_URL - get from localstack
+   ```bash
+   docker compose run --rm consumer node src/lib/main.js --reseed
+   ```
 
-Development values:
-```
-BROKER_URL: "localhost:9092"
-TOPIC_NAME: "test"
-CONSUMER_GROUP: "tansu-sqs-bridge-group"
-SQS_QUEUE_URL: "https://sqs.eu-west-2.amazonaws.com/541134664601/tansu-sqs-bridge-queue"
-```
+   This command replays all S3 events (i.e. object versions) in chronological order by sending messages to SQS.
 
-To run the consumer locally:
-
-```bash
-npm run tansu-consumer-to-sqs
-```
-
-(For production, set NODE_ENV to a non-development value and provide the required environment variables.)
-
-### Running the Lambda Functions Locally
-
-Test the Lambda functions (each logs its events):
-
-```bash
-npm run sqs-to-lambda-logger           # Logging Lambda
-npm run sqs-to-lambda-github-projection  # GitHub Projection Lambda
-```
-
-### CLI Help
-
-View the available CLI options by running:
-
-```bash
-node src/lib/main.js --help
-```
-
-### Running Tests
-
-Run all tests using Vitest:
-
-```bash
-npm test
-```
-
-## Examples
-
-### Example Kafka Message
-
-Using the Apache Kafka CLI:
-
-```bash
-echo "Hello, Tansu!" | kafka-console-producer --bootstrap-server localhost:9092 --topic test
-```
-
-The consumer forwards the message to SQS which then triggers the appropriate Lambda function.
-
-### Example GitHub Event Message
-
-Simulate a GitHub event (JSON) being sent to SQS:
-
-```json
-{
-  "resourceType": "repository",
-  "resourceId": "tansu-sqs-bridge",
-  "state": {
-    "stars": 285,
-    "forks": 6,
-    "openIssues": 14
-  }
-}
-```
-
-The GitHub Projection Lambda processes this event and updates the PostgreSQL table.
-
-## Change Log
-
-- **v0.1.5**: Extended features aligning with the mission statement. Legacy drift has been pruned and the code has been refactored for production readiness. The changelog and documentation have been updated to reflect these changes.
-- **v0.1.4**: Pruned deprecated demo features to align with our mission statement. Updated helper functions and enhanced error handling, configuration validation, and performance measurements.
-
-## Running locally
-
-### Consumer
-
-Build the Docker image for the consumer:
-```bash
-docker build -t tansu-consumer-to-sqs .
-```
-
-To run the consumer, use the following command:
-```bash
-docker compose up -d tansu-consumer-to-sqs
-```
-
-Create a topic with the Kafka CLI:
-```shell
-kafka-topics \
-  --bootstrap-server localhost:9092 \
-  --create --topic test
-...
-[2025-03-14 01:41:44,888] WARN [AdminClient clientId=adminclient-1] Connection to node -1 (localhost/127.0.0.1:9092) could not be established. Node may not be available. (org.apache.kafka.clients.NetworkClient)
-[2025-03-14 01:41:44,993] WARN [AdminClient clientId=adminclient-1] Connection to node -1 (localhost/127.0.0.1:9092) could not be established. Node may not be available. (org.apache.kafka.clients.NetworkClient)
-...
-Created topic test.
-```
-
-List topics with the Kafka CLI (expecting the test topic):
-```shell
-kafka-topics \
-  --bootstrap-server localhost:9092 \
-  --list
-test
-```
+---
 
 ## Deployment to AWS
 
-Package the CDK, deploy the CDK stack which rebuilds the Docker image, and deploy the AWS infrastructure:
-```bash
-./mvnw clean package
-npx cdk deploy
-```
-This deploys the necessary AWS infrastructure including SQS queues, Lambda functions, PostgreSQL table, and App Runner service.
+### Prerequisites
 
-### Handy Commands
+- [Node.js 20+](https://nodejs.org/)
+- [AWS CDK v2](https://docs.aws.amazon.com/cdk/latest/guide/home.html)
+- [Maven](https://maven.apache.org/)
 
-Handy cleanup commands:
-```bash
-docker system prune --all --force --volumes
-rm -rf cdk.out
+### Deploy the Stack
+
+1. **Install Dependencies:**
+
+   ```bash
+   npm install
+   mvn install
+   ```
+
+2. **Bootstrap the CDK Environment:**
+
+   ```bash
+   cdk bootstrap
+   ```
+
+3. **Deploy the Infrastructure:**
+
+   ```bash
+   cdk deploy S3SqsBridgeStack
+   ```
+
+   This deployment provisions:
+   - A versioned S3 bucket.
+   - An SQS queue for event delivery.
+   - A DynamoDB table for offset tracking.
+   - A Docker-based consumer and reseed job running on Fargate Spot (or AppRunner).
+   - (Optional) AWS Lambda functions for real-time event processing.
+
+4. **Test the CDK Stack:**
+
+   ```bash
+   mvn test
+   ```
+
+---
+
+## Source Implementation Details
+
+The core logic is implemented in the unified CLI entry at `src/lib/main.js`. It supports multiple modes of operation:
+
+- **Real-Time Lambda Handler:** For use as an AWS Lambda function.
+- **Reseed Job:** For replaying all historical events.
+- **Health Check Server:** For container health monitoring.
+
+### Pseudocode Example: Core Reseed Algorithm
+
+Below is a pseudocode fragment that introduces the actual implementation of the reseed algorithm:
+
+```javascript
+// Pseudocode: List and sort all object versions from the bucket.
+async function listAndSortAllObjectVersions() {
+  let versions = [];
+  let params = { Bucket: BUCKET_NAME };
+  do {
+    const response = await s3.send(new ListObjectVersionsCommand(params));
+    versions.push(...response.Versions);
+    // Set markers for pagination.
+    params.KeyMarker = response.NextKeyMarker;
+    params.VersionIdMarker = response.NextVersionIdMarker;
+  } while (response.IsTruncated);
+
+  // Sort versions by last modified date (chronologically).
+  return versions.sort((a, b) => new Date(a.LastModified) - new Date(b.LastModified));
+}
 ```
 
-Update CDK anf acknowledge a notification:
-```bash
-cdk bootstrap aws://541134664601/eu-west-2
-cdk acknowledge 32775
-```
+### Actual Implementation Snippets
+
+- **Reseed Logic:**
+
+  ```javascript
+  export async function reseed() {
+    logInfo(`Starting reseed job for bucket ${config.BUCKET_NAME}`);
+    const versions = await listAndSortAllObjectVersions();
+    logInfo(`Processing ${versions.length} versions...`);
+    for (const version of versions) {
+      const event = {
+        bucket: config.BUCKET_NAME,
+        key: version.Key,
+        versionId: version.VersionId,
+        eventTime: version.LastModified
+      };
+      await sendEventToSqs(event);
+    }
+    logInfo('Reseed job complete.');
+  }
+  ```
+
+- **Real-Time Event Handler:**
+
+  ```javascript
+  export async function realtimeLambdaHandler(event) {
+    logInfo(`Received realtime event: ${JSON.stringify(event)}`);
+    for (const record of event.Records) {
+      const { s3 } = record;
+      const eventDetail = {
+        bucket: s3.bucket.name,
+        key: s3.object.key,
+        eventTime: record.eventTime,
+        versionId: s3.object.versionId,
+        sequencer: s3.object.sequencer
+      };
+      await sendEventToSqs(eventDetail);
+    }
+  }
+  ```
+
+These fragments, along with robust retry logic and structured logging, ensure that events are processed reliably under production conditions.
+
+---
+
+## Running Integration Tests
+
+- **Unit Tests (JavaScript):**
+
+  ```bash
+  npm run test:unit
+  ```
+
+- **CDK Stack Tests (Java):**
+
+  ```bash
+  mvn test
+  ```
+
+Tests have been enhanced to cover event ordering, replay functionality, configuration validation, and error handling.
+
+---
+
+## Cost Analysis
+
+| Resource            | Idle Cost         | Active Cost          | Notes                           |
+|---------------------|-------------------|----------------------|---------------------------------|
+| **S3**              | Near-zero         | $0.023/GB            | Highly cost-effective           |
+| **Lambda**          | Near-zero         | $0.20/million calls  | Efficient and event-driven      |
+| **SQS**             | Near-zero         | $0.40/million msgs   | Economical for high-volume msgs |
+| **Fargate (Spot)**  | Zero (when idle)  | ~$0.012/hour         | Optimal for non-constant loads  |
+| **DynamoDB**        | Near-zero         | Minimal ($1/million) | Very low cost                   |
+
+---
+
+## Due Diligence & Throughput Considerations
+
+### Performance
+
+- **High Throughput:** Leverages AWS-managed services (Lambda, SQS) for scalable, low-latency processing.
+- **Optimized Reseed:** Fargate/AppRunner tasks for reseed jobs are optimized for quick start and minimal overhead.
+
+### Resilience
+
+- **Offset Tracking:** Uses DynamoDB to maintain replay progress, ensuring continuity.
+- **Retry Mechanisms:** Exponential backoff for AWS SDK calls improves resilience against transient errors.
+
+### Scalability
+
+- **Serverless Architecture:** Automatically scales with demand, suitable for enterprise workloads.
+- **Cost-Effective:** Utilizes Fargate Spot and low-cost AWS services to minimize idle costs.
+
+---
+
+## Quick Deployment Guide
+
+1. **Clone the Repository and Install Dependencies:**
+
+   ```bash
+   git clone <repository-url>
+   cd s3-sqs-bridge
+   npm install
+   mvn install
+   ```
+
+2. **Deploy the AWS Infrastructure:**
+
+   ```bash
+   cdk bootstrap
+   cdk deploy S3SqsBridgeStack
+   ```
+
+3. **Build and Run the Docker Image:**
+
+   ```bash
+   docker build -t s3-sqs-bridge .
+   ```
+
+4. **Run Locally (using Docker Compose):**
+
+   ```bash
+   docker compose up --detach
+   ```
+
+5. **Trigger the Reseed Job:**
+
+   ```bash
+   docker compose run --rm consumer node src/lib/main.js --reseed
+   ```
+
+---
 
 ## Contributing
 
-We welcome contributions! Please review our [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to contribute effectively.
+We welcome contributions from the community. Please review the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines on:
+
+- Code quality and style (modern JavaScript using Node 20 with ESM)
+- Testing and continuous integration requirements
+- Commit message conventions and branching strategies
+
+Whether you’re looking to use the solution as-is or fork it to build new features, your feedback and contributions help us improve the robustness and utility of the S3 SQS Bridge.
+
+---
 
 ## License
 
-Released under the MIT License (see [LICENSE](./LICENSE)).
-./CONTRIBUTING.md
-==== Content of ./CONTRIBUTING.md ====
-# tansu-sqs-bridge
+Distributed under the [MIT License](LICENSE).
 
-`tansu-sqs-bridge` Tansu SQS Bridge for integrating Kafka and AWS SQS/Lambda/Postgres projections.
+---
+
+This README provides a thorough guide for users and contributors alike, covering all aspects from local development and testing to production deployment on AWS. The included pseudocode fragments illustrate the core logic of the solution while the detailed instructions ensure that you can deploy, run, and extend the solution with confidence../CONTRIBUTING.md
+==== Content of ./CONTRIBUTING.md ====
+# s3-sqs-bridge
+
+`s3-sqs-bridge` S3 SQS Bridge for integrating Kafka and AWS SQS/Lambda/Postgres projections.
 
 ## Mission Statement
 
-Tansu SQS Bridge is an open source bridge between a Tansu Kafka‑compatible broker and AWS SQS. This lightweight solution includes:
+S3 SQS Bridge is an open source bridge between a S3 Kafka‑compatible broker and AWS SQS. This lightweight solution includes:
 
-- A Dockerized Node.js tansuConsumerToSqs that listens to Tansu messages and forwards them to an SQS queue.
-- A Lambda function that processes Tansu messages from SQS.
+- A Dockerized Node.js s3ConsumerToSqs that listens to S3 messages and forwards them to an SQS queue.
+- A Lambda function that processes S3 messages from SQS.
 - A new Lambda function that listens to GitHub event messages from a separate SQS queue and creates projections of GitHub resources, storing them in a PostgresDB table for use by other Lambdas.
 - All AWS infrastructure is provisioned using AWS CDK (Java, CDK 2.x).
 
@@ -246,7 +344,7 @@ Tansu SQS Bridge is an open source bridge between a Tansu Kafka‑compatible bro
   Use clear, descriptive commit messages that summarize your changes effectively.
 
 - **Collaboration:**  
-  Engage actively in GitHub discussions, issues, and PR reviews. Your feedback helps us continually refine tansu-sqs-bridge.
+  Engage actively in GitHub discussions, issues, and PR reviews. Your feedback helps us continually refine s3-sqs-bridge.
 
 ## Agentic contribution house choice options (programmatically parsed): START
 
@@ -303,9 +401,9 @@ Released under the MIT License (see [LICENSE](./LICENSE)).
 ./package.json
 ==== Content of ./package.json ====
 {
-  "name": "@xn-intenton-z2a/tansu-sqs-bridge",
+  "name": "@xn-intenton-z2a/s3-sqs-bridge",
   "version": "0.1.5",
-  "description": "Tansu SQS Bridge for integrating Kafka, AWS SQS, Lambda, and Postgres projections.",
+  "description": "S3 SQS Bridge for integrating Kafka, AWS SQS, Lambda, and Postgres projections.",
   "type": "module",
   "main": "src/lib/main.js",
   "scripts": {
@@ -323,7 +421,7 @@ Released under the MIT License (see [LICENSE](./LICENSE)).
     "diagnostics": "node src/lib/main.js",
     "sqs-to-lambda-logger": "node src/lib/main.js --sqs-to-lambda-logger",
     "sqs-to-lambda-github-projection": "node src/lib/main.js --sqs-to-lambda-github-projection",
-    "tansu-consumer-to-sqs": "node src/lib/main.js --tansu-consumer-to-sqs"
+    "s3-consumer-to-sqs": "node src/lib/main.js --s3-consumer-to-sqs"
   },
   "keywords": [
     "kafka",
@@ -347,7 +445,8 @@ Released under the MIT License (see [LICENSE](./LICENSE)).
   "devDependencies": {
     "@microsoft/eslint-formatter-sarif": "^3.1.0",
     "@vitest/coverage-v8": "^3.0.8",
-    "aws-cdk": "^2.1003.0",
+    "aws-cdk": "^2.1004.0",
+    "esbuild": "^0.25.1",
     "eslint": "^9.22.0",
     "eslint-config-google": "^0.14.0",
     "eslint-config-prettier": "^10.1.1",

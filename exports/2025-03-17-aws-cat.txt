@@ -1,0 +1,326 @@
+==== Content of pom.xml ====
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.xn-intenton-z2a</groupId>
+    <artifactId>s3-sqs-bridge</artifactId>
+    <version>0.0.1</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <cdk.version>2.182.0</cdk.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <!-- AWS CDK library consolidates all AWS CDK modules for v2 -->
+        <dependency>
+            <groupId>software.amazon.awscdk</groupId>
+            <artifactId>aws-cdk-lib</artifactId>
+            <version>${cdk.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.constructs</groupId>
+            <artifactId>constructs</artifactId>
+            <version>10.1.60</version>
+        </dependency>
+        <!-- JUnit 5 for testing -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.9.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>5.9.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>uk.org.webcompere</groupId>
+            <artifactId>system-stubs-jupiter</artifactId>
+            <version>2.1.7</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- Change the default source directories -->
+        <sourceDirectory>aws/main/java</sourceDirectory>
+        <testSourceDirectory>aws/test/java</testSourceDirectory>
+
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+                <configuration>
+                    <!-- Run tests in the same JVM -->
+                    <forkCount>0</forkCount>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+==== Content of cdk.json ====
+{
+  "app": "mvn -e -q compile exec:java",
+  "context": {
+    "s3BucketName": "s3-sqs-bridge-bucket",
+    "s3ObjectPrefix": "s3-sqs-bridge-cluster",
+    "s3UseExistingBucket": "false",
+    "s3RetainBucket": "false",
+    "sqsQueueName": "s3-sqs-bridge-queue",
+    "tableName": "s3-sqs-bridge-table",
+    "lambdaRuntime": "nodejs20.x",
+    "lambdaTarget": "es2020",
+    "lambdaFormat": "ESM",
+    "lambdaEntry": "src/lib/main.js",
+    "lambdaFunctionName": "loggingLambdaHandler",
+    "lambdaLogLevel": "INFO",
+    "taskPort": "8080",
+    "taskServiceName": "s3-sqs-bridge-reseed",
+    "taskCpu": "1024",
+    "taskMemory": "2048"
+  }
+}
+aws/test/java/com/intentïon/S3SqsBridge/S3SqsBridgeStackTest.java
+==== Content of aws/test/java/com/intentïon/S3SqsBridge/S3SqsBridgeStackTest.java ====
+package com.intentïon.S3SqsBridge;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import software.amazon.awscdk.App;
+import software.amazon.awscdk.assertions.Template;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@ExtendWith(SystemStubsExtension.class)
+public class S3SqsBridgeStackTest {
+
+    @SystemStub
+    private EnvironmentVariables variables =
+            new EnvironmentVariables(
+                    "AWS_ARN_PRINCIPLE", "arn:aws:iam::123456789012:user/test",
+                "STORAGE_BUCKET_NAME", "s3-sqs-bridge-bucket-test",
+                "USE_EXISTING_BUCKET", "false",
+                "RETAIN_BUCKET", "false",
+                "STORAGE_ENGINE", "memory://s3/",
+                "CLUSTER_ID", "s3-sqs-bridge-cluster-test",
+                "CONSUMER_GROUP", "s3-sqs-bridge-group-test",
+                "TOPIC_NAME", "s3-sqs-bridge-topic-test",
+                "USE_EXISTING_TOPIC", "false",
+                "SQS_QUEUE_NAME", "s3-sqs-bridge-queue-test",
+                "LAMBDA_RUNTIME", "nodejs20.x",
+                "LAMBDA_TARGET", "es2020",
+                "LAMBDA_FORMAT", "ESM",
+                "LAMBDA_ENTRY", "src/lib/main.js",
+                "LAMBDA_FUNCTION_NAME", "loggingLambdaHandler",
+                "LAMBDA_LOG_LEVEL", "INFO",
+                "APP_RUNNER_PORT", "8080",
+                "APP_RUNNER_SERVICE_NAME", "s3-sqs-bridge-consumer-test",
+                "APP_RUNNER_CPU", "1024",
+                "APP_RUNNER_MEMORY", "2048"
+            );
+
+    @Test
+    void hasAccessToEnvironmentVariables() {
+        // assert System.getenv("STORAGE_BUCKET_NAME") isEqualTo "s3-sqs-bridge-bucket-test"
+        assertEquals(System.getenv("STORAGE_BUCKET_NAME"), "s3-sqs-bridge-bucket-test");
+    }
+
+    @Test
+    public void testStackResources() {
+        App app = new App();
+        String var = System.getenv("STORAGE_BUCKET_NAME");
+        S3SqsBridgeStack stack = new S3SqsBridgeStack(app, "TestStack");
+        Template template = Template.fromStack(stack);
+        // Verify that one SQS queue is created
+        template.resourceCountIs("AWS::SQS::Queue", 1);
+        // Verify that one Lambda function is created
+        //template.resourceCountIs("AWS::Lambda::Function", 1);
+        // Verify that one App Runner service is created
+        template.resourceCountIs("AWS::AppRunner::Service", 1);
+    }
+}
+aws/main/java/com/intentïon/S3SqsBridge/S3SqsBridgeApp.java
+==== Content of aws/main/java/com/intentïon/S3SqsBridge/S3SqsBridgeApp.java ====
+package com.intentïon.S3SqsBridge;
+
+import software.amazon.awscdk.App;
+
+public class S3SqsBridgeApp {
+    public static void main(final String[] args) {
+        App app = new App();
+        new S3SqsBridgeStack(app, "S3SqsBridgeStack");
+        app.synth();
+    }
+}
+aws/main/java/com/intentïon/S3SqsBridge/S3SqsBridgeStack.java
+==== Content of aws/main/java/com/intentïon/S3SqsBridge/S3SqsBridgeStack.java ====
+package com.intentïon.S3SqsBridge;
+
+import software.amazon.awscdk.*;
+import software.amazon.awscdk.services.ecr.assets.DockerImageAsset;
+import software.amazon.awscdk.services.ecs.*;
+import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
+import software.amazon.awscdk.services.iam.*;
+import software.amazon.awscdk.services.iam.PolicyDocument;
+import software.amazon.awscdk.services.iam.PolicyStatement;
+import software.amazon.awscdk.services.s3.*;
+import software.amazon.awscdk.services.sqs.Queue;
+import software.constructs.Construct;
+
+import java.util.*;
+
+public class S3SqsBridgeStack extends Stack {
+
+    public S3SqsBridgeStack(final Construct scope, final String id, final StackProps props) {
+        super(scope, id, props);
+
+        final String bucketName = getConfigValue("s3BucketName");
+        final boolean useExistingBucket = Boolean.parseBoolean(getConfigValue("s3UseExistingBucket"));
+        final boolean retainBucket = Boolean.parseBoolean(getConfigValue("s3RetainBucket"));
+        final String queueName = getConfigValue("sqsQueueName");
+        final String taskServiceName = getConfigValue("taskServiceName");
+        final int taskCpu = Integer.parseInt(getConfigValue("taskCpu"));
+        final int taskMemory = Integer.parseInt(getConfigValue("taskMemory"));
+        final int taskPort = Integer.parseInt(getConfigValue("taskPort"));
+
+        // S3 Bucket creation with versioning and appropriate removal policies.
+        Bucket s3Bucket;
+        if (useExistingBucket) {
+            s3Bucket = Bucket.fromBucketName(this, "ExistingBucket", bucketName);
+        } else {
+            s3Bucket = Bucket.Builder.create(this, "EventBucket")
+                    .bucketName(bucketName)
+                    .versioned(true)
+                    .removalPolicy(retainBucket ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY)
+                    .autoDeleteObjects(!retainBucket)
+                    .build();
+        }
+
+        // SQS Queue for events.
+        Queue eventQueue = Queue.Builder.create(this, "EventQueue")
+                .queueName(queueName)
+                .visibilityTimeout(Duration.seconds(300))
+                .build();
+
+        // Refined IAM Role for ECS Tasks with least-privilege inline policies.
+        PolicyStatement s3Policy = PolicyStatement.Builder.create()
+                .actions(Arrays.asList("s3:GetObject", "s3:ListBucket"))
+                .resources(Arrays.asList(s3Bucket.getBucketArn(), s3Bucket.getBucketArn() + "/*"))
+                .build();
+
+        PolicyStatement sqsPolicy = PolicyStatement.Builder.create()
+                .actions(Arrays.asList("sqs:SendMessage"))
+                .resources(Arrays.asList(eventQueue.getQueueArn()))
+                .build();
+
+        PolicyStatement logsPolicy = PolicyStatement.Builder.create()
+                .actions(Arrays.asList("logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"))
+                .resources(Arrays.asList("*"))
+                .build();
+
+        Role ecsTaskRole = Role.Builder.create(this, "EcsTaskRole")
+                .assumedBy(new ServicePrincipal("ecs-tasks.amazonaws.com"))
+                .inlinePolicies(Map.of(
+                        "TaskPolicy", PolicyDocument.Builder.create()
+                                .statements(Arrays.asList(s3Policy, sqsPolicy, logsPolicy))
+                                .build()
+                ))
+                .build();
+
+        // Docker Image for the reseed task.
+        DockerImageAsset dockerImage = DockerImageAsset.Builder.create(this, "DockerImage")
+                .directory("./") // Project root containing Dockerfile
+                .build();
+
+        // ECS Cluster and Fargate Task Definition (using Spot for cost optimization).
+        Cluster cluster = Cluster.Builder.create(this, "Cluster").build();
+
+        FargateTaskDefinition taskDefinition = FargateTaskDefinition.Builder.create(this, "TaskDefinition")
+                .cpu(taskCpu)
+                .memoryLimitMiB(taskMemory)
+                .taskRole(ecsTaskRole)
+                .build();
+
+        ContainerDefinition container = taskDefinition.addContainer("ReseedContainer",
+                ContainerDefinitionOptions.builder()
+                        .image(ContainerImage.fromDockerImageAsset(dockerImage))
+                        .logging(LogDriver.awsLogs(AwsLogDriverProps.builder()
+                                .streamPrefix(taskServiceName)
+                                .build()))
+                        .environment(Map.of(
+                                "BUCKET_NAME", bucketName,
+                                "QUEUE_URL", eventQueue.getQueueUrl(),
+                                "AWS_REGION", this.getRegion()
+                        ))
+                        .build());
+
+        container.addPortMappings(PortMapping.builder()
+                .containerPort(taskPort)
+                .protocol(Protocol.TCP)
+                .build());
+
+        // Fargate Service using Spot Instances for reseed job.
+        ApplicationLoadBalancedFargateService reseedService = ApplicationLoadBalancedFargateService.Builder.create(this, "ReseedService")
+                .cluster(cluster)
+                .serviceName(taskServiceName)
+                .cpu(taskCpu)
+                .memoryLimitMiB(taskMemory)
+                .taskDefinition(taskDefinition)
+                .desiredCount(0) // Start with 0; scale when needed.
+                .capacityProviderStrategies(List.of(
+                        CapacityProviderStrategy.builder()
+                                .capacityProvider("FARGATE_SPOT")
+                                .weight(1)
+                                .build()
+                ))
+                .publicLoadBalancer(false)
+                .build();
+
+        // Grant the ECS task role permission to send messages and read the bucket.
+        eventQueue.grantSendMessages(ecsTaskRole);
+        s3Bucket.grantRead(ecsTaskRole);
+
+        // Outputs for post-deployment verification.
+        CfnOutput.Builder.create(this, "BucketName")
+                .value(s3Bucket.getBucketName())
+                .build();
+
+        CfnOutput.Builder.create(this, "QueueUrl")
+                .value(eventQueue.getQueueUrl())
+                .build();
+
+        CfnOutput.Builder.create(this, "EcsClusterArn")
+                .value(cluster.getClusterArn())
+                .build();
+
+        CfnOutput.Builder.create(this, "TaskRoleArn")
+                .value(ecsTaskRole.getRoleArn())
+                .build();
+    }
+
+    private String getConfigValue(String key) {
+        Object value = this.getNode().tryGetContext(key);
+        if (value == null || value.toString().isEmpty()) {
+            throw new IllegalArgumentException("Missing required context key: " + key);
+        }
+        return value.toString();
+    }
+}

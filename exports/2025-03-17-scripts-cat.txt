@@ -29,6 +29,7 @@ scripts/archive.sh
 # This file is licensed under the MIT License. For details, see LICENSE-MIT
 
 intention="$(head -1 CONTRIBUTING.md | sed 's/^# //')"
+mkdir -p 'archive/'
 cp -fv CONTRIBUTING.md "archive/${intention?}-$(date +%Y-%m-%d)-CONTRIBUTING.md"
 cp -fv README.md "archive/${intention?}-$(date +%Y-%m-%d)-README.md"
 cp -fv package.json "archive/${intention?}-$(date +%Y-%m-%d)-package.json"
@@ -56,6 +57,7 @@ fi
 echo "Workflow schedule: schedule-${schedule?}"
 ./scripts/activate-schedule.sh "${schedule?}"
 git add .github/workflows/*
+git add scripts/*
 git commit -m 'Update from agentic-lib'
 git pull
 git push
@@ -70,8 +72,8 @@ scripts/export-source.sh
 # This file is licensed under the MIT License. For details, see LICENSE-MIT
 #
 
-mkdir -p './exports/'
-find "." -type f -not -path '*/build/*' -not -path '*/dist/*' -not -path '*/exports/*' -not -path '*/coverage/*' -not -path '*/node_modules/*' -not -path '*/\.git/*' -not -path '*/\.idea/*' -print | grep -v '.DS_Store' > "exports/$(date +%Y-%m-%d)-files-list.txt"
+mkdir -p 'exports/'
+find "." -type f -not -path '*/build/*' -not -path '*/target/*' -not -path '*/cdk.out/*' -not -path '*/dist/*' -not -path '*/exports/*' -not -path '*/coverage/*' -not -path '*/node_modules/*' -not -path '*/\.git/*' -not -path '*/\.idea/*' -print | grep -v '.DS_Store' > "exports/$(date +%Y-%m-%d)-files-list.txt"
 find "." -maxdepth 1 -type f -name '*.md' -print -exec echo "==== Content of {} ====" \; -exec cat {} \; > "exports/$(date +%Y-%m-%d)-root-cat.txt"
 find "." -maxdepth 1 -type f -name 'package.json' -print -exec echo "==== Content of {} ====" \; -exec cat {} \; >> "exports/$(date +%Y-%m-%d)-root-cat.txt"
 find "." -maxdepth 1 -type f -name 'vitest.config.js' -print -exec echo "==== Content of {} ====" \; -exec cat {} \; >> "exports/$(date +%Y-%m-%d)-root-cat.txt"
@@ -80,8 +82,11 @@ find "." -maxdepth 1 -type f -name 'eslint.config.js' -print -exec echo "==== Co
 find "." -maxdepth 1 -type f -name '.prettierrc' -print -exec echo "==== Content of {} ====" \; -exec cat {} \; >> "exports/$(date +%Y-%m-%d)-root-cat.txt"
 find "." -maxdepth 1 -type f -name 'LICENSE' -print -exec echo "==== Content of {} ====" \; -exec cat {} \; >> "exports/$(date +%Y-%m-%d)-root-cat.txt"
 find "." -maxdepth 1 -type f -name '.prettierrc' -print -exec echo "==== Content of {} ====" \; -exec cat {} \; >> "exports/$(date +%Y-%m-%d)-root-cat.txt"
-if [[ -e "Dockerfile" ]] ; then echo "==== Content of Dockerfile ====" \; -exec cat Dockerfile \; >> "exports/$(date +%Y-%m-%d)-root-cat.txt" ; fi
-if [[ -e "cdk" ]] ; then find "cdk/src" -type f -print -exec echo "==== Content of {} ====" \; -exec cat {} \; > "exports/$(date +%Y-%m-%d)-cdk-cat.txt" ; fi
+if [[ -e "Dockerfile" ]] ; then echo "==== Content of Dockerfile ====" > "exports/$(date +%Y-%m-%d)-docker-cat.txt" ; cat Dockerfile >> "exports/$(date +%Y-%m-%d)-docker-cat.txt" ; fi
+if [[ -e "compose.yml" ]] ; then echo "==== Content of compose.yml ====" >> "exports/$(date +%Y-%m-%d)-docker-cat.txt" ; cat compose.yml >> "exports/$(date +%Y-%m-%d)-docker-cat.txt" ; fi
+if [[ -e "pom.xml" ]] ; then echo "==== Content of pom.xml ====" > "exports/$(date +%Y-%m-%d)-aws-cat.txt" ; cat pom.xml >> "exports/$(date +%Y-%m-%d)-aws-cat.txt" ; fi
+if [[ -e "cdk.json" ]] ; then echo "==== Content of cdk.json ====" >> "exports/$(date +%Y-%m-%d)-aws-cat.txt" ; cat cdk.json >> "exports/$(date +%Y-%m-%d)-aws-cat.txt" ; fi
+if [[ -e "aws" ]] ; then find "aws" -type f -name '*.java' -print -exec echo "==== Content of {} ====" \; -exec cat {} \; >> "exports/$(date +%Y-%m-%d)-aws-cat.txt" ; fi
 find "src" -type f -name '*.js' -print -exec echo "==== Content of {} ====" \; -exec cat {} \; > "exports/$(date +%Y-%m-%d)-src-cat.txt"
 find "tests" -type f -name '*.js' -print -exec echo "==== Content of {} ====" \; -exec cat {} \; > "exports/$(date +%Y-%m-%d)-test-cat.txt"
 find ".github" -type f -name '*.yml' -print -exec echo "==== Content of {} ====" \; -exec cat {} \; > "exports/$(date +%Y-%m-%d)-github-workflow-cat.txt"
@@ -226,11 +231,86 @@ scripts/clean.sh
 # This file is licensed under the MIT License. For details, see LICENSE-MIT
 #
 
-rm -rfv ./build \
-rm -rfv ./coverage \
-rm -rfv ./dist
-rm -rfv ./node_modules
-rm -rfv ./package-lock.json
-npm install
-npm run build
-npm link
+# Node clean and build
+if [[ -e 'package.json' ]]; then
+  rm -rf build
+  rm -rf coverage
+  rm -rf dist
+  rm -rf node_modules
+  rm -rf package-lock.json
+  npm install
+  npm run build
+  npm link
+fi
+
+# Docker clean and build
+if [[ -e 'Dockerfile' ]]; then
+  docker system prune --all --force --volumes
+  #docker build -t s3-consumer-to-sqs .
+fi
+
+# CDK clean and build
+if [[ -e 'pom.xml' ]]; then
+  rm -rf target
+  rm -rf cdk.out
+  rm -rf ~/.m2/repository
+  #mvn clean package
+  #cdk synth
+fi
+scripts/cdk-clean.sh
+==== Content of scripts/cdk-clean.sh ====
+#!/usr/bin/env bash
+# scripts/cdk-clean.sh
+# Usage: ./scripts/cdk-clean.sh
+
+# Node clean and build
+if [[ -e 'package.json' ]]; then
+  rm -rf build
+  rm -rf coverage
+  rm -rf dist
+  rm -rf node_modules
+  rm -rf package-lock.json
+  npm install
+  npm run build
+  npm link
+fi
+
+# CDK clean and build
+if [[ -e 'pom.xml' ]]; then
+  rm -rf target
+  rm -rf cdk.out
+  mvn clean package
+  cdk synth
+fi
+scripts/assume-s3-role.sh
+==== Content of scripts/assume-s3-role.sh ====
+#!/usr/bin/env bash
+# scripts/assume-s3-role.sh
+# Usage: ./scripts/assume-s3-role.sh <role-arn>
+# Example:
+# ./scripts/assume-s3-role.sh arn:aws:iam::123456789012:role/MyRole
+
+#!/usr/bin/env bash
+
+# Variables (Replace these with your values)
+ROLE_ARN="${1?}"  # IAM Role ARN to assume
+SESSION_NAME="s3-sqs-bridge-short-lived-s3-session-$(date +%s)"
+BUCKET_NAME="s3-sqs-bridge-bucket"
+DURATION_SECONDS=900  # 15 minutes
+
+# Obtain temporary credentials using STS AssumeRole
+CREDS_JSON=$(aws sts assume-role \
+  --role-arn "${ROLE_ARN?}" \
+  --role-session-name "${SESSION_NAME?}" \
+  --duration-seconds ${DURATION_SECONDS?})
+
+# Export credentials to environment variables
+export AWS_ACCESS_KEY_ID=$(echo "$CREDS_JSON" | jq -r '.Credentials.AccessKeyId')
+export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS_JSON" | jq -r '.Credentials.SecretAccessKey')
+export AWS_SESSION_TOKEN=$(echo "$CREDS_JSON" | jq -r '.Credentials.SessionToken')
+
+# Verify the credentials (optional, sanity check)
+aws sts get-caller-identity
+
+# Example operation: list bucket contents
+aws s3 ls "s3://$BUCKET_NAME"
