@@ -1,13 +1,13 @@
-# tansu-sqs-bridge
+# s3-sqs-bridge
 
-`tansu-sqs-bridge` Tansu SQS Bridge for integrating Kafka and AWS SQS/Lambda/Postgres projections.
+`s3-sqs-bridge` S3 SQS Bridge for integrating Kafka and AWS SQS/Lambda/Postgres projections.
 
 ## Mission Statement
 
-Tansu SQS Bridge is an open source bridge between a Tansu Kafka‑compatible broker and AWS SQS. This lightweight solution includes:
+S3 SQS Bridge is an open source bridge between a S3 Kafka‑compatible broker and AWS SQS. This lightweight solution includes:
 
-- A Dockerized Node.js tansuConsumerToSqs that listens to Tansu messages and forwards them to an SQS queue.
-- A Lambda function that processes Tansu messages from SQS.
+- A Dockerized Node.js s3ConsumerToSqs that listens to S3 messages and forwards them to an SQS queue.
+- A Lambda function that processes S3 messages from SQS.
 - A new Lambda function that listens to GitHub event messages from a separate SQS queue and creates projections of GitHub resources, storing them in a PostgresDB table for use by other Lambdas.
 - All AWS infrastructure is provisioned using AWS CDK (Java, CDK 2.x).
 
@@ -23,7 +23,7 @@ Tansu SQS Bridge is an open source bridge between a Tansu Kafka‑compatible bro
   Use clear, descriptive commit messages that summarize your changes effectively.
 
 - **Collaboration:**  
-  Engage actively in GitHub discussions, issues, and PR reviews. Your feedback helps us continually refine tansu-sqs-bridge.
+  Engage actively in GitHub discussions, issues, and PR reviews. Your feedback helps us continually refine s3-sqs-bridge.
 
 ## Agentic contribution house choice options (programmatically parsed): START
 

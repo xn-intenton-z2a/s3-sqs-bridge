@@ -1,7 +1,7 @@
 {
-  "name": "@xn-intenton-z2a/tansu-sqs-bridge",
+  "name": "@xn-intenton-z2a/s3-sqs-bridge",
   "version": "0.1.5",
-  "description": "Tansu SQS Bridge for integrating Kafka, AWS SQS, Lambda, and Postgres projections.",
+  "description": "S3 SQS Bridge for integrating Kafka, AWS SQS, Lambda, and Postgres projections.",
   "type": "module",
   "main": "src/lib/main.js",
   "scripts": {
@@ -19,7 +19,7 @@
     "diagnostics": "node src/lib/main.js",
     "sqs-to-lambda-logger": "node src/lib/main.js --sqs-to-lambda-logger",
     "sqs-to-lambda-github-projection": "node src/lib/main.js --sqs-to-lambda-github-projection",
-    "tansu-consumer-to-sqs": "node src/lib/main.js --tansu-consumer-to-sqs"
+    "s3-consumer-to-sqs": "node src/lib/main.js --s3-consumer-to-sqs"
   },
   "keywords": [
     "kafka",

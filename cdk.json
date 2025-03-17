@@ -1,26 +1,21 @@
 {
-  "app": "mvn exec:java -Dexec.mainClass=com.intentïon.TansuSqsBridge.TansuSqsBridgeApp",
+  "app": "mvn -e -q compile exec:java",
   "context": {
-    "awsArnPrinciple": "arn:aws:iam::541134664601:user/polycode-deploy",
-    "s3BucketName": "tansu-sqs-bridge-bucket",
+    "s3BucketName": "s3-sqs-bridge-bucket",
+    "s3ObjectPrefix": "s3-sqs-bridge-cluster",
     "s3UseExistingBucket": "false",
     "s3RetainBucket": "false",
-    "tansuStorageEngine": "s3://tansu-sqs-bridge-bucket/",
-    "kafkaClusterId": "tansu-sqs-bridge-cluster",
-    "kafkaConsumerGroup": "tansu-sqs-bridge-group",
-    "kafkaTopicName": "tansu-sqs-bridge-topic",
-    "kafkaUseExistingTopic": "false",
-    "sqsQueueName": "tansu-sqs-bridge-queue",
-    "tableName": "tansu-sqs-bridge-table",
+    "sqsQueueName": "s3-sqs-bridge-queue",
+    "tableName": "s3-sqs-bridge-table",
     "lambdaRuntime": "nodejs20.x",
     "lambdaTarget": "es2020",
     "lambdaFormat": "ESM",
     "lambdaEntry": "src/lib/main.js",
     "lambdaFunctionName": "loggingLambdaHandler",
     "lambdaLogLevel": "INFO",
-    "appRunnerPort": "8080",
-    "appRunnerServiceName": "tansu-sqs-bridge-consumer",
-    "appRunnerCpu": "1024",
-    "appRunnerMemory": "2048"
+    "taskPort": "8080",
+    "taskServiceName": "s3-sqs-bridge-reseed",
+    "taskCpu": "1024",
+    "taskMemory": "2048"
   }
 }

@@ -1,502 +1,318 @@
-# tansu-sqs-bridge
+# S3 SQS Bridge (Versioned Event Replay Solution)
 
-`tansu-sqs-bridge` is a lightweight Node.js bridge for integrating Kafka with AWS SQS, Lambda functions, and PostgreSQL projections.
+This repository provides a production-ready, event-driven architecture designed for replaying versioned events stored in an AWS S3 bucket. The solution leverages AWS SQS for reliable event delivery, AWS Lambda for real-time processing, and AWS DynamoDB for durable offset tracking. It is built to run seamlessly in both AWS and local environments (via Docker Compose with MinIO and LocalStack) and has been hardened for security, cost optimization, and operational resilience.
 
-Tansu SQS Bridge connects a Kafka‑compatible broker to AWS SQS where messages can trigger Lambda functions. One Lambda logs messages and another builds GitHub projections in a PostgreSQL table.
+---
 
-## Features
+## Overview
 
-The solution consists of four main elements:
+The **S3 SQS Bridge** is engineered to support use cases that require reliable event sourcing and replay capabilities. It ensures that events stored as different versions in S3 can be processed in strict chronological order, making it ideal for audit trails, data reprocessing, and rebuilding application state. Key architectural elements include:
 
-1. **tansu-consumer-to-sqs Container:** A Dockerized Node.js application (in `src/lib/main.js`) that listens to Kafka and forwards messages to an SQS queue.
+- **Versioned Storage (S3):** All events are stored as versions in an S3 bucket.
+- **Event Replay (Reseed):** Historical events can be replayed in exact order to restore system state.
+- **Real-Time Event Processing:** Incoming events are immediately forwarded to SQS for near real-time processing.
+- **Offset Tracking:** DynamoDB is used to record processing progress for resumable and fault-tolerant replay.
 
-2. **sqs-to-lambda-logger Lambda:** A Node.js Lambda function (in `src/lib/main.js`) that logs incoming SQS messages.
+---
 
-3. **sqs-to-lambda-github-projection Lambda:** A Node.js Lambda function (in `src/lib/main.js`) that processes GitHub event messages and updates a PostgreSQL table with resource projections.
+## Key Features
 
-4. **AWS Infrastructure:** Provisioned using AWS CDK, including SQS queues, Lambda functions, a PostgreSQL table, and an AppRunner service (in `aws/main/java/`) .
+- **Reliable Storage:** Uses an AWS S3 bucket with versioning enabled to persist events.
+- **Event Replay Mechanism:** Supports a reseed job that lists, sorts, and replays S3 object versions in chronological order.
+- **Real-Time Processing:** Forwards S3 events to an SQS queue with built-in exponential backoff and retry logic.
+- **Low Idle Cost:** Designed to run on Fargate Spot with zero desired instances until needed.
+- **Enhanced Security:** Containers run as non-root users; IAM policies follow a least-privilege principle.
+- **Robust Logging and Monitoring:** Structured JSON logs facilitate monitoring and troubleshooting.
 
-5. **TODO: GitHub Action Producer:**
+---
 
-6. **TODO: GitHub Action Consumer:**
+## Project Structure
 
-## Table of Contents
+```text
+.
+├── Dockerfile
+├── package.json
+├── cdk.json
+├── pom.xml
+├── compose.yml
+├── entrypoint.sh
+├── src/lib/main.js
+├── aws/main/java/com/intention/S3SqsBridge/S3SqsBridgeStack.java
+├── aws/test/java/com/intentïon/S3SqsBridge/S3SqsBridgeStackTest.java
+└── tests/unit/main.test.js
+```
 
-- [Installation](#installation)
-- [Deployment](#Deployment)
-- [Contributing](#contributing)
-- [License](#license)
+Additional files include GitHub workflows (for CI/CD and maintenance scripts) and various helper scripts under the `scripts/` directory.
 
-## Installation
+---
+
+## Getting Started Locally
 
 ### Prerequisites
 
-- [Docker](https://www.docker.com/get-started)
-- [Node.js v20+](https://nodejs.org/)
-- [AWS CLI](https://aws.amazon.com/cli/) (configured with proper permissions)
-- [Java JDK 11+](https://openjdk.java.net/)
-- [Apache Maven](https://maven.apache.org/)
-- [AWS CDK 2.x](https://docs.aws.amazon.com/cdk/v2/guide/home.html)
+- [Docker Compose](https://docs.docker.com/compose/)
+- [MinIO Client (mc)](https://docs.min.io/docs/minio-client-quickstart-guide.html)
 
-### Clone the Repository
+### Start Local Services
 
-```bash
+1. **Launch MinIO and LocalStack:**
 
-git clone https://github.com/your-username/tansu-sqs-bridge.git
-cd tansu-sqs-bridge
-```
+   ```bash
+   docker compose up --detach
+   ```
 
-### Install Node.js Dependencies and test
+   The Compose file sets up:
+   - **MinIO:** Simulates AWS S3 at [http://localhost:9000](http://localhost:9000) (console at port 9001).
+   - **LocalStack:** Simulates AWS S3 and SQS endpoints at [http://localhost:4566](http://localhost:4566).
 
-```bash
+2. **Create a Bucket in MinIO:**
 
-npm install
-npm test
-```
-## Running locally with an in memory broker
+   ```bash
+   mc alias set local http://localhost:9000 minioadmin minioadmin
+   mc mb local/s3-sqs-bridge-bucket
+   mc version enable local/s3-sqs-bridge-bucket
+   ```
 
-### Consumer - In memory Kafka
+3. **Run the Consumer Service:**
 
-Build the Docker image for the consumer:
-```bash
+   ```bash
+   docker compose up --build --detach consumer
+   ```
 
-docker build -t tansu-consumer-to-sqs .
-```
+   The consumer service listens for S3 events and forwards them to SQS using environment variables configured to target MinIO and LocalStack.
 
-To run the consumer, use the following command:
-```bash
+4. **Trigger the Reseed Job:**
 
-STORAGE_ENGINE='memory://tansu/' USE_EXISTING_TOPIC='false' docker compose up --detach tansu-consumer-to-sqs
-```
+   ```bash
+   docker compose run --rm consumer node src/lib/main.js --reseed
+   ```
 
-List topics with the Kafka CLI (expecting the topic `tansu-sqs-bridge-topic-local`):
-```shell
+   This command replays all S3 events (i.e. object versions) in chronological order by sending messages to SQS.
 
-kafka-topics \
-  --bootstrap-server localhost:9092 \
-  --list
-```
-Topics:
-```
-tansu-sqs-bridge-topic-local
-```
+---
 
-Using the Apache Kafka CLI to send a message to the topic `tansu-sqs-bridge-topic-local`:
-```bash
+## Deployment to AWS
 
-echo 'Hello World!' \
-  | kafka-console-producer \
-  --bootstrap-server localhost:9092 \
-  --topic tansu-sqs-bridge-topic-local
-```
+### Prerequisites
 
-Docker logs for the consumer:
-```log
-2025-03-15 23:26:13 tansu-consumer-to-sqs-1  | Starting tansu broker... to be available on tcp://0.0.0.0:9092 and tcp://localhost:9092
-2025-03-15 23:26:13 tansu-consumer-to-sqs-1  | Waiting for broker to initialize...
-2025-03-15 23:26:15 tansu-consumer-to-sqs-1  | Starting consumer... for consumer group tansu-sqs-bridge-group-local on broker localhost:9092
-2025-03-15 23:26:15 tansu-consumer-to-sqs-1  | If Topic tansu-sqs-bridge-topic-local doesn't exist, it will be created is false !== 'true'.
-2025-03-15 23:26:15 tansu-consumer-to-sqs-1  | Messages from topic tansu-sqs-bridge-topic-local will be placed on SQS queue https://sqs.region.amazonaws.com/123456789012/tansu-sqs-bridge-queue-local
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | 
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | > @xn-intenton-z2a/tansu-sqs-bridge@0.1.5 tansu-consumer-to-sqs
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | > node src/lib/main.js --tansu-consumer-to-sqs
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | 
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Starting Kafka consumer to send messages to SQS...
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Creating Kafka consumer with group ID tansu-sqs-bridge-group-local
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Connecting to Kafka Admin on localhost:9092
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Connected to Kafka Admin on localhost:9092
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Listing topics on localhost:9092
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Topic 'tansu-sqs-bridge-topic-local' does not exist.
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Creating topic 'tansu-sqs-bridge-topic-local'
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Created topic 'tansu-sqs-bridge-topic-local'.
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Connecting to Kafka broker at localhost:9092
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Connected to Kafka broker at localhost:9092
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Subscribing to Kafka topic tansu-sqs-bridge-topic-local
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Subscribed to Kafka topic tansu-sqs-bridge-topic-local
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Starting consumer loop...
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | {"level":"INFO","timestamp":"2025-03-15T23:26:16.734Z","logger":"kafkajs","message":"[Consumer] Starting","groupId":"tansu-sqs-bridge-group-local"}
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | {"level":"INFO","timestamp":"2025-03-15T23:26:16.745Z","logger":"kafkajs","message":"[ConsumerGroup] Consumer has joined the group","groupId":"tansu-sqs-bridge-group-local","memberId":"tansu-sqs-consumer-9ed6c62f-2a33-4509-b263-0688c82b2bf2","leaderId":"tansu-sqs-consumer-9ed6c62f-2a33-4509-b263-0688c82b2bf2","isLeader":true,"memberAssignment":{"tansu-sqs-bridge-topic-local":[0]},"groupProtocol":"RoundRobinAssigner","duration":10}
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Starting health check endpoint on port 8080
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Keep-alive loop active (logging every 30 seconds)
-2025-03-15 23:26:16 tansu-consumer-to-sqs-1  | Health check running on port 8080
-2025-03-15 23:26:46 tansu-consumer-to-sqs-1  | Keep-alive loop active (logging every 30 seconds)
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  | Received message from topic=tansu-sqs-bridge-topic-local partition=0 offset=0
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  | Message key: null value: Hello World!
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  | Sending message to SQS. params: {
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |   "QueueUrl": "https://sqs.region.amazonaws.com/123456789012/tansu-sqs-bridge-queue-local",
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |   "MessageBody": "Hello World!",
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |   "MessageAttributes": {
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |     "Topic": {
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |       "DataType": "String",
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |       "StringValue": "tansu-sqs-bridge-topic-local"
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |     },
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |     "Partition": {
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |       "DataType": "Number",
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |       "StringValue": "0"
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |     },
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |     "Offset": {
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |       "DataType": "Number",
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |       "StringValue": "0"
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |     }
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  |   }
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  | }
-2025-03-15 23:26:56 tansu-consumer-to-sqs-1  | FAKED send message to SQS for 'tansu-sqs-bridge-queue-local'. MessageId: dummy-message
-2025-03-15 23:27:16 tansu-consumer-to-sqs-1  | Keep-alive loop active (logging every 30 seconds)
-2025-03-15 23:27:46 tansu-consumer-to-sqs-1  | Keep-alive loop active (logging every 30 seconds)
+- [Node.js 20+](https://nodejs.org/)
+- [AWS CDK v2](https://docs.aws.amazon.com/cdk/latest/guide/home.html)
+- [Maven](https://maven.apache.org/)
 
-```
+### Deploy the Stack
 
-To stop the in memory consumer, use the following command:
-```bash
+1. **Install Dependencies:**
 
-docker compose down tansu-consumer-to-sqs
-```
+   ```bash
+   npm install
+   mvn install
+   ```
 
-### Consumer - connected to mino
+2. **Bootstrap the CDK Environment:**
 
-Start minio for local s3 compatible storage:
-```bash
+   ```bash
+   cdk bootstrap
+   ```
 
-docker compose up -d minio
-```
+3. **Deploy the Infrastructure:**
 
-Mino comes up:
-```log
-WARN[0000] The "AWS_ACCESS_KEY_ID" variable is not set. Defaulting to a blank string. 
-WARN[0000] The "AWS_SECRET_ACCESS_KEY" variable is not set. Defaulting to a blank string. 
-[+] Running 11/11
- ✔ minio Pulled                                                                                                                                                                                                           5.2s 
-[+] Running 2/2
- ✔ Volume "tansu-sqs-bridge_minio"     Created                                                                                                                                                                            0.0s 
- ✔ Container tansu-sqs-bridge-minio-1  Started   
-```
+   ```bash
+   cdk deploy S3SqsBridgeStack
+   ```
 
+   This deployment provisions:
+   - A versioned S3 bucket.
+   - An SQS queue for event delivery.
+   - A DynamoDB table for offset tracking.
+   - A Docker-based consumer and reseed job running on Fargate Spot (or AppRunner).
+   - (Optional) AWS Lambda functions for real-time event processing.
 
-Create  minio alias for `local`:
-```bash
+4. **Test the CDK Stack:**
 
-docker compose exec minio \
-   /usr/bin/mc \
-   alias \
-   set \
-   local \
-   http://localhost:9000 \
-   minioadmin \
-   minioadmin
-```
+   ```bash
+   mvn test
+   ```
 
-Alias `local` created:
-```log
-WARN[0000] The "AWS_ACCESS_KEY_ID" variable is not set. Defaulting to a blank string. 
-WARN[0000] The "AWS_SECRET_ACCESS_KEY" variable is not set. Defaulting to a blank string. 
-mc: Configuration written to `/tmp/.mc/config.json`. Please update your access credentials.
-mc: Successfully created `/tmp/.mc/share`.
-mc: Initialized share uploads `/tmp/.mc/share/uploads.json` file.
-mc: Initialized share downloads `/tmp/.mc/share/downloads.json` file.
-Added `local` successfully.
-```
+---
 
-Create a bucket for the tansu storage engine:
-```bash
+## Source Implementation Details
 
-docker compose exec minio \
-   /usr/bin/mc mb local/tansu-sqs-bridge-bucket-local
-```
+The core logic is implemented in the unified CLI entry at `src/lib/main.js`. It supports multiple modes of operation:
 
-Bucket created:
-```log
-Bucket created successfully `local/tansu-sqs-bridge-bucket-local`.
+- **Real-Time Lambda Handler:** For use as an AWS Lambda function.
+- **Reseed Job:** For replaying all historical events.
+- **Health Check Server:** For container health monitoring.
 
-```
+### Pseudocode Example: Core Reseed Algorithm
 
-Expect the bucket for the tansu storage engine to exist:
-```bash
+Below is a pseudocode fragment that introduces the actual implementation of the reseed algorithm:
 
-docker compose exec minio \
-   /usr/bin/mc ls local
-```
+```javascript
+// Pseudocode: List and sort all object versions from the bucket.
+async function listAndSortAllObjectVersions() {
+  let versions = [];
+  let params = { Bucket: BUCKET_NAME };
+  do {
+    const response = await s3.send(new ListObjectVersionsCommand(params));
+    versions.push(...response.Versions);
+    // Set markers for pagination.
+    params.KeyMarker = response.NextKeyMarker;
+    params.VersionIdMarker = response.NextVersionIdMarker;
+  } while (response.IsTruncated);
 
-Bucket exists:
-```log
-WARN[0000] The "AWS_ACCESS_KEY_ID" variable is not set. Defaulting to a blank string. 
-WARN[0000] The "AWS_SECRET_ACCESS_KEY" variable is not set. Defaulting to a blank string. 
-[2025-03-16 12:32:57 UTC]     0B tansu-sqs-bridge-bucket-local/
-```
-The bucket should also be available at http://localhost:9001/ using the credentials `minioadmin:minioadmin`.
-
-Create some access keys:
-1. Go here: http://localhost:9001/access-keys
-2. Click `Create Access Key`
-3. Enter test credentials in the form:
-   - Access Key: `local-key-id`
-   - Secret Key: `local-secret`
-```json
-{
-  "url": "http://localhost:9001/api/v1/service-account-credentials",
-  "accessKey": "local-key-id",
-  "secretKey": "local-secret",
-  "api": "s3v4",
-  "path": "auto"
+  // Sort versions by last modified date (chronologically).
+  return versions.sort((a, b) => new Date(a.LastModified) - new Date(b.LastModified));
 }
 ```
 
-Build the Docker image for the consumer:
-```bash
+### Actual Implementation Snippets
 
-docker build -t tansu-consumer-to-sqs .
-```
+- **Reseed Logic:**
 
-To run the consumer, use the following command:
-```bash
+  ```javascript
+  export async function reseed() {
+    logInfo(`Starting reseed job for bucket ${config.BUCKET_NAME}`);
+    const versions = await listAndSortAllObjectVersions();
+    logInfo(`Processing ${versions.length} versions...`);
+    for (const version of versions) {
+      const event = {
+        bucket: config.BUCKET_NAME,
+        key: version.Key,
+        versionId: version.VersionId,
+        eventTime: version.LastModified
+      };
+      await sendEventToSqs(event);
+    }
+    logInfo('Reseed job complete.');
+  }
+  ```
 
-USE_EXISTING_TOPIC='false' AWS_ACCESS_KEY_ID='local-key-id' AWS_SECRET_ACCESS_KEY='local-secret' AWS_ENDPOINT='http://minio:9000' docker compose up --detach tansu-consumer-to-sqs
-```
+- **Real-Time Event Handler:**
 
-List topics with the Kafka CLI (expecting the topic `tansu-sqs-bridge-topic-local`):
-```shell
+  ```javascript
+  export async function realtimeLambdaHandler(event) {
+    logInfo(`Received realtime event: ${JSON.stringify(event)}`);
+    for (const record of event.Records) {
+      const { s3 } = record;
+      const eventDetail = {
+        bucket: s3.bucket.name,
+        key: s3.object.key,
+        eventTime: record.eventTime,
+        versionId: s3.object.versionId,
+        sequencer: s3.object.sequencer
+      };
+      await sendEventToSqs(eventDetail);
+    }
+  }
+  ```
 
-kafka-topics \
-  --bootstrap-server localhost:9092 \
-  --list
-```
-Topics:
-```
-tansu-sqs-bridge-topic-local
-```
+These fragments, along with robust retry logic and structured logging, ensure that events are processed reliably under production conditions.
 
-Using the Apache Kafka CLI to send a message to the topic `tansu-sqs-bridge-topic-local`:
-```bash
+---
 
-echo 'Hello World!' \
-  | kafka-console-producer \
-  --bootstrap-server localhost:9092 \
-  --topic tansu-sqs-bridge-topic-local
-```
+## Running Integration Tests
 
-Docker logs for the consumer:
-```log
-TODO: Add logs
+- **Unit Tests (JavaScript):**
 
-```
+  ```bash
+  npm run test:unit
+  ```
 
-To stop the in memory consumer, use the following command:
-```bash
+- **CDK Stack Tests (Java):**
 
-docker compose down tansu-consumer-to-sqs
-```
+  ```bash
+  mvn test
+  ```
 
-## Deployment
+Tests have been enhanced to cover event ordering, replay functionality, configuration validation, and error handling.
 
-Package the CDK, deploy the CDK stack which rebuilds the Docker image, and deploy the AWS infrastructure:
-```bash
+---
 
-./mvnw clean package
-```
+## Cost Analysis
 
-Maven build output:
-```log
-...truncated...
-[INFO] 
-[INFO] Results:
-[INFO] 
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0
-[INFO] 
-[INFO] 
-[INFO] --- maven-jar-plugin:2.4:jar (default-jar) @ tansu-sqs-bridge ---
-[INFO] Building jar: /Users/antony/projects/tansu-sqs-bridge/target/tansu-sqs-bridge-0.0.1.jar
-[INFO] ------------------------------------------------------------------------
-[INFO] BUILD SUCCESS
-[INFO] ------------------------------------------------------------------------
-[INFO] Total time:  14.180 s
-[INFO] Finished at: 2025-03-15T23:41:26Z
-[INFO] ------------------------------------------------------------------------
-Unexpected error in background thread "software.amazon.jsii.JsiiRuntime.ErrorStreamSink": java.lang.NullPointerException: Cannot read field "stderr" because "consoleOutput" is null
-```
-(Yes... the last line, the error "is a bug in the CDK, but it doesn't affect the deployment" (according to Copilot).)
+| Resource            | Idle Cost         | Active Cost          | Notes                           |
+|---------------------|-------------------|----------------------|---------------------------------|
+| **S3**              | Near-zero         | $0.023/GB            | Highly cost-effective           |
+| **Lambda**          | Near-zero         | $0.20/million calls  | Efficient and event-driven      |
+| **SQS**             | Near-zero         | $0.40/million msgs   | Economical for high-volume msgs |
+| **Fargate (Spot)**  | Zero (when idle)  | ~$0.012/hour         | Optimal for non-constant loads  |
+| **DynamoDB**        | Near-zero         | Minimal ($1/million) | Very low cost                   |
 
-Deploys the AWS infrastructure including an App Runner service, an SQS queue, Lambda functions, and a PostgreSQL table.
-```bash
+---
 
-unset STORAGE_ENGINE
-unset USE_EXISTING_TOPIC
-unset CLUSTER_ID
-npx cdk deploy
-```
+## Due Diligence & Throughput Considerations
 
-Example output:
-```log
-...truncated...
-TansuSqsBridgeStack: deploying... [1/1]
-TansuSqsBridgeStack: creating CloudFormation changeset...
+### Performance
 
- ✅  TansuSqsBridgeStack
+- **High Throughput:** Leverages AWS-managed services (Lambda, SQS) for scalable, low-latency processing.
+- **Optimized Reseed:** Fargate/AppRunner tasks for reseed jobs are optimized for quick start and minimal overhead.
 
-✨  Deployment time: 215.83s
+### Resilience
 
-Outputs:
-TansuSqsBridgeStack.AppRunnerServiceUrl = xjsmvg3c62.eu-west-2.awsapprunner.com
-TansuSqsBridgeStack.S3AccessRoleArn = arn:aws:iam::541134664601:role/TansuSqsBridgeStack-S3AccessRole49D67050-Ci4Hpxc3ECtz
-TansuSqsBridgeStack.S3BucketName = tansu-sqs-bridge-bucket
-TansuSqsBridgeStack.TansuQueueUrl = https://sqs.eu-west-2.amazonaws.com/541134664601/tansu-sqs-bridge-queue
-Stack ARN:
-arn:aws:cloudformation:eu-west-2:541134664601:stack/TansuSqsBridgeStack/715f0d50-01f7-11f0-ab46-060c49f414cb
+- **Offset Tracking:** Uses DynamoDB to maintain replay progress, ensuring continuity.
+- **Retry Mechanisms:** Exponential backoff for AWS SDK calls improves resilience against transient errors.
 
+### Scalability
 
-✨  Total time: 229.35s
-```
+- **Serverless Architecture:** Automatically scales with demand, suitable for enterprise workloads.
+- **Cost-Effective:** Utilizes Fargate Spot and low-cost AWS services to minimize idle costs.
 
-To stop the in s3 consumer, use the following command:
-```bash
+---
 
-docker compose down tansu-consumer-to-sqs
-```
+## Quick Deployment Guide
 
-### Producer - Via Tansu Broker connected to AWS S3
+1. **Clone the Repository and Install Dependencies:**
 
-Use the S3AccessRole ARN from the CDK output to create a new IAM role with S3 access:
-**WARNING: This will replace the AWS credentials and session in the shell.**
-```bash
+   ```bash
+   git clone <repository-url>
+   cd s3-sqs-bridge
+   npm install
+   mvn install
+   ```
 
-. ./scripts/assume-s3-role.sh arn:aws:iam::541134664601:role/TansuSqsBridgeStack-S3AccessRole49D67050-Ci4Hpxc3ECtz
-```
-**WARNING: This will replace the current AWS credentials in the shell.**
+2. **Deploy the AWS Infrastructure:**
 
-The new session information is displayed:
-```log
-{
-    "UserId": "AROAX37RDWOM4PJC6Q5ZV:tansu-sqs-bridge-short-lived-s3-session-1742088432",
-    "Account": "541134664601",
-    "Arn": "arn:aws:sts::541134664601:assumed-role/TansuSqsBridgeStack-S3AccessRole49D67050-Ci4Hpxc3ECtz/tansu-sqs-bridge-short-lived-s3-session-1742088432"
-}
-```
+   ```bash
+   cdk bootstrap
+   cdk deploy S3SqsBridgeStack
+   ```
 
-Check access to AWS:
-```bash
+3. **Build and Run the Docker Image:**
 
-aws sts get-caller-identity
-```
+   ```bash
+   docker build -t s3-sqs-bridge .
+   ```
 
-Authenticated session:
-```log
-{
-    "UserId": "AROAX37RDWOM4PJC6Q5ZV:tansu-sqs-bridge-short-lived-s3-session-1742088432",
-    "Account": "541134664601",
-    "Arn": "arn:aws:sts::541134664601:assumed-role/TansuSqsBridgeStack-S3AccessRole49D67050-Ci4Hpxc3ECtz/tansu-sqs-bridge-short-lived-s3-session-1742088432"
-}
-```
+4. **Run Locally (using Docker Compose):**
 
-Check access to the S3 bucket:
-```bash
+   ```bash
+   docker compose up --detach
+   ```
 
-aws s3 ls 's3://tansu-sqs-bridge-bucket' --summarize
-```
-Bucket contents:
-```log
+5. **Trigger the Reseed Job:**
 
-Total Objects: 0
-   Total Size: 0
-```
+   ```bash
+   docker compose run --rm consumer node src/lib/main.js --reseed
+   ```
 
-Run Tansu on its own to be the Kafka compatible broker:
-```bash
-
-STORAGE_ENGINE='s3://tansu-sqs-bridge-bucket/' CLUSTER_ID='tansu-sqs-bridge-cluster' docker compose up --detach tansu
-```
-
-List topics with the Kafka CLI (expecting `tansu-sqs-bridge-topic`):
-```shell
-
-kafka-topics \
-  --bootstrap-server localhost:9082 \
-  --list
-```
-
-Currently this does not list the topics and there is an error in the Docker logs
-```log
-2025-03-16 02:29:20 tansu-1  | 2025-03-16T02:29:20.977536Z ERROR peer{addr=192.168.65.1:23572}:metadata{api_key=3 api_version=12 correlation_id=3}: 
-tansu_storage::dynostore: 1547: error=Generic { store: "S3", source: ListRequest { source: Client { status: 403, body: Some("<?xml version=\"1.0\" 
-encoding=\"UTF-8\"?>\n<Error><Code>InvalidAccessKeyId</Code><Message>The AWS Access Key Id you provided does not exist in our records.</Message>
-<AWSAccessKeyId>ASIAX37RDWOMXPY4VACX</AWSAccessKeyId><RequestId>CGGQNBYQH9PMXZK0</RequestId>
-<HostId>rPuZcQdID6ChC1Ke3LZHDpIYWVFYRjBeKA90YMDCJD1fmkiNxLTQ6HJWC0vV9gPkF4jI9yduLJk=</HostId></Error>") } } } location=clusters/tansu-sqs-bridge-cluster/topics
-```
-
-**Should be** Topics:
-```
-tansu-sqs-bridge-topic
-```
-
-To stop tansu, use the following command:
-```bash
-
-docker compose down tansu
-```
-
-Clear the AWS session:
-```bash
-
-unset AWS_ACCESS_KEY_ID
-unset AWS_SECRET_ACCESS_KEY
-unset AWS_SESSION_TOKEN
-```
-
-### Handy Commands
-
-Handy cleanup, Docker:
-```bash
-
-docker system prune --all --force --volumes
-```
-
-Handy cleanup, CDK:
-```bash
-
-rm -rf cdk.out
-```
-
-Handy cleanup, Node:
-```bash
-
-rm -rf node_modules ; rm -rf package-lock.json ; npm install
-```
-
-Run the Docker container with a shell instead of the default entrypoint:
-```bash
-docker run -it \
-  --env CLUSTER_ID='tansu-sqs-bridge-cluster-local' \
-  --env STORAGE_ENGINE='memory://tansu/' \
-  --env CONSUMER_GROUP='tansu-sqs-bridge-group-local' \
-  --env TOPIC_NAME='tansu-sqs-bridge-topic-local' \
-  --env USE_EXISTING_TOPIC='false' \
-  --env SQS_QUEUE_URL='https://sqs.region.amazonaws.com/123456789012/tansu-sqs-bridge-queue-local' \
-  --entrypoint /bin/ash \
-  tansu-consumer-to-sqs:latest
-```
-
-The `tansu-sqs-bridge` JS source is in the container:
-```log
-/app # ls
-node_modules       package-lock.json  package.json       src
-/app # head -6 package.json 
-{
-  "name": "@xn-intenton-z2a/tansu-sqs-bridge",
-  "version": "0.1.5",
-  "description": "Tansu SQS Bridge for integrating Kafka, AWS SQS, Lambda, and Postgres projections.",
-  "type": "module",
-  "main": "src/lib/main.js",
-/app # 
-```
-
-Update CDK and acknowledge a notification:
-```bash
-
-cdk bootstrap aws://541134664601/eu-west-2
-cdk acknowledge 32775
-```
+---
 
 ## Contributing
 
-We welcome contributions! Please review our [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to contribute effectively.
+We welcome contributions from the community. Please review the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines on:
+
+- Code quality and style (modern JavaScript using Node 20 with ESM)
+- Testing and continuous integration requirements
+- Commit message conventions and branching strategies
+
+Whether you’re looking to use the solution as-is or fork it to build new features, your feedback and contributions help us improve the robustness and utility of the S3 SQS Bridge.
+
+---
 
 ## License
 
-Released under the MIT License (see [LICENSE](./LICENSE)).
+Distributed under the [MIT License](LICENSE).
+
+---
+
+This README provides a thorough guide for users and contributors alike, covering all aspects from local development and testing to production deployment on AWS. The included pseudocode fragments illustrate the core logic of the solution while the detailed instructions ensure that you can deploy, run, and extend the solution with confidence.

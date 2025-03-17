@@ -8,8 +8,8 @@
 
 # Variables (Replace these with your values)
 ROLE_ARN="${1?}"  # IAM Role ARN to assume
-SESSION_NAME="tansu-sqs-bridge-short-lived-s3-session-$(date +%s)"
-BUCKET_NAME="tansu-sqs-bridge-bucket"
+SESSION_NAME="s3-sqs-bridge-short-lived-s3-session-$(date +%s)"
+BUCKET_NAME="s3-sqs-bridge-bucket"
 DURATION_SECONDS=900  # 15 minutes
 
 # Obtain temporary credentials using STS AssumeRole

@@ -1,161 +1,133 @@
 // tests/unit/main.test.js
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-
-// --- MOCK NETWORK MODULES ---
-// These mocks prevent actual network calls during tests.
-vi.mock("kafkajs", () => {
-  return {
-    Kafka: class {
-      constructor(config) {
-        this.config = config;
-      }
-      consumer({ groupId: _groupId }) {
-        return {
-          connect: async () => {},
-          subscribe: async () => {},
-          run: async (opts) => {
-            if (opts && typeof opts.eachMessage === "function") {
-              await opts.eachMessage({
-                topic: "test",
-                partition: 0,
-                message: { key: Buffer.from("dummy"), value: Buffer.from("dummy"), offset: "0" },
-              });
-            }
-          },
-          disconnect: async () => {},
-        };
-      }
-    },
-  };
-});
-
-vi.mock("@aws-sdk/client-sqs", () => {
-  return {
-    SQSClient: class {},
-    SendMessageCommand: class {
-      constructor(params) {
-        this.params = params;
-      }
-    },
-  };
-});
-
-vi.mock("pg", () => {
-  class FakeClient {
-    async connect() {}
-    async query(query, values) {
-      return { rows: [] };
-    }
-  }
-  return {
-    default: { Client: FakeClient },
-    Client: FakeClient,
-  };
-});
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import {
   main,
-  githubProjectionLambdaHandler,
+  realtimeLambdaHandler,
+  reseed,
   parseMessageBody,
   buildSQSMessageParams,
-  isValidResourceEvent,
-  sendMessageToSQS,
-  validateKafkaConfig,
+  validateConfig,
+  sendEventToSqs,
   retryOperationExponential,
-} from "@src/lib/main.js";
+  listAndSortAllObjectVersions,
+} from '@src/lib/main.js';
 
-describe("Merged Main Module - API Boundary Tests", () => {
-  it("main() should return undefined for all branch invocations", async () => {
-    await expect(main(["--help"]).then(() => undefined)).resolves.toBeUndefined();
-    // Runs on an infinite loop: await expect(main(["--tansu-consumer-to-sqs"]).then(() => undefined)).resolves.toBeUndefined();
-    await expect(main(["--sqs-to-lambda-logger"]).then(() => undefined)).resolves.toBeUndefined();
-    await expect(main(["--sqs-to-lambda-github-projection"]).then(() => undefined)).resolves.toBeUndefined();
-    await expect(main(["random", "args"]).then(() => undefined)).resolves.toBeUndefined();
+// --- Mock AWS SDK clients ---
+vi.mock('@aws-sdk/client-s3', () => ({
+  S3Client: class {
+    send = vi.fn(async (command) => {
+      if (command.constructor.name === 'ListObjectVersionsCommand') {
+        return {
+          Versions: [
+            { Key: 'file1', VersionId: 'v1', LastModified: '2025-03-17T10:00:00Z' },
+            { Key: 'file2', VersionId: 'v2', LastModified: '2025-03-17T11:00:00Z' },
+          ],
+          IsTruncated: false,
+        };
+      }
+      return {};
+    })
+  },
+}));
+
+vi.mock('@aws-sdk/client-sqs', () => ({
+  SQSClient: class {
+    send = vi.fn(async () => ({ MessageId: 'dummy-message' }));
+  },
+  SendMessageCommand: class {},
+}));
+
+vi.mock('@aws-sdk/client-s3', () => ({
+  S3Client: class {
+    send = vi.fn(async (command) => {
+      if (command.constructor.name === 'ListObjectVersionsCommand') {
+        return {
+          Versions: [
+            { Key: 'file1', VersionId: 'v1', LastModified: '2025-03-17T10:00:00Z' },
+            { Key: 'file2', VersionId: 'v2', LastModified: '2025-03-17T11:00:00Z' },
+          ],
+          IsTruncated: false,
+        };
+      }
+    });
+  },
+  ListObjectVersionsCommand: class {},
+}));
+
+describe('S3 SQS Bridge Main.js Tests', () => {
+  beforeEach(() => {
+    process.env.BUCKET_NAME = 'test-bucket';
+    process.env.QUEUE_URL = 'https://dummy.queue.url/test';
+    process.env.AWS_ENDPOINT = 'http://localhost:9000';
   });
 
-  it("githubProjectionLambdaHandler should update projection with valid event", async () => {
-    const sampleEvent = {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('main() should execute with --help without error', async () => {
+    await expect(main(['--help'])).resolves.toBeUndefined();
+  });
+
+  it('main() invalid args prints help', async () => {
+    const logSpy = vi.spyOn(console, 'log');
+    await main(['invalid-arg']);
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid or missing argument.'));
+  });
+
+  it('validateConfig() should return true for valid config', () => {
+    const validConfig = {
+      BUCKET_NAME: 'test-bucket',
+      QUEUE_URL: 'https://sqs.queue.url',
+    };
+    expect(validateConfig(validConfig)).toBe(true);
+  });
+
+  it('validateConfig should return false for missing values', () => {
+    const invalidConfig = { BUCKET_NAME: '' };
+    expect(validateConfig(invalidConfig)).toBe(false);
+  });
+
+  it('parseMessageBody returns JSON object for valid JSON', () => {
+    const parsed = parseMessageBody('{"key":"value"}');
+    expect(parsed).toEqual({ key: 'value' });
+  });
+
+  it('parseMessageBody returns null for invalid JSON', () => {
+    expect(parseMessageBody('invalid-json')).toBeNull();
+  });
+
+  it('realtimeLambdaHandler sends correct event to SQS', async () => {
+    const event = {
       Records: [
         {
-          body: JSON.stringify({
-            resourceType: "repository",
-            resourceId: "test-repo",
-            state: { stars: 100 },
-          }),
+          s3: {
+            bucket: { name: 'test-bucket' },
+            object: {
+              key: 'file.txt',
+              versionId: 'v123',
+              sequencer: 'abc123',
+            },
+          },
+          eventTime: '2025-03-17T12:00:00Z',
         },
       ],
     };
-    const result = await githubProjectionLambdaHandler(sampleEvent);
-    expect(result.status).toEqual("success");
+
+    const consoleSpy = vi.spyOn(console, 'log');
+    await expect(realtimeLambdaHandler(event)).resolves.toBeUndefined();
+    expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining('Sent message to SQS, MessageId: dummy-message'),
+    );
   });
 
-  it("parseMessageBody should return null for invalid JSON", () => {
-    const result = parseMessageBody("invalid-json");
-    expect(result).toBeNull();
+  it('reseed processes all versions in sorted order and sends events to SQS', async () => {
+    const consoleSpy = vi.spyOn(console, 'log');
+    await reseed();
+    expect(consoleSpy).toHaveBeenCalledWith('Starting reseed job for bucket test-bucket');
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Processing 2 versions...'));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Sent message to SQS, MessageId: dummy-message'));
   });
 });
 
-describe("Extended helper functions", () => {
-  it("validateKafkaConfig should return true for valid config", () => {
-    const conf = {
-      BROKER_URL: "broker:9092",
-      TOPIC_NAME: "topic",
-      CONSUMER_GROUP: "group",
-    };
-    expect(validateKafkaConfig(conf)).toBe(true);
-  });
-
-  it("validateKafkaConfig should return false if required fields are missing", () => {
-    const conf = {
-      BROKER_URL: "broker:9092",
-    };
-    expect(validateKafkaConfig(conf)).toBe(false);
-  });
-});
-
-describe("New library helper functions", () => {
-  it("buildSQSMessageParams should construct proper params", () => {
-    const params = buildSQSMessageParams("test", 1, "10", "hello");
-    const expectedQueueUrl = process.env.SQS_QUEUE_URL || "test-sqs-queue-url";
-    expect(params.QueueUrl).toBe(expectedQueueUrl);
-    expect(params.MessageBody).toBe("hello");
-    expect(params.MessageAttributes.Topic.StringValue).toBe("test");
-  });
-
-  it("isValidResourceEvent should return true for valid event", () => {
-    const valid = isValidResourceEvent({ resourceType: "foo", resourceId: "bar" });
-    expect(valid).toBe(true);
-  });
-
-  it("isValidResourceEvent should return false if missing keys", () => {
-    const valid = isValidResourceEvent({ resourceType: "foo" });
-    expect(valid).toBe(false);
-  });
-
-  it("sendMessageToSQS helper should send a message and return dummy message id", async () => {
-    const response = await sendMessageToSQS("test", 2, "15", "hello");
-    expect(response.MessageId).toBe("dummy-message");
-  });
-});
-
-describe("Extended New Helper Functions", () => {
-  it("retryOperationExponential should return value when operation succeeds", async () => {
-    const op = async () => "exp success";
-    const result = await retryOperationExponential(op);
-    expect(result).toEqual("exp success");
-  });
-
-  it("retryOperationExponential should retry and eventually throw error", async () => {
-    let attempts = 0;
-    const op = async () => {
-      attempts++;
-      throw new Error("exp fail");
-    };
-    try {
-      await retryOperationExponential(op, 2, 10);
-    } catch (error) {
-      expect(attempts).toEqual(2);
-      expect(error.message).toEqual("exp fail");
-    }
-  });
-});

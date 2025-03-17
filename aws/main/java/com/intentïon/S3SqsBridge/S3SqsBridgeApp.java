@@ -1,11 +1,11 @@
-package com.intentïon.TansuSqsBridge;
+package com.intentïon.S3SqsBridge;
 
 import software.amazon.awscdk.App;
 
-public class TansuSqsBridgeApp {
+public class S3SqsBridgeApp {
     public static void main(final String[] args) {
         App app = new App();
-        new TansuSqsBridgeStack(app, "TansuSqsBridgeStack");
+        new S3SqsBridgeStack(app, "S3SqsBridgeStack");
         app.synth();
     }
 }

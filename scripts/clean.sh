@@ -21,7 +21,7 @@ fi
 # Docker clean and build
 if [[ -e 'Dockerfile' ]]; then
   docker system prune --all --force --volumes
-  docker build -t tansu-consumer-to-sqs .
+  #docker build -t s3-consumer-to-sqs .
 fi
 
 # CDK clean and build
@@ -29,6 +29,6 @@ if [[ -e 'pom.xml' ]]; then
   rm -rf target
   rm -rf cdk.out
   rm -rf ~/.m2/repository
-  mvn clean package
-  cdk synth
+  #mvn clean package
+  #cdk synth
 fi
