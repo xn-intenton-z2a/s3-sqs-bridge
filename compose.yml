@@ -1,5 +1,4 @@
 services:
-
   localstack:
     image: localstack/localstack
     environment:

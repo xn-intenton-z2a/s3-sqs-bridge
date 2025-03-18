@@ -19,6 +19,6 @@
     "lambdaEntry": "src/lib/main.js",
     "lambdaSourceFunctionName": "sourceLambdaHandler",
     "lambdaReplayFunctionName": "replayLambdaHandler",
-    "lambdaLogLevel": "INFO",
+    "lambdaLogLevel": "INFO"
   }
 }
