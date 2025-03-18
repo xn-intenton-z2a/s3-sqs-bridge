@@ -1,32 +1,26 @@
-# S3 SQS Bridge (Versioned Event Replay Solution)
+# s3-sqs-bridge (Versioned Amazon S3 Object Put Event replay capable queuing to SQS)
 
-This repository provides a production-ready, event-driven architecture designed for replaying versioned events stored in an AWS S3 bucket. The solution leverages AWS SQS for reliable event delivery, AWS Lambda for real-time processing, and AWS DynamoDB for durable offset tracking. It is built to run seamlessly in both AWS and local environments (via Docker Compose with MinIO and LocalStack) and has been hardened for security, cost optimization, and operational resilience.
+This repository deploys an AWS CloudFormation Stack to create a replay capable event queue. The solution used AWS SQS
+for message delivery and AWS Lambda for real-time processing with AWS DynamoDB for durable offset tracking. Storage
+is an S3 bucket with object versioning enabled and a Put event can be processed in read-time or replayed in their
+original order.
 
----
-
-## Overview
-
-The **S3 SQS Bridge** is engineered to support use cases that require reliable event sourcing and replay capabilities. It ensures that events stored as different versions in S3 can be processed in strict chronological order, making it ideal for audit trails, data reprocessing, and rebuilding application state. Key architectural elements include:
-
-- **Versioned Storage (S3):** All events are stored as versions in an S3 bucket.
-- **Event Replay (Reseed):** Historical events can be replayed in exact order to restore system state.
-- **Real-Time Event Processing:** Incoming events are immediately forwarded to SQS for near real-time processing.
-- **Offset Tracking:** DynamoDB is used to record processing progress for resumable and fault-tolerant replay.
+`s3-sqs-bridge` is built to run in both AWS and local environments (via Docker Compose with MinIO).
 
 ---
 
 ## Key Features
 
-- **Reliable Storage:** Uses an AWS S3 bucket with versioning enabled to persist events.
-- **Event Replay Mechanism:** Supports a reseed job that lists, sorts, and replays S3 object versions in chronological order.
-- **Real-Time Processing:** Forwards S3 events to an SQS queue with built-in exponential backoff and retry logic.
+- **Storage:** Uses an AWS S3 bucket with versioning enabled to persist events.
+- **Event replay:** A replay job replays S3 object versions in chronological order.
+- **Real-Time Processing:** Forwards S3 events to an SQS queue.
 - **Low Idle Cost:** Designed to run on Fargate Spot with zero desired instances until needed.
-- **Enhanced Security:** Containers run as non-root users; IAM policies follow a least-privilege principle.
-- **Robust Logging and Monitoring:** Structured JSON logs facilitate monitoring and troubleshooting.
 
 ---
 
 ## Project Structure
+
+The key components of the project are organized as follows:
 
 ```text
 .
@@ -55,7 +49,7 @@ Additional files include GitHub workflows (for CI/CD and maintenance scripts) an
 
 ### Start Local Services
 
-1. **Launch MinIO and LocalStack:**
+1. **Launch LocalStack:**
 
    ```bash
    docker compose up --detach
@@ -81,10 +75,10 @@ Additional files include GitHub workflows (for CI/CD and maintenance scripts) an
 
    The consumer service listens for S3 events and forwards them to SQS using environment variables configured to target MinIO and LocalStack.
 
-4. **Trigger the Reseed Job:**
+4. **Trigger the replay Job:**
 
    ```bash
-   docker compose run --rm consumer node src/lib/main.js --reseed
+   docker compose run --rm consumer node src/lib/main.js --replay
    ```
 
    This command replays all S3 events (i.e. object versions) in chronological order by sending messages to SQS.
@@ -124,7 +118,7 @@ Additional files include GitHub workflows (for CI/CD and maintenance scripts) an
    - A versioned S3 bucket.
    - An SQS queue for event delivery.
    - A DynamoDB table for offset tracking.
-   - A Docker-based consumer and reseed job running on Fargate Spot (or AppRunner).
+   - A Docker-based consumer and replay job running on Fargate Spot (or AppRunner).
    - (Optional) AWS Lambda functions for real-time event processing.
 
 4. **Test the CDK Stack:**
@@ -140,12 +134,12 @@ Additional files include GitHub workflows (for CI/CD and maintenance scripts) an
 The core logic is implemented in the unified CLI entry at `src/lib/main.js`. It supports multiple modes of operation:
 
 - **Real-Time Lambda Handler:** For use as an AWS Lambda function.
-- **Reseed Job:** For replaying all historical events.
+- **replay Job:** For replaying all historical events.
 - **Health Check Server:** For container health monitoring.
 
-### Pseudocode Example: Core Reseed Algorithm
+### Pseudocode Example: Core replay Algorithm
 
-Below is a pseudocode fragment that introduces the actual implementation of the reseed algorithm:
+Below is a pseudocode fragment that introduces the actual implementation of the replay algorithm:
 
 ```javascript
 // Pseudocode: List and sort all object versions from the bucket.
@@ -167,11 +161,11 @@ async function listAndSortAllObjectVersions() {
 
 ### Actual Implementation Snippets
 
-- **Reseed Logic:**
+- **replay Logic:**
 
   ```javascript
-  export async function reseed() {
-    logInfo(`Starting reseed job for bucket ${config.BUCKET_NAME}`);
+  export async function replay() {
+    logInfo(`Starting replay job for bucket ${config.BUCKET_NAME}`);
     const versions = await listAndSortAllObjectVersions();
     logInfo(`Processing ${versions.length} versions...`);
     for (const version of versions) {
@@ -183,7 +177,7 @@ async function listAndSortAllObjectVersions() {
       };
       await sendEventToSqs(event);
     }
-    logInfo('Reseed job complete.');
+    logInfo('replay job complete.');
   }
   ```
 
@@ -224,38 +218,7 @@ These fragments, along with robust retry logic and structured logging, ensure th
   mvn test
   ```
 
-Tests have been enhanced to cover event ordering, replay functionality, configuration validation, and error handling.
 
----
-
-## Cost Analysis
-
-| Resource            | Idle Cost         | Active Cost          | Notes                           |
-|---------------------|-------------------|----------------------|---------------------------------|
-| **S3**              | Near-zero         | $0.023/GB            | Highly cost-effective           |
-| **Lambda**          | Near-zero         | $0.20/million calls  | Efficient and event-driven      |
-| **SQS**             | Near-zero         | $0.40/million msgs   | Economical for high-volume msgs |
-| **Fargate (Spot)**  | Zero (when idle)  | ~$0.012/hour         | Optimal for non-constant loads  |
-| **DynamoDB**        | Near-zero         | Minimal ($1/million) | Very low cost                   |
-
----
-
-## Due Diligence & Throughput Considerations
-
-### Performance
-
-- **High Throughput:** Leverages AWS-managed services (Lambda, SQS) for scalable, low-latency processing.
-- **Optimized Reseed:** Fargate/AppRunner tasks for reseed jobs are optimized for quick start and minimal overhead.
-
-### Resilience
-
-- **Offset Tracking:** Uses DynamoDB to maintain replay progress, ensuring continuity.
-- **Retry Mechanisms:** Exponential backoff for AWS SDK calls improves resilience against transient errors.
-
-### Scalability
-
-- **Serverless Architecture:** Automatically scales with demand, suitable for enterprise workloads.
-- **Cost-Effective:** Utilizes Fargate Spot and low-cost AWS services to minimize idle costs.
 
 ---
 
@@ -289,10 +252,10 @@ Tests have been enhanced to cover event ordering, replay functionality, configur
    docker compose up --detach
    ```
 
-5. **Trigger the Reseed Job:**
+5. **Trigger the replay Job:**
 
    ```bash
-   docker compose run --rm consumer node src/lib/main.js --reseed
+   docker compose run --rm consumer node src/lib/main.js --replay
    ```
 
 ---
@@ -305,7 +268,8 @@ We welcome contributions from the community. Please review the [CONTRIBUTING.md]
 - Testing and continuous integration requirements
 - Commit message conventions and branching strategies
 
-Whether you’re looking to use the solution as-is or fork it to build new features, your feedback and contributions help us improve the robustness and utility of the S3 SQS Bridge.
+Whether you’re looking to use the solution as-is or fork it to build new features, your feedback and contributions help
+us improve the robustness and utility of the S3 SQS Bridge.
 
 ---
 
@@ -315,4 +279,6 @@ Distributed under the [MIT License](LICENSE).
 
 ---
 
-This README provides a thorough guide for users and contributors alike, covering all aspects from local development and testing to production deployment on AWS. The included pseudocode fragments illustrate the core logic of the solution while the detailed instructions ensure that you can deploy, run, and extend the solution with confidence.
+This README provides a thorough guide for users and contributors alike, covering all aspects from local development and
+testing to production deployment on AWS. The included pseudocode fragments illustrate the core logic of the solution
+while the detailed instructions ensure that you can deploy, run, and extend the solution with confidence.

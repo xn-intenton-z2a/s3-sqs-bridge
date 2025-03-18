@@ -1,21 +1,24 @@
 {
   "app": "mvn -e -q compile exec:java",
   "context": {
+    "awsS3WriterArnPrinciple": "arn:aws:iam::123456789012:role/s3-writer-role",
     "s3BucketName": "s3-sqs-bridge-bucket",
-    "s3ObjectPrefix": "s3-sqs-bridge-cluster",
+    "s3ObjectPrefix": "events/",
     "s3UseExistingBucket": "false",
     "s3RetainBucket": "false",
-    "sqsQueueName": "s3-sqs-bridge-queue",
-    "tableName": "s3-sqs-bridge-table",
+    "sqsSourceQueueName": "s3-sqs-bridge-source-queue",
+    "sqsReplayQueueName": "s3-sqs-bridge-replay-queue",
+    "tableName": "s3-sqs-bridge-offsets-table",
+    "taskPort": "8080",
+    "taskServiceName": "s3-sqs-bridge-replay",
+    "taskCpu": "1024",
+    "taskMemory": "2048",
     "lambdaRuntime": "nodejs20.x",
     "lambdaTarget": "es2020",
     "lambdaFormat": "ESM",
     "lambdaEntry": "src/lib/main.js",
-    "lambdaFunctionName": "loggingLambdaHandler",
+    "lambdaSourceFunctionName": "sourceLambdaHandler",
+    "lambdaReplayFunctionName": "replayLambdaHandler",
     "lambdaLogLevel": "INFO",
-    "taskPort": "8080",
-    "taskServiceName": "s3-sqs-bridge-reseed",
-    "taskCpu": "1024",
-    "taskMemory": "2048"
   }
 }

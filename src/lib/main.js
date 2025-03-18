@@ -10,9 +10,25 @@ import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 
 dotenv.config();
 
+// --------------------
+// For test or development environment, supply default env values to avoid configuration errors.
+// In production, ensure all required environment variables are set.
+// --------------------
+if (process.env.VITEST || process.env.NODE_ENV === "development") {
+  process.env.BUCKET_NAME = process.env.BUCKET_NAME || "test";
+  process.env.OBJECT_PREFIX = process.env.OBJECT_PREFIX || "test/";
+  process.env.SOURCE_QUEUE_URL = process.env.SOURCE_QUEUE_URL || "https://sqs.eu-west-2.amazonaws.com/000000000000/source-queue-test";
+  process.env.REPLAY_QUEUE_URL = process.env.REPLAY_QUEUE_URL || "https://sqs.eu-west-2.amazonaws.com/000000000000/replay-queue-test";
+  process.env.S3_ENDPOINT = process.env.S3_ENDPOINT || "https://s3.eu-west-2.amazonaws.com";
+  process.env.SQS_ENDPOINT = process.env.SQS_ENDPOINT || "https://sqs.eu-west-2.amazonaws.com";
+  process.env.AWS_ENDPOINT = process.env.AWS_ENDPOINT || "https://s3.eu-west-2.amazonaws.com";
+}
+
 const configSchema = z.object({
   BUCKET_NAME: z.string().nonempty(),
-  QUEUE_URL: z.string().nonempty(),
+  OBJECT_PREFIX: z.string().optional(),
+  SOURCE_QUEUE_URL: z.string().nonempty(),
+  REPLAY_QUEUE_URL: z.string().nonempty(),
   // Allow separate endpoints for S3 and SQS for local testing. If not provided, fall back to AWS_ENDPOINT.
   S3_ENDPOINT: z.string().optional(),
   SQS_ENDPOINT: z.string().optional(),
@@ -27,7 +43,7 @@ function logConfig() {
     level: "info",
     timestamp: new Date().toISOString(),
     message: "Configuration loaded",
-    config: { BUCKET_NAME: config.BUCKET_NAME, QUEUE_URL: config.QUEUE_URL }
+    config: { BUCKET_NAME: config.BUCKET_NAME, OBJECT_PREFIX: config.OBJECT_PREFIX, SOURCE_QUEUE_URL: config.SOURCE_QUEUE_URL, REPLAY_QUEUE_URL: config.REPLAY_QUEUE_URL }
   }));
 }
 logConfig();
@@ -46,9 +62,16 @@ function logError(message, error) {
   console.error(JSON.stringify({ level: "error", timestamp: new Date().toISOString(), message, error: error ? error.toString() : undefined }));
 }
 
-async function listAndSortAllObjectVersions() {
+// ---------------------------------------------------------------------------------------------------------------------
+// Replay Task
+// ---------------------------------------------------------------------------------------------------------------------
+
+export async function listAndSortAllObjectVersions() {
   let versions = [];
-  let params = { Bucket: config.BUCKET_NAME };
+  let params = {
+    Bucket: config.BUCKET_NAME,
+    Prefix: config.OBJECT_PREFIX
+  };
   let response;
   do {
     response = await s3.send(new ListObjectVersionsCommand(params));
@@ -61,14 +84,14 @@ async function listAndSortAllObjectVersions() {
   return versions;
 }
 
-function buildSQSMessageParams(event) {
+export function buildSQSMessageParams(event) {
   return {
-    QueueUrl: config.QUEUE_URL,
+    QueueUrl: config.REPLAY_QUEUE_URL,
     MessageBody: JSON.stringify(event)
   };
 }
 
-async function sendEventToSqs(event) {
+export async function sendEventToSqs(event) {
   const params = buildSQSMessageParams(event);
   try {
     const result = await retryOperationExponential(async () =>
@@ -81,7 +104,7 @@ async function sendEventToSqs(event) {
   }
 }
 
-function parseMessageBody(text) {
+export function parseMessageBody(text) {
   try {
     return JSON.parse(text);
   } catch (e) {
@@ -89,11 +112,7 @@ function parseMessageBody(text) {
   }
 }
 
-function validateConfig(cfg) {
-  return cfg.BUCKET_NAME && cfg.QUEUE_URL;
-}
-
-async function retryOperationExponential(operation, retries = 3, delay = 100) {
+export async function retryOperationExponential(operation, retries = 3, delay = 100) {
   let attempt = 0;
   while (attempt < retries) {
     try {
@@ -108,23 +127,8 @@ async function retryOperationExponential(operation, retries = 3, delay = 100) {
   }
 }
 
-export async function realtimeLambdaHandler(event) {
-  logInfo(`Received realtime event: ${JSON.stringify(event)}`);
-  for (const record of event.Records) {
-    const { s3 } = record;
-    const eventDetail = {
-      bucket: s3.bucket.name,
-      key: s3.object.key,
-      eventTime: record.eventTime,
-      versionId: s3.object.versionId,
-      sequencer: s3.object.sequencer
-    };
-    await sendEventToSqs(eventDetail);
-  }
-}
-
-export async function reseed() {
-  logInfo(`Starting reseed job for bucket ${config.BUCKET_NAME}`);
+export async function replay() {
+  logInfo(`Starting replay job for bucket ${config.BUCKET_NAME} prefix ${config.OBJECT_PREFIX}`);
   const versions = await listAndSortAllObjectVersions();
   logInfo(`Processing ${versions.length} versions...`);
   for (const version of versions) {
@@ -136,8 +140,12 @@ export async function reseed() {
     };
     await sendEventToSqs(event);
   }
-  logInfo('Reseed job complete.');
+  logInfo('replay job complete.');
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Health check server
+// ---------------------------------------------------------------------------------------------------------------------
 
 function healthCheckServer() {
   const app = express();
@@ -145,21 +153,48 @@ function healthCheckServer() {
   app.listen(8080, () => logInfo('Healthcheck available at :8080'));
 }
 
-async function main(args = process.argv.slice(2)) {
+// ---------------------------------------------------------------------------------------------------------------------
+// SQS Lambda Handlers
+// ---------------------------------------------------------------------------------------------------------------------
+
+export async function sourceLambdaHandler(event) {
+  logInfo(`Source Lambda received event: ${JSON.stringify(event, null, 2)}`);
+  for (const record of event.Records) {
+    logInfo(`Create source-projection from: ${record.body}.`);
+  }
+  return { status: "logged" };
+}
+
+export async function replayLambdaHandler(event) {
+  logInfo(`Replay Lambda received event: ${JSON.stringify(event, null, 2)}`);
+  for (const record of event.Records) {
+    logInfo(`Create replay-projection from: ${record.body}.`);
+  }
+  return { status: "logged" };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Main CLI
+// ---------------------------------------------------------------------------------------------------------------------
+
+export async function main(args = process.argv.slice(2)) {
   if (args.includes('--help')) {
     console.log(`
       Usage:
-      --realtime-lambda          Run realtime Lambda handler
-      --reseed                   Run full bucket reseed
+      --source-projection        Run realtime Lambda handler
+      --replay-projection        Run replay Lambda handler
+      --replay                   Run full bucket replay
       --healthcheck              Run healthcheck server
     `);
     return;
   }
 
-  if (args.includes('--reseed')) {
-    await reseed();
-  } else if (args.includes('--realtime-lambda')) {
-    console.log('Realtime lambda handler requires AWS Lambda invocation context.');
+  if (args.includes('--replay')) {
+    await replay();
+  } else if (args.includes('--source-projection')) {
+    await sourceLambdaHandler({ "source": "main" });
+  } else if (args.includes('--replay-projection')) {
+    await replayLambdaHandler({ "source": "main" });
   } else if (args.includes('--healthcheck')) {
     healthCheckServer();
   } else {
@@ -174,4 +209,3 @@ if (import.meta.url.endsWith(process.argv[1])) {
   });
 }
 
-export { main, parseMessageBody, buildSQSMessageParams, validateConfig, sendEventToSqs, retryOperationExponential, listAndSortAllObjectVersions };

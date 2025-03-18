@@ -9,52 +9,53 @@ import uk.org.webcompere.systemstubs.jupiter.SystemStub;
 import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @ExtendWith(SystemStubsExtension.class)
 public class S3SqsBridgeStackTest {
 
     @SystemStub
-    private EnvironmentVariables variables =
+    private final EnvironmentVariables variables =
             new EnvironmentVariables(
-                    "AWS_ARN_PRINCIPLE", "arn:aws:iam::123456789012:user/test",
-                "STORAGE_BUCKET_NAME", "s3-sqs-bridge-bucket-test",
+                    "AWS_S3_WRITER_ARN_PRINCIPLE", "arn:aws:iam::123456789012:user/test",
+                "BUCKET_NAME", "s3-sqs-bridge-bucket-test",
+                    "OBJECT_PREFIX", "test/",
                 "USE_EXISTING_BUCKET", "false",
                 "RETAIN_BUCKET", "false",
-                "STORAGE_ENGINE", "memory://s3/",
-                "CLUSTER_ID", "s3-sqs-bridge-cluster-test",
-                "CONSUMER_GROUP", "s3-sqs-bridge-group-test",
-                "TOPIC_NAME", "s3-sqs-bridge-topic-test",
-                "USE_EXISTING_TOPIC", "false",
-                "SQS_QUEUE_NAME", "s3-sqs-bridge-queue-test",
+                "SQS_SOURCE_QUEUE_NAME", "s3-sqs-bridge-source-queue-test",
+                "SQS_REPLAY_QUEUE_NAME", "s3-sqs-bridge-replay-queue-test",
+                "TABLE_NAME", "s3-sqs-bridge-offsets-table-test",
+                "TASK_PORT", "8080",
+                "TASK_SERVICE_NAME", "s3-sqs-bridge-consumer-test",
+                "TASK_CPU", "1024",
+                "TASK_MEMORY", "2048",
                 "LAMBDA_RUNTIME", "nodejs20.x",
                 "LAMBDA_TARGET", "es2020",
                 "LAMBDA_FORMAT", "ESM",
                 "LAMBDA_ENTRY", "src/lib/main.js",
-                "LAMBDA_FUNCTION_NAME", "loggingLambdaHandler",
-                "LAMBDA_LOG_LEVEL", "INFO",
-                "APP_RUNNER_PORT", "8080",
-                "APP_RUNNER_SERVICE_NAME", "s3-sqs-bridge-consumer-test",
-                "APP_RUNNER_CPU", "1024",
-                "APP_RUNNER_MEMORY", "2048"
+                "LAMBDA_SOURCE_FUNCTION_NAME", "sourceLambdaHandler",
+                "LAMBDA_REPLAY_FUNCTION_NAME", "replayLambdaHandler",
+                "LAMBDA_LOG_LEVEL", "INFO"
             );
 
     @Test
     void hasAccessToEnvironmentVariables() {
-        // assert System.getenv("STORAGE_BUCKET_NAME") isEqualTo "s3-sqs-bridge-bucket-test"
-        assertEquals(System.getenv("STORAGE_BUCKET_NAME"), "s3-sqs-bridge-bucket-test");
+        assertNotNull(variables);
+        // assert System.getenv("BUCKET_NAME") isEqualTo "s3-sqs-bridge-bucket-test"
+        assertEquals(System.getenv("BUCKET_NAME"), "s3-sqs-bridge-bucket-test");
     }
 
     @Test
     public void testStackResources() {
         App app = new App();
-        String var = System.getenv("STORAGE_BUCKET_NAME");
+        String var = System.getenv("BUCKET_NAME");
         S3SqsBridgeStack stack = new S3SqsBridgeStack(app, "TestStack");
         Template template = Template.fromStack(stack);
         // Verify that one SQS queue is created
-        template.resourceCountIs("AWS::SQS::Queue", 1);
+        template.resourceCountIs("AWS::SQS::Queue", 2);
         // Verify that one Lambda function is created
-        //template.resourceCountIs("AWS::Lambda::Function", 1);
+        template.resourceCountIs("AWS::Lambda::Function", 2);
         // Verify that one App Runner service is created
-        template.resourceCountIs("AWS::AppRunner::Service", 1);
+        //template.resourceCountIs("AWS::AppRunner::Service", 1);
     }
 }

@@ -17,9 +17,10 @@
     "test:unit": "vitest --coverage",
     "start": "node src/lib/main.js",
     "diagnostics": "node src/lib/main.js",
-    "sqs-to-lambda-logger": "node src/lib/main.js --sqs-to-lambda-logger",
-    "sqs-to-lambda-github-projection": "node src/lib/main.js --sqs-to-lambda-github-projection",
-    "s3-consumer-to-sqs": "node src/lib/main.js --s3-consumer-to-sqs"
+    "healthcheck": "node src/lib/main.js --healthcheck",
+    "replay": "node src/lib/main.js --replay",
+    "source-projection": "node src/lib/main.js --source-projection",
+    "replay-projection": "node src/lib/main.js --replay-projection"
   },
   "keywords": [
     "kafka",

@@ -7,7 +7,7 @@ COPY src/ src/
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Create a non-root user and switch to it for improved security.
+# Create a non-root user and switch to it.
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 

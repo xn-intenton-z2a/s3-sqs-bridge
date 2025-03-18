@@ -1,14 +1,4 @@
-version: '3'
 services:
-  minio:
-    image: minio/minio
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - '9000:9000'
-      - '9001:9001'
-    command: server --console-address ":9001" /data
 
   localstack:
     image: localstack/localstack
@@ -19,24 +9,20 @@ services:
       - "4566:4566"
       - "4571:4571"
 
-  consumer:
+  replay:
     build: .
     environment:
-      S3_ENDPOINT: http://minio:9000
+      S3_ENDPOINT: http://localstack:4566
       SQS_ENDPOINT: http://localstack:4566
-      QUEUE_URL: http://localstack:4566/000000000000/local-queue
+      SOURCE_QUEUE_URL: http://localstack:4566/000000000000/source-queue-local
+      REPLAY_QUEUE_URL: http://localstack:4566/000000000000/replay-queue-local
       BUCKET_NAME: local-bucket
+      OBJECT_PREFIX: local/
     depends_on:
-      - minio
       - localstack
-    restart: always
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/"]
       interval: 30s
       timeout: 10s
       retries: 3
+    command: ["npm", "run", "replay"]
