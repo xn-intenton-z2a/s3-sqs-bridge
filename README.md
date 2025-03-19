@@ -300,23 +300,29 @@ npx cdk deploy
 Example output:
 ```log
 ...truncated...
-TansuSqsBridgeStack: deploying... [1/1]
-TansuSqsBridgeStack: creating CloudFormation changeset...
+S3SqsBridgeStack: success: Published f23b4641b15bfe521c575e572ebe41ca2c4613e3e1ea8a9c8ef816c73832cddf:current_account-current_region
+S3SqsBridgeStack: deploying... [1/1]
+S3SqsBridgeStack: creating CloudFormation changeset...
 
- ✅  TansuSqsBridgeStack
+ ✅  S3SqsBridgeStack
 
-✨  Deployment time: 215.83s
+✨  Deployment time: 105.48s
 
 Outputs:
-TansuSqsBridgeStack.AppRunnerServiceUrl = xjsmvg3c62.eu-west-2.awsapprunner.com
-TansuSqsBridgeStack.S3AccessRoleArn = arn:aws:iam::541134664601:role/TansuSqsBridgeStack-S3AccessRole49D67050-Ci4Hpxc3ECtz
-TansuSqsBridgeStack.S3BucketName = tansu-sqs-bridge-bucket
-TansuSqsBridgeStack.TansuQueueUrl = https://sqs.eu-west-2.amazonaws.com/541134664601/tansu-sqs-bridge-queue
+S3SqsBridgeStack.BucketArn = arn:aws:s3:::s3-sqs-bridge-bucket
+S3SqsBridgeStack.OffsetsTableArn = arn:aws:dynamodb:eu-west-2:541134664601:table/offsets
+S3SqsBridgeStack.OneOffJobLambdaArn = arn:aws:lambda:eu-west-2:541134664601:function:replayBatchLambdaHandler
+S3SqsBridgeStack.ReplayQueueUrl = https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-replay-queue
+...truncated...
+S3SqsBridgeStack.s3BucketName = s3-sqs-bridge-bucket (Source: CDK context.)
+S3SqsBridgeStack.s3ObjectPrefix = events/ (Source: CDK context.)
+S3SqsBridgeStack.s3RetainBucket = false (Source: CDK context.)
+S3SqsBridgeStack.s3UseExistingBucket = false (Source: CDK context.)
 Stack ARN:
-arn:aws:cloudformation:eu-west-2:541134664601:stack/TansuSqsBridgeStack/715f0d50-01f7-11f0-ab46-060c49f414cb
+arn:aws:cloudformation:eu-west-2:541134664601:stack/S3SqsBridgeStack/30cf37a0-0504-11f0-b142-06193d47b789
 
+✨  Total time: 118.12s
 
-✨  Total time: 229.35s
 ```
 
 ### Handy Commands
