@@ -1,31 +1,26 @@
 package com.intentïon.S3SqsBridge;
 
 import software.amazon.awscdk.CfnOutput;
+import software.amazon.awscdk.CustomResource;
 import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.customresources.Provider;
 import software.amazon.awscdk.services.dynamodb.Attribute;
 import software.amazon.awscdk.services.dynamodb.AttributeType;
 import software.amazon.awscdk.services.dynamodb.Table;
-import software.amazon.awscdk.services.ecr.assets.DockerImageAsset;
-import software.amazon.awscdk.services.ecs.AwsLogDriverProps;
-import software.amazon.awscdk.services.ecs.CapacityProviderStrategy;
-import software.amazon.awscdk.services.ecs.Cluster;
-import software.amazon.awscdk.services.ecs.ContainerDefinition;
-import software.amazon.awscdk.services.ecs.ContainerDefinitionOptions;
-import software.amazon.awscdk.services.ecs.ContainerImage;
-import software.amazon.awscdk.services.ecs.FargateTaskDefinition;
-import software.amazon.awscdk.services.ecs.LogDriver;
-import software.amazon.awscdk.services.ecs.PortMapping;
-import software.amazon.awscdk.services.ecs.Protocol;
-import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
 import software.amazon.awscdk.services.iam.ArnPrincipal;
 import software.amazon.awscdk.services.iam.Effect;
 import software.amazon.awscdk.services.iam.PolicyDocument;
 import software.amazon.awscdk.services.iam.PolicyStatement;
 import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.iam.ServicePrincipal;
+import software.amazon.awscdk.services.lambda.Function;
+import software.amazon.awscdk.services.lambda.nodejs.BundlingOptions;
+import software.amazon.awscdk.services.lambda.nodejs.LogLevel;
+import software.amazon.awscdk.services.lambda.nodejs.NodejsFunction;
+import software.amazon.awscdk.services.lambda.nodejs.OutputFormat;
 import software.amazon.awscdk.services.s3.Bucket;
 import software.amazon.awscdk.services.s3.EventType;
 import software.amazon.awscdk.services.s3.IBucket;
@@ -34,7 +29,6 @@ import software.amazon.awscdk.services.sqs.Queue;
 import software.constructs.Construct;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -66,6 +60,7 @@ public class S3SqsBridgeStack extends Stack {
         final String lambdaEntry = getConfigValue("LAMBDA_ENTRY", "lambdaEntry");
         final String lambdaSourceFunctionName = getConfigValue("LAMBDA_SOURCE_FUNCTION_NAME", "lambdaSourceFunctionName");
         final String lambdaReplayFunctionName = getConfigValue("LAMBDA_REPLAY_FUNCTION_NAME", "lambdaReplayFunctionName");
+        final String lambdaReplayBatchFunctionName = getConfigValue("LAMBDA_REPLAY_BATCH_FUNCTION_NAME", "lambdaReplayBatchFunctionName");
         final String lambdaLogLevel = getConfigValue("LAMBDA_LOG_LEVEL", "lambdaLogLevel");
 
         // S3 Bucket creation with versioning and appropriate removal policies.
@@ -231,11 +226,62 @@ public class S3SqsBridgeStack extends Stack {
                 ))
                 .build();
 
-        // Docker Image for the replay task.
-        DockerImageAsset dockerImage = DockerImageAsset.Builder.create(this, "DockerImage")
-                .directory("./") // Project root containing Dockerfile
+        Function oneOffJobLambda = NodejsFunction.Builder.create(this, "SQSSourceLambda")
+                //.runtime(lambdaRuntimeEnum)
+                .runtime(software.amazon.awscdk.services.lambda.Runtime.NODEJS_20_X)
+                .entry(lambdaEntry)
+                .handler("lambda.handler")
+                .bundling(BundlingOptions.builder()
+                        //.bundleAwsSDK(true)
+                        //.sourceMap(true)
+                        //.sourcesContent(true)
+                        .target(lambdaTarget)
+                        //.format(OutputFormat.valueOf(lambdaFormat))
+                        .format(OutputFormat.ESM)
+                        //.image(Runtime.NODEJS_20_X.getBundlingImage())
+                        .command(Arrays.asList("bash", "-c", "npm install && cp -R . /asset-output"))
+                        //.command(Arrays.asList("bash", "-c", "npm cache clean --force && npm install && cp -R . /asset-output"))
+                        //.logLevel(LogLevel.valueOf(lambdaLogLevel))
+                        .logLevel(LogLevel.INFO)
+                        //.keepNames(true)
+                        //.mainFields(List.of("module", "main"))
+                        //.externalModules(List.of("@aws-sdk/*", "cool-module"))
+                        .environment(Map.of(
+                                "BUCKET_NAME", bucketName,
+                                "OBJECT_PREFIX", objectPrefix,
+                                "REPLAY_QUEUE_URL", replayQueue.getQueueArn()
+                        ))
+                        .build())
+                .functionName(lambdaReplayBatchFunctionName)
+                //.sourceMap(true)
+                //.sourcesContent(true)
+                //.logLevel(LogLevel.INFO)
+                //.keepNames(true)
                 .build();
 
+
+        // Create a Lambda function for a one-off replay job
+        //Function oneOffJobLambda2 = Function.Builder.create(this, "OneOffJobLambda")
+        //        .runtime(Runtime.NODEJS_20_X)
+        //        .handler("oneoff.handler")
+        //        .code(Code.fromAsset("path/to/your/oneoff/code"))
+        //        .timeout(Duration.minutes(15))
+        //        .build();
+
+        Provider oneOffJobProvider = Provider.Builder.create(this, "OneOffJobProvider")
+                .onEventHandler(oneOffJobLambda)
+                .build();
+
+        CustomResource oneOffJobResource = CustomResource.Builder.create(this, "OneOffJobResource")
+                .serviceToken(oneOffJobProvider.getServiceToken())
+                .build();
+
+        // Docker Image for the replay task.
+        //DockerImageAsset dockerImage = DockerImageAsset.Builder.create(this, "DockerImage")
+        //        .directory("./") // Project root containing Dockerfile
+        //        .build();
+
+        /*
         // ECS Cluster and Fargate Task Definition (using Spot for cost optimization).
         Cluster cluster = Cluster.Builder.create(this, "Cluster").build();
 
@@ -284,6 +330,51 @@ public class S3SqsBridgeStack extends Stack {
         // Grant the ECS task role permission to send messages and read the bucket.
         sourceQueue.grantSendMessages(ecsTaskRole);
         s3Bucket.grantRead(ecsTaskRole);
+*/
+
+        /*
+        List<Object> imageEnvironmentVariables = List.of(
+                Map.of("name", "BUCKET_NAME", "value", s3Bucket.getBucketName()),
+                Map.of("name", "OBJECT_PREFIX", "value", objectPrefix),
+                Map.of("name", "REPLAY_QUEUE_URL", "value", replayQueue.getQueueUrl()),
+        );
+
+        // Create an App Runner service for the consumer container
+        CfnService.ImageConfigurationProperty imageConfiguration = CfnService.ImageConfigurationProperty.builder()
+                .port(String.valueOf(taskPort))
+                .runtimeEnvironmentVariables(imageEnvironmentVariables)
+                .build();
+
+        CfnService.ImageRepositoryProperty imageRepository = CfnService.ImageRepositoryProperty.builder()
+                .imageIdentifier(dockerImage.getImageUri())
+                .imageRepositoryType("ECR")
+                .imageConfiguration(imageConfiguration)
+                .build();
+
+        Role appRunnerEcrAccessRole = Role.Builder.create(this, "AppRunnerEcrAccessRole")
+                .assumedBy(new ServicePrincipal("build.apprunner.amazonaws.com"))
+                .managedPolicies(List.of(
+                        ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSAppRunnerServicePolicyForECRAccess")
+                ))
+                .build();
+
+        CfnService.SourceConfigurationProperty sourceConfiguration = CfnService.SourceConfigurationProperty.builder()
+                .imageRepository(imageRepository)
+                .authenticationConfiguration(CfnService.AuthenticationConfigurationProperty.builder()
+                        .accessRoleArn(appRunnerEcrAccessRole.getRoleArn())
+                        .build())
+                .autoDeploymentsEnabled(true)
+                .build();
+
+        CfnService appRunnerService = CfnService.Builder.create(this, "ConsumerService")
+                .serviceName(taskServiceName)
+                .sourceConfiguration(sourceConfiguration)
+                .instanceConfiguration(CfnService.InstanceConfigurationProperty.builder()
+                        .cpu(String.valueOf(taskCpu))
+                        .memory(String.valueOf(taskMemory))
+                        .build())
+                .build();
+*/
 
         // Outputs for post-deployment verification.
         CfnOutput.Builder.create(this, "BucketArn")
@@ -302,6 +393,10 @@ public class S3SqsBridgeStack extends Stack {
                 .value(replayQueue.getQueueUrl())
                 .build();
 
+        CfnOutput.Builder.create(this, "OneOffJobLambdaArn")
+                .value(oneOffJobLambda.getFunctionArn())
+                .build();
+
         //CfnOutput.Builder.create(this, "SourceLambdaArn")
         //        .value(sourceLambda.getFunctionArn())
         //        .build();
@@ -310,13 +405,17 @@ public class S3SqsBridgeStack extends Stack {
         //        .value(replayLambda.getFunctionArn())
         //        .build();
 
-        CfnOutput.Builder.create(this, "FargateTaskDefinitionArn")
-                .value(taskDefinition.getTaskDefinitionArn())
-                .build();
+        //CfnOutput.Builder.create(this, "FargateTaskDefinitionArn")
+        //        .value(taskDefinition.getTaskDefinitionArn())
+        //        .build();
 
-        CfnOutput.Builder.create(this, "EcsClusterArn")
-                .value(cluster.getClusterArn())
-                .build();
+        //CfnOutput.Builder.create(this, "EcsClusterArn")
+        //        .value(cluster.getClusterArn())
+        //        .build();
+
+        //CfnOutput.Builder.create(this, "AppRunnerServiceArn")
+        //        .value(appRunnerService.getAttrServiceArn())
+        //        .build();
 
         CfnOutput.Builder.create(this, "TaskRoleArn")
                 .value(ecsTaskRole.getRoleArn())

@@ -150,6 +150,15 @@ function healthCheckServer() {
 // SQS Lambda Handlers
 // ---------------------------------------------------------------------------------------------------------------------
 
+export async function replayBatchLambdaHandler(event) {
+  logInfo(`Replay Batch Lambda received event: ${JSON.stringify(event, null, 2)}`);
+  for (const record of event.Records) {
+    logInfo(`Create replay batch from: ${record.body}.`);
+  }
+  await replay();
+  return { status: "logged" };
+}
+
 export async function sourceLambdaHandler(event) {
   logInfo(`Source Lambda received event: ${JSON.stringify(event, null, 2)}`);
   for (const record of event.Records) {

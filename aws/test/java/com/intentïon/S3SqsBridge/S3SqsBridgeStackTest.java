@@ -37,6 +37,7 @@ public class S3SqsBridgeStackTest {
                 "LAMBDA_ENTRY", "src/lib/main.js",
                 "LAMBDA_SOURCE_FUNCTION_NAME", "sourceLambdaHandler",
                 "LAMBDA_REPLAY_FUNCTION_NAME", "replayLambdaHandler",
+                "LAMBDA_REPLAY_BATCH_FUNCTION_NAME", "replayBatchLambdaHandler",
                 "LAMBDA_LOG_LEVEL", "INFO"
             );
 

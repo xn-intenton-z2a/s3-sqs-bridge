@@ -19,6 +19,7 @@
     "lambdaTarget": "es2020",
     "lambdaFormat": "ESM",
     "lambdaEntry": "src/lib/main.js",
+    "lambdaReplayBatchFunctionName": "replayBatchLambdaHandler",
     "lambdaSourceFunctionName": "sourceLambdaHandler",
     "lambdaReplayFunctionName": "replayLambdaHandler",
     "lambdaLogLevel": "INFO"
