@@ -1,14 +1,15 @@
-FROM node:20.6.0-alpine
+FROM public.ecr.aws/lambda/nodejs:20
 
-WORKDIR /app
+WORKDIR /var/task
+
 COPY package.json package-lock.json ./
 RUN npm install --production
 COPY src/ src/
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 
-# Create a non-root user and switch to it.
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
+ARG HANDLER=src/lib/main.replayBatchLambdaHandler
+ENV HANDLER=$HANDLER
 
-#ENTRYPOINT ["/entrypoint.sh", "npm", "run", "replay"]
+# Use shell form so the environment variable gets expanded.
+CMD sh -c "exec $HANDLER"
+
+ENTRYPOINT /lambda-entrypoint.sh $HANDLER

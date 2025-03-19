@@ -347,7 +347,7 @@ docker run -it \
   --env OBJECT_PREFIX='events/' \
   --env REPLAY_QUEUE_URL='http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-replay-queue-local' \
   --env AWS_ENDPOINT='http://localhost:4566' \
-  --entrypoint /bin/ash \
+  --entrypoint /bin/bash \
   s3-sqs-bridge:latest
 ```
 

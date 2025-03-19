@@ -68,9 +68,14 @@ export async function listAndSortAllObjectVersions() {
   let response;
   do {
     response = await s3.send(new ListObjectVersionsCommand(params));
-    versions.push(...response.Versions);
-    params.KeyMarker = response.NextKeyMarker;
-    params.VersionIdMarker = response.NextVersionIdMarker;
+    if(response.Versions) {
+      versions.push(...response.Versions);
+      params.KeyMarker = response.NextKeyMarker;
+      params.VersionIdMarker = response.NextVersionIdMarker;
+    }else {
+      logInfo(`No versions found in the response for ${config.BUCKET_NAME}: ${JSON.stringify(response)}`);
+      break;
+    }
   } while (response.IsTruncated);
 
   versions.sort((a, b) => new Date(a.LastModified) - new Date(b.LastModified));
@@ -152,12 +157,22 @@ function healthCheckServer() {
 
 export async function replayBatchLambdaHandler(event) {
   logInfo(`Replay Batch Lambda received event: ${JSON.stringify(event, null, 2)}`);
-  for (const record of event.Records) {
-    logInfo(`Create replay batch from: ${record.body}.`);
+
+  // If event.Records is an array, use it.
+  // Otherwise, treat the event itself as one record.
+  const records = Array.isArray(event.Records) ? event.Records : [event];
+
+  for (const record of records) {
+    // If the record has a "body", then it is likely coming from an SQS event.
+    // Otherwise, log the entire record.
+    const message = record.body ? record.body : JSON.stringify(record);
+    logInfo(`Create replay batch from: ${message}.`);
   }
+
   await replay();
   return { status: "logged" };
 }
+
 
 export async function sourceLambdaHandler(event) {
   logInfo(`Source Lambda received event: ${JSON.stringify(event, null, 2)}`);

@@ -16,11 +16,9 @@ import software.amazon.awscdk.services.iam.PolicyDocument;
 import software.amazon.awscdk.services.iam.PolicyStatement;
 import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.iam.ServicePrincipal;
-import software.amazon.awscdk.services.lambda.Function;
-import software.amazon.awscdk.services.lambda.nodejs.BundlingOptions;
-import software.amazon.awscdk.services.lambda.nodejs.LogLevel;
-import software.amazon.awscdk.services.lambda.nodejs.NodejsFunction;
-import software.amazon.awscdk.services.lambda.nodejs.OutputFormat;
+import software.amazon.awscdk.services.lambda.AssetImageCodeProps;
+import software.amazon.awscdk.services.lambda.DockerImageCode;
+import software.amazon.awscdk.services.lambda.DockerImageFunction;
 import software.amazon.awscdk.services.s3.Bucket;
 import software.amazon.awscdk.services.s3.EventType;
 import software.amazon.awscdk.services.s3.IBucket;
@@ -140,7 +138,7 @@ public class S3SqsBridgeStack extends Stack {
                 //.runtime(lambdaRuntimeEnum)
                 .runtime(software.amazon.awscdk.services.lambda.Runtime.NODEJS_20_X)
                 .entry(lambdaEntry)
-                .handler("lambda.handler")
+                //.handler("lambda.handler")
                 .bundling(BundlingOptions.builder()
                         //.bundleAwsSDK(true)
                         //.sourceMap(true)
@@ -171,7 +169,7 @@ public class S3SqsBridgeStack extends Stack {
                 //.runtime(lambdaRuntimeEnum)
                 .runtime(software.amazon.awscdk.services.lambda.Runtime.NODEJS_20_X)
                 .entry(lambdaEntry)
-                .handler("lambda.handler")
+                //.handler("lambda.handler")
                 .bundling(BundlingOptions.builder()
                         //.bundleAwsSDK(true)
                         //.sourceMap(true)
@@ -226,11 +224,50 @@ public class S3SqsBridgeStack extends Stack {
                 ))
                 .build();
 
-        Function oneOffJobLambda = NodejsFunction.Builder.create(this, "SQSSourceLambda")
+        DockerImageFunction oneOffJobLambda = DockerImageFunction.Builder.create(this, "OneOffJobLambda")
+                .code(DockerImageCode.fromImageAsset(".", AssetImageCodeProps.builder()
+                        // Pass the build argument to set the handler for Lambda.
+                        .buildArgs(Map.of("HANDLER", "src/lib/main.replayBatchLambdaHandler"))
+                        .build()))
+                //.code(DockerImageCode.fromImageAsset(".", (AssetImageCodeProps) DockerImageAssetOptions.builder()
+                //        // Pass the build argument to set the handler for Lambda.
+                //        .buildArgs(Map.of("HANDLER", "src/lib/main.replayBatchLambdaHandler"))
+                //        .build()))
+                .environment(Map.of(
+                        "BUCKET_NAME", bucketName,
+                        "OBJECT_PREFIX", objectPrefix,
+                        "REPLAY_QUEUE_URL", replayQueue.getQueueArn()
+                ))
+                .functionName(lambdaReplayBatchFunctionName)
+                .build();
+
+        // Policy statement for bucket-level actions, for example to list objects.
+        PolicyStatement listBucketPolicy = PolicyStatement.Builder.create()
+                .actions(Arrays.asList("s3:ListBucket","s3:ListBucketVersions"))
+                .resources(Arrays.asList(s3Bucket.getBucketArn()))
+                .build();
+
+// Policy statement for object-level actions (reading objects and metadata).
+        PolicyStatement getObjectPolicy = PolicyStatement.Builder.create()
+                .actions(Arrays.asList(
+                        "s3:GetObject",
+                        "s3:GetObjectVersion",
+                        "s3:GetObjectTagging"
+                ))
+                .resources(Arrays.asList(s3Bucket.getBucketArn() + "/*"))
+                .build();
+
+// Attach both policy statements to your Lambda function's role.
+        oneOffJobLambda.addToRolePolicy(listBucketPolicy);
+        oneOffJobLambda.addToRolePolicy(getObjectPolicy);
+
+        /*
+        Function oneOffJobLambda2 = NodejsFunction.Builder.create(this, "SQSSourceLambda")
                 //.runtime(lambdaRuntimeEnum)
                 .runtime(software.amazon.awscdk.services.lambda.Runtime.NODEJS_20_X)
                 .entry(lambdaEntry)
-                .handler("lambda.handler")
+                //.handler("lambda.handler")
+                //.handler("oneoff.handler")
                 .bundling(BundlingOptions.builder()
                         //.bundleAwsSDK(true)
                         //.sourceMap(true)
@@ -258,7 +295,7 @@ public class S3SqsBridgeStack extends Stack {
                 //.logLevel(LogLevel.INFO)
                 //.keepNames(true)
                 .build();
-
+*/
 
         // Create a Lambda function for a one-off replay job
         //Function oneOffJobLambda2 = Function.Builder.create(this, "OneOffJobLambda")

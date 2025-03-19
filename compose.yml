@@ -12,7 +12,7 @@ services:
   replay:
     build: .
     container_name: s3-sqs-bridge
-    command: ["npm", "run", "replay"]
+    entrypoint: ["npm", "run", "replay"]
     environment:
       BUCKET_NAME: s3-sqs-bridge-bucket-local
       OBJECT_PREFIX: events/
