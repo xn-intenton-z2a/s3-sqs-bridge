@@ -290,3 +290,4 @@ fabric.properties
 /cdk/cdk.out/
 /cdk.out/
 /target/
+/test-file.txt

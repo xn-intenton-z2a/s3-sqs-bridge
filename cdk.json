@@ -1,7 +1,8 @@
 {
-  "app": "mvn -e -q compile exec:java",
+  "app": "mvn exec:java -Dexec.mainClass=com.intentïon.S3SqsBridge.S3SqsBridgeApp",
   "context": {
-    "awsS3WriterArnPrinciple": "arn:aws:iam::123456789012:role/s3-writer-role",
+    "s3WriterArnPrinciple": "arn:aws:iam::541134664601:user/polycode-deploy",
+    "s3WriterRoleName": "s3-sqs-bridge-bucket-writer-role",
     "s3BucketName": "s3-sqs-bridge-bucket",
     "s3ObjectPrefix": "events/",
     "s3UseExistingBucket": "false",
@@ -11,14 +12,15 @@
     "tableName": "s3-sqs-bridge-offsets-table",
     "taskPort": "8080",
     "taskServiceName": "s3-sqs-bridge-replay",
-    "taskCpu": "1024",
-    "taskMemory": "2048",
+    "taskCpu": "256",
+    "taskMemory": "512",
+    "taskStartupCommand": "npm run replay",
     "lambdaRuntime": "nodejs20.x",
     "lambdaTarget": "es2020",
     "lambdaFormat": "ESM",
     "lambdaEntry": "src/lib/main.js",
     "lambdaSourceFunctionName": "sourceLambdaHandler",
     "lambdaReplayFunctionName": "replayLambdaHandler",
-    "lambdaLogLevel": "INFO",
+    "lambdaLogLevel": "INFO"
   }
 }

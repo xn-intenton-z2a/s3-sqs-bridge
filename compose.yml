@@ -11,13 +11,16 @@ services:
 
   replay:
     build: .
+    container_name: s3-sqs-bridge
+    command: ["npm", "run", "replay"]
     environment:
-      S3_ENDPOINT: http://localstack:4566
-      SQS_ENDPOINT: http://localstack:4566
-      SOURCE_QUEUE_URL: http://localstack:4566/000000000000/source-queue-local
-      REPLAY_QUEUE_URL: http://localstack:4566/000000000000/replay-queue-local
-      BUCKET_NAME: local-bucket
-      OBJECT_PREFIX: local/
+      BUCKET_NAME: s3-sqs-bridge-bucket-local
+      OBJECT_PREFIX: events/
+      REPLAY_QUEUE_URL: http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-replay-queue-local
+      AWS_REGION: eu-west-2
+      AWS_ENDPOINT: http://localstack:4566
+      AWS_ACCESS_KEY_ID: LKIAQAAAAAAVNCBMPNSG
+      AWS_SECRET_ACCESS_KEY: localstack
     depends_on:
       - localstack
     healthcheck:
@@ -25,4 +28,3 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    command: ["npm", "run", "replay"]

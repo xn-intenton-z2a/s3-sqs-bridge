@@ -26,12 +26,6 @@ import software.amazon.awscdk.services.iam.PolicyDocument;
 import software.amazon.awscdk.services.iam.PolicyStatement;
 import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.iam.ServicePrincipal;
-import software.amazon.awscdk.services.lambda.Function;
-import software.amazon.awscdk.services.lambda.eventsources.SqsEventSource;
-import software.amazon.awscdk.services.lambda.nodejs.BundlingOptions;
-import software.amazon.awscdk.services.lambda.nodejs.LogLevel;
-import software.amazon.awscdk.services.lambda.nodejs.NodejsFunction;
-import software.amazon.awscdk.services.lambda.nodejs.OutputFormat;
 import software.amazon.awscdk.services.s3.Bucket;
 import software.amazon.awscdk.services.s3.EventType;
 import software.amazon.awscdk.services.s3.IBucket;
@@ -40,6 +34,7 @@ import software.amazon.awscdk.services.sqs.Queue;
 import software.constructs.Construct;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -52,7 +47,8 @@ public class S3SqsBridgeStack extends Stack {
     public S3SqsBridgeStack(final Construct scope, final String id, final StackProps props) {
         super(scope, id, props);
 
-        final String awsS3WriterArnPrinciple = getConfigValue("AWS_S3_WRITER_ARN_PRINCIPLE", "awsS3WriterArnPrinciple");
+        final String s3WriterArnPrinciple = getConfigValue("S3_WRITER_ARN_PRINCIPLE", "s3WriterArnPrinciple");
+        final String s3WriterRoleName = getConfigValue("S3_WRITER_ROLE_NAME", "s3WriterRoleName");
         final String bucketName = getConfigValue("BUCKET_NAME", "s3BucketName");
         final String objectPrefix = getConfigValue("OBJECT_PREFIX", "s3ObjectPrefix");
         final boolean useExistingBucket = Boolean.parseBoolean(getConfigValue("USE_EXISTING_BUCKET", "s3UseExistingBucket"));
@@ -63,6 +59,7 @@ public class S3SqsBridgeStack extends Stack {
         final int taskCpu = Integer.parseInt(getConfigValue("TASK_CPU", "taskCpu"));
         final int taskMemory = Integer.parseInt(getConfigValue("TASK_MEMORY", "taskMemory"));
         final int taskPort = Integer.parseInt(getConfigValue("TASK_PORT", "taskPort"));
+        final String taskStartupCommand = getConfigValue("STARTUP_COMMAND", "taskStartupCommand");
         final String lambdaRuntime = getConfigValue("LAMBDA_RUNTIME", "lambdaRuntime");
         final String lambdaTarget = getConfigValue("LAMBDA_TARGET", "lambdaTarget");
         final String lambdaFormat = getConfigValue("LAMBDA_FORMAT", "lambdaFormat");
@@ -99,7 +96,8 @@ public class S3SqsBridgeStack extends Stack {
                 ))
                 .build();
         Role s3AccessRole = Role.Builder.create(this, "S3AccessRole")
-                .assumedBy(new ArnPrincipal(awsS3WriterArnPrinciple))
+                .roleName(s3WriterRoleName)
+                .assumedBy(new ArnPrincipal(s3WriterArnPrinciple))
                 .inlinePolicies(java.util.Collections.singletonMap("S3AccessPolicy", PolicyDocument.Builder.create()
                         .statements(List.of(s3ObjectCrudPolicyStatement))
                         .build()))
@@ -142,7 +140,7 @@ public class S3SqsBridgeStack extends Stack {
                 .filter(r -> r.toString().equalsIgnoreCase(lambdaRuntime))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Invalid Lambda runtime: " + lambdaRuntime));
-
+/*
         Function sourceLambda = NodejsFunction.Builder.create(this, "SQSSourceLambda")
                 //.runtime(lambdaRuntimeEnum)
                 .runtime(software.amazon.awscdk.services.lambda.Runtime.NODEJS_20_X)
@@ -204,7 +202,7 @@ public class S3SqsBridgeStack extends Stack {
                 .build();
         offsetsTable.grantReadWriteData(sourceLambda);
         sourceLambda.addEventSource(new SqsEventSource(replayQueue));
-
+*/
         // Optionally, you may add policy statements if you wish to restrict the Lambda permissions
         // even further by building and attaching custom IAM policies.
 
@@ -250,15 +248,14 @@ public class S3SqsBridgeStack extends Stack {
         ContainerDefinition container = taskDefinition.addContainer("ReplayContainer",
                 ContainerDefinitionOptions.builder()
                         .image(ContainerImage.fromDockerImageAsset(dockerImage))
+                        .command(Collections.singletonList(taskStartupCommand))
                         .logging(LogDriver.awsLogs(AwsLogDriverProps.builder()
                                 .streamPrefix(taskServiceName)
                                 .build()))
                         .environment(Map.of(
                                 "BUCKET_NAME", bucketName,
                                 "OBJECT_PREFIX", objectPrefix,
-                                "SOURCE_QUEUE_URL", sourceQueue.getQueueUrl(),
-                                "REPLAY_QUEUE_URL", replayQueue.getQueueArn(),
-                                "AWS_REGION", this.getRegion()
+                                "REPLAY_QUEUE_URL", replayQueue.getQueueArn()
                         ))
                         .build());
 
@@ -274,7 +271,7 @@ public class S3SqsBridgeStack extends Stack {
                 .cpu(taskCpu)
                 .memoryLimitMiB(taskMemory)
                 .taskDefinition(taskDefinition)
-                .desiredCount(0) // Start with 0; scale when needed.
+                .desiredCount(1) // Start with 0; scale when needed.
                 .capacityProviderStrategies(List.of(
                         CapacityProviderStrategy.builder()
                                 .capacityProvider("FARGATE_SPOT")
@@ -305,13 +302,13 @@ public class S3SqsBridgeStack extends Stack {
                 .value(replayQueue.getQueueUrl())
                 .build();
 
-        CfnOutput.Builder.create(this, "SourceLambdaArn")
-                .value(sourceLambda.getFunctionArn())
-                .build();
+        //CfnOutput.Builder.create(this, "SourceLambdaArn")
+        //        .value(sourceLambda.getFunctionArn())
+        //        .build();
 
-        CfnOutput.Builder.create(this, "ReplayLambdaArn")
-                .value(replayLambda.getFunctionArn())
-                .build();
+        //CfnOutput.Builder.create(this, "ReplayLambdaArn")
+        //        .value(replayLambda.getFunctionArn())
+        //        .build();
 
         CfnOutput.Builder.create(this, "FargateTaskDefinitionArn")
                 .value(taskDefinition.getTaskDefinitionArn())

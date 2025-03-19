@@ -10,47 +10,40 @@ import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 
 dotenv.config();
 
-// --------------------
-// For test or development environment, supply default env values to avoid configuration errors.
-// In production, ensure all required environment variables are set.
-// --------------------
 if (process.env.VITEST || process.env.NODE_ENV === "development") {
-  process.env.BUCKET_NAME = process.env.BUCKET_NAME || "test";
-  process.env.OBJECT_PREFIX = process.env.OBJECT_PREFIX || "test/";
-  process.env.SOURCE_QUEUE_URL = process.env.SOURCE_QUEUE_URL || "https://sqs.eu-west-2.amazonaws.com/000000000000/source-queue-test";
-  process.env.REPLAY_QUEUE_URL = process.env.REPLAY_QUEUE_URL || "https://sqs.eu-west-2.amazonaws.com/000000000000/replay-queue-test";
-  process.env.S3_ENDPOINT = process.env.S3_ENDPOINT || "https://s3.eu-west-2.amazonaws.com";
-  process.env.SQS_ENDPOINT = process.env.SQS_ENDPOINT || "https://sqs.eu-west-2.amazonaws.com";
-  process.env.AWS_ENDPOINT = process.env.AWS_ENDPOINT || "https://s3.eu-west-2.amazonaws.com";
+  process.env.BUCKET_NAME = process.env.BUCKET_NAME || " s3-sqs-bridge-bucket-test";
+  process.env.OBJECT_PREFIX = process.env.OBJECT_PREFIX || "events/";
+  process.env.REPLAY_QUEUE_URL = process.env.REPLAY_QUEUE_URL || "http://test/000000000000/s3-sqs-bridge-replay-queue-test";
+  process.env.AWS_ENDPOINT = process.env.AWS_ENDPOINT || "http://test";
 }
 
 const configSchema = z.object({
   BUCKET_NAME: z.string().nonempty(),
   OBJECT_PREFIX: z.string().optional(),
-  SOURCE_QUEUE_URL: z.string().nonempty(),
   REPLAY_QUEUE_URL: z.string().nonempty(),
-  // Allow separate endpoints for S3 and SQS for local testing. If not provided, fall back to AWS_ENDPOINT.
-  S3_ENDPOINT: z.string().optional(),
-  SQS_ENDPOINT: z.string().optional(),
   AWS_ENDPOINT: z.string().optional()
 });
 
 const config = configSchema.parse(process.env);
 
-// Log non-sensitive configuration details.
 function logConfig() {
   console.log(JSON.stringify({
     level: "info",
     timestamp: new Date().toISOString(),
     message: "Configuration loaded",
-    config: { BUCKET_NAME: config.BUCKET_NAME, OBJECT_PREFIX: config.OBJECT_PREFIX, SOURCE_QUEUE_URL: config.SOURCE_QUEUE_URL, REPLAY_QUEUE_URL: config.REPLAY_QUEUE_URL }
+    config: {
+      BUCKET_NAME: config.BUCKET_NAME,
+      OBJECT_PREFIX: config.OBJECT_PREFIX,
+      REPLAY_QUEUE_URL: config.REPLAY_QUEUE_URL,
+      AWS_ENDPOINT: config.AWS_ENDPOINT
+    }
   }));
 }
 logConfig();
 
 // Use the separate endpoints if provided; otherwise use AWS_ENDPOINT.
-const s3 = new S3Client({ endpoint: config.S3_ENDPOINT || config.AWS_ENDPOINT });
-const sqs = new SQSClient({ endpoint: config.SQS_ENDPOINT || config.AWS_ENDPOINT });
+const s3 = new S3Client({ endpoint: config.AWS_ENDPOINT, forcePathStyle: true });
+const sqs = new SQSClient({ endpoint: config.AWS_ENDPOINT });
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -97,9 +90,9 @@ export async function sendEventToSqs(event) {
     const result = await retryOperationExponential(async () =>
         await sqs.send(new SendMessageCommand(params))
     );
-    logInfo(`Sent message to SQS, MessageId: ${result.MessageId}`);
+    logInfo(`Sent message to SQS queue ${config.REPLAY_QUEUE_URL}, MessageId: ${result.MessageId}`);
   } catch (err) {
-    logError("Failed to send message to SQS", err);
+    logError(`Failed to send message to SQS queue ${config.REPLAY_QUEUE_URL}`, err);
     throw err;
   }
 }
@@ -181,6 +174,7 @@ export async function main(args = process.argv.slice(2)) {
   if (args.includes('--help')) {
     console.log(`
       Usage:
+      --help                     Show this help message (default)
       --source-projection        Run realtime Lambda handler
       --replay-projection        Run replay Lambda handler
       --replay                   Run full bucket replay
@@ -198,7 +192,7 @@ export async function main(args = process.argv.slice(2)) {
   } else if (args.includes('--healthcheck')) {
     healthCheckServer();
   } else {
-    console.log('Invalid or missing argument. Run with --help for usage.');
+    console.log('No command argument supplied.');
   }
 }
 

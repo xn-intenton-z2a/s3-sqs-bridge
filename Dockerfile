@@ -11,4 +11,4 @@ RUN chmod +x /entrypoint.sh
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
-ENTRYPOINT ["/entrypoint.sh"]
+#ENTRYPOINT ["/entrypoint.sh", "npm", "run", "replay"]
