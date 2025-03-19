@@ -59,7 +59,7 @@ public class S3SqsBridgeStack extends Stack {
         final int taskCpu = Integer.parseInt(getConfigValue("TASK_CPU", "taskCpu"));
         final int taskMemory = Integer.parseInt(getConfigValue("TASK_MEMORY", "taskMemory"));
         final int taskPort = Integer.parseInt(getConfigValue("TASK_PORT", "taskPort"));
-        final String taskStartupCommand = getConfigValue("STARTUP_COMMAND", "taskStartupCommand");
+        final String taskStartupCommand = getConfigValue("TASK_STARTUP_COMMAND", "taskStartupCommand");
         final String lambdaRuntime = getConfigValue("LAMBDA_RUNTIME", "lambdaRuntime");
         final String lambdaTarget = getConfigValue("LAMBDA_TARGET", "lambdaTarget");
         final String lambdaFormat = getConfigValue("LAMBDA_FORMAT", "lambdaFormat");
