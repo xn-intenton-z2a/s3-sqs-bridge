@@ -25,20 +25,12 @@ public class S3SqsBridgeStackTest {
                 "RETAIN_BUCKET", "false",
                 "SQS_SOURCE_QUEUE_NAME", "s3-sqs-bridge-source-queue-test",
                 "SQS_REPLAY_QUEUE_NAME", "s3-sqs-bridge-replay-queue-test",
-                "TABLE_NAME", "s3-sqs-bridge-offsets-table-test",
-                "TASK_PORT", "8080",
-                "TASK_SERVICE_NAME", "s3-sqs-bridge-consumer-test",
-                "TASK_CPU", "256",
-                "TASK_MEMORY", "512",
-                "TASK_STARTUP_COMMAND", "npm run replay",
-                "LAMBDA_RUNTIME", "nodejs20.x",
-                "LAMBDA_TARGET", "es2020",
-                "LAMBDA_FORMAT", "ESM",
-                "LAMBDA_ENTRY", "src/lib/main.js",
+                "OFFSETS_TABLE_NAME", "s3-sqs-bridge-offsets-table-test",
+                "PROJECTIONS_TABLE_NAME", "s3-sqs-bridge-projections-table-test",
+                "LAMBDA_ENTRY", "src/lib/main.",
                 "LAMBDA_SOURCE_FUNCTION_NAME", "sourceLambdaHandler",
                 "LAMBDA_REPLAY_FUNCTION_NAME", "replayLambdaHandler",
-                "LAMBDA_REPLAY_BATCH_FUNCTION_NAME", "replayBatchLambdaHandler",
-                "LAMBDA_LOG_LEVEL", "INFO"
+                "LAMBDA_REPLAY_BATCH_FUNCTION_NAME", "replayBatchLambdaHandler"
             );
 
     @Test

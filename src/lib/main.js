@@ -14,13 +14,17 @@ if (process.env.VITEST || process.env.NODE_ENV === "development") {
   process.env.BUCKET_NAME = process.env.BUCKET_NAME || " s3-sqs-bridge-bucket-test";
   process.env.OBJECT_PREFIX = process.env.OBJECT_PREFIX || "events/";
   process.env.REPLAY_QUEUE_URL = process.env.REPLAY_QUEUE_URL || "http://test/000000000000/s3-sqs-bridge-replay-queue-test";
+  process.env.OFFSETS_TABLE_NAME = process.env.OFFSETS_TABLE_NAME || "s3-sqs-bridge-offsets-table-test";
+  process.env.PROJECTIONS_TABLE_NAME = process.env.PROJECTIONS_TABLE_NAME || "s3-sqs-bridge-projections-table-test";
   process.env.AWS_ENDPOINT = process.env.AWS_ENDPOINT || "http://test";
 }
 
 const configSchema = z.object({
-  BUCKET_NAME: z.string().nonempty(),
+  BUCKET_NAME: z.string().optional(),
   OBJECT_PREFIX: z.string().optional(),
-  REPLAY_QUEUE_URL: z.string().nonempty(),
+  REPLAY_QUEUE_URL: z.string().optional(),
+  OFFSETS_TABLE_NAME: z.string().optional(),
+  PROJECTIONS_TABLE_NAME: z.string().optional(),
   AWS_ENDPOINT: z.string().optional()
 });
 
@@ -35,13 +39,14 @@ function logConfig() {
       BUCKET_NAME: config.BUCKET_NAME,
       OBJECT_PREFIX: config.OBJECT_PREFIX,
       REPLAY_QUEUE_URL: config.REPLAY_QUEUE_URL,
+      OFFSETS_TABLE_NAME: config.OFFSETS_TABLE_NAME,
+      PROJECTIONS_TABLE_NAME: config.PROJECTIONS_TABLE_NAME,
       AWS_ENDPOINT: config.AWS_ENDPOINT
     }
   }));
 }
 logConfig();
 
-// Use the separate endpoints if provided; otherwise use AWS_ENDPOINT.
 const s3 = new S3Client({ endpoint: config.AWS_ENDPOINT, forcePathStyle: true });
 const sqs = new SQSClient({ endpoint: config.AWS_ENDPOINT });
 
@@ -56,7 +61,7 @@ function logError(message, error) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Replay Task
+// Replay functions
 // ---------------------------------------------------------------------------------------------------------------------
 
 export async function listAndSortAllObjectVersions() {
@@ -129,16 +134,46 @@ export async function replay() {
   logInfo(`Starting replay job for bucket ${config.BUCKET_NAME} prefix ${config.OBJECT_PREFIX}`);
   const versions = await listAndSortAllObjectVersions();
   logInfo(`Processing ${versions.length} versions...`);
+  let eventsReplayed = 0;
+  let lastOffsetProcessed = null;
   for (const version of versions) {
     const event = {
-      bucket: config.BUCKET_NAME,
-      key: version.Key,
-      versionId: version.VersionId,
-      eventTime: version.LastModified
-    };
+      Records: [
+        {
+          eventVersion: "2.0",
+          eventSource: "aws:s3",
+          eventTime: version.LastModified,
+          eventName: "ObjectCreated:Put",
+          s3: {
+            s3SchemaVersion: "1.0",
+            bucket: {
+              name: config.BUCKET_NAME,
+              arn: "arn:aws:s3:::" + config.BUCKET_NAME
+            },
+            object: {
+              key: version.Key,
+              versionId: version.VersionId
+            }
+          }
+        }
+      ]
+    }
+
     await sendEventToSqs(event);
+    lastOffsetProcessed = version.LastModified;
+    eventsReplayed++;
   }
   logInfo('replay job complete.');
+  return { versions: versions.length, eventsReplayed, lastOffsetProcessed };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Projection functions
+// ---------------------------------------------------------------------------------------------------------------------
+
+export async function createProjection(record) {
+  logInfo(`Creating projection from: ${record.body}...`);
+  // TODO Create projections in the database
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -157,37 +192,36 @@ function healthCheckServer() {
 
 export async function replayBatchLambdaHandler(event) {
   logInfo(`Replay Batch Lambda received event: ${JSON.stringify(event, null, 2)}`);
+  const { versions, eventsReplayed, lastOffsetProcessed } = await replay();
+  return { handler: "src/lib/main.replayBatchLambdaHandler", versions, eventsReplayed, lastOffsetProcessed };
+}
+
+export async function sourceLambdaHandler(event) {
+  logInfo(`Source Lambda received event: ${JSON.stringify(event, null, 2)}`);
 
   // If event.Records is an array, use it.
   // Otherwise, treat the event itself as one record.
   const records = Array.isArray(event.Records) ? event.Records : [event];
 
   for (const record of records) {
-    // If the record has a "body", then it is likely coming from an SQS event.
-    // Otherwise, log the entire record.
-    const message = record.body ? record.body : JSON.stringify(record);
-    logInfo(`Create replay batch from: ${message}.`);
+    await createProjection(record);
+    logInfo(`Created source-projection.`);
   }
-
-  await replay();
-  return { status: "logged" };
-}
-
-
-export async function sourceLambdaHandler(event) {
-  logInfo(`Source Lambda received event: ${JSON.stringify(event, null, 2)}`);
-  for (const record of event.Records) {
-    logInfo(`Create source-projection from: ${record.body}.`);
-  }
-  return { status: "logged" };
+  return { handler: "src/lib/main.sourceLambdaHandler" };
 }
 
 export async function replayLambdaHandler(event) {
   logInfo(`Replay Lambda received event: ${JSON.stringify(event, null, 2)}`);
-  for (const record of event.Records) {
-    logInfo(`Create replay-projection from: ${record.body}.`);
+
+  // If event.Records is an array, use it.
+  // Otherwise, treat the event itself as one record.
+  const records = Array.isArray(event.Records) ? event.Records : [event];
+
+  for (const record of records) {
+    await createProjection(record);
+    logInfo(`Created replay-projection.`);
   }
-  return { status: "logged" };
+  return { handler: "src/lib/main.replayLambdaHandler" };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

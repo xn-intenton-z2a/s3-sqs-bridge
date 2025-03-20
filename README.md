@@ -325,6 +325,47 @@ arn:aws:cloudformation:eu-west-2:541134664601:stack/S3SqsBridgeStack/30cf37a0-05
 
 ```
 
+Write to S3 (twice):
+```bash
+
+aws s3 ls s3-sqs-bridge-bucket
+echo '{"id": "1", "value": "First"}' > 1.json   
+aws s3 cp 1.json s3://s3-sqs-bridge-bucket/events/1.json 
+echo '{"id": "1", "value": "Second"}' > 1.json   
+aws s3 cp 1.json s3://s3-sqs-bridge-bucket/events/1.json
+aws s3 ls s3-sqs-bridge-bucket/events/
+```
+
+Output:
+```
+                           PRE events/
+
+upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json    
+upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json   
+2025-03-19 23:47:07         31 1.json
+```
+
+Send and event to run the replayBatch Lambda function:
+```bash
+aws lambda invoke --function-name replayBatchLambdaHandler \
+  --payload '{}' response.json \
+  ; cat response.json
+```
+
+Output:
+```log
+{
+    "StatusCode": 200,
+    "ExecutedVersion": "$LATEST"
+}
+{
+    "handler":"src/lib/main.replayBatchLambdaHandler",
+    "versions":8,
+    "eventsReplayed":8,
+    "lastOffsetProcessed":"2025-03-20T00:07:59.000Z"
+}
+```
+
 ### Handy Commands
 
 Handy cleanup, Docker:
@@ -344,6 +385,33 @@ Handy cleanup, Node:
 
 rm -rf node_modules ; rm -rf package-lock.json ; npm install
 ```
+
+Example S3 Put event `s3-put-test-key.json`:
+```json
+{
+  "Records": [
+    {
+      "eventVersion": "2.0",
+      "eventSource": "aws:s3",
+      "awsRegion": "eu-west-2",
+      "eventTime": "2025-03-19T20:54:43.516Z",
+      "eventName": "ObjectCreated:Put",
+      "s3": {
+        "s3SchemaVersion": "1.0",
+        "bucket": {
+          "name": "s3-sqs-bridge-bucket",
+          "arn": "arn:aws:s3:::s3-sqs-bridge-bucket"
+        },
+        "object": {
+          "key": "assets/test-key.json",
+          "sequencer": "0A1B2C3D4E5F678901"
+        }
+      }
+    }
+  ]
+}
+```
+
 
 Run the Docker container with a shell instead of the default entrypoint:
 ```bash

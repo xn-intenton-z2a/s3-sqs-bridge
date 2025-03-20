@@ -9,19 +9,11 @@
     "s3RetainBucket": "false",
     "sqsSourceQueueName": "s3-sqs-bridge-source-queue",
     "sqsReplayQueueName": "s3-sqs-bridge-replay-queue",
-    "tableName": "s3-sqs-bridge-offsets-table",
-    "taskPort": "8080",
-    "taskServiceName": "s3-sqs-bridge-replay",
-    "taskCpu": "256",
-    "taskMemory": "512",
-    "taskStartupCommand": "npm run replay",
-    "lambdaRuntime": "nodejs20.x",
-    "lambdaTarget": "es2020",
-    "lambdaFormat": "ESM",
-    "lambdaEntry": "src/lib/main.js",
+    "offsetsTableName": "s3-sqs-bridge-offsets-table",
+    "projectionsTableName": "s3-sqs-bridge-projections-table",
+    "lambdaEntry": "src/lib/main.",
     "lambdaReplayBatchFunctionName": "replayBatchLambdaHandler",
     "lambdaSourceFunctionName": "sourceLambdaHandler",
-    "lambdaReplayFunctionName": "replayLambdaHandler",
-    "lambdaLogLevel": "INFO"
+    "lambdaReplayFunctionName": "replayLambdaHandler"
   }
 }

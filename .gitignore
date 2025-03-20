@@ -291,3 +291,5 @@ fabric.properties
 /cdk.out/
 /target/
 /test-file.txt
+/1.json
+/response.json
