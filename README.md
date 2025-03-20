@@ -325,24 +325,84 @@ arn:aws:cloudformation:eu-west-2:541134664601:stack/S3SqsBridgeStack/30cf37a0-05
 
 ```
 
-Write to S3 (twice):
+Write to S3 (2 keys, 5 times each):
 ```bash
 
-aws s3 ls s3-sqs-bridge-bucket
-echo '{"id": "1", "value": "First"}' > 1.json   
-aws s3 cp 1.json s3://s3-sqs-bridge-bucket/events/1.json 
-echo '{"id": "1", "value": "Second"}' > 1.json   
-aws s3 cp 1.json s3://s3-sqs-bridge-bucket/events/1.json
+aws s3 ls s3-sqs-bridge-bucket/events/
+for id in $(seq 1 2); do
+  for value in $(seq 1 5); do
+    echo "{\"id\": \"${id?}\", \"value\": \"$(printf "%010d" "${value?}")\"}" > "${id?}.json"
+    aws s3 cp "${id?}.json" s3://s3-sqs-bridge-bucket/events/"${id?}.json"
+  done
+done
 aws s3 ls s3-sqs-bridge-bucket/events/
 ```
 
 Output:
 ```
-                           PRE events/
 upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json    
 upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json   
+...
+upload: ./2.json to s3://s3-sqs-bridge-bucket/events/2.json   
 2025-03-19 23:47:07         31 1.json
+2025-03-19 23:52:12         31 2.json
 ```
+
+```bash
+
+aws s3api list-object-versions \
+  --bucket s3-sqs-bridge-bucket \
+  --prefix events/1.json \
+  | jq -r '.Versions[] | "\(.LastModified) \(.VersionId)"' \
+  | head -5 \
+  | tail -r
+```
+      
+output:
+```log
+2025-03-20T19:41:00+00:00 2noSga6Gzo8Tgv_LRN6KhDyfxItokdhV
+2025-03-20T19:41:01+00:00 IVvCthHy3USr7htaRW_Px12gLmDUMDci
+2025-03-20T19:41:01+00:00 YI1qVe4r1jlQJU7K7.KUrQhuXa_N7Gzc
+2025-03-20T19:41:02+00:00 alzPWnOMUMOmpM5St8EvnDAZ4jR3L5WM
+2025-03-20T19:41:03+00:00 krC5yOc7ESrGCo2KQn.V_5FuT6WK7m_U
+```
+
+Examine a couple of the versions (copy in the versions returned above):
+```bash
+
+aws s3api get-object --bucket s3-sqs-bridge-bucket --key events/1.json --version-id "2noSga6Gzo8Tgv_LRN6KhDyfxItokdhV" latest-minus-004.1.json
+aws s3api get-object --bucket s3-sqs-bridge-bucket --key events/1.json --version-id "IVvCthHy3USr7htaRW_Px12gLmDUMDci" latest-minus-003.1.json
+aws s3api get-object --bucket s3-sqs-bridge-bucket --key events/1.json --version-id "YI1qVe4r1jlQJU7K7.KUrQhuXa_N7Gzc" latest-minus-002.1.json
+aws s3api get-object --bucket s3-sqs-bridge-bucket --key events/1.json --version-id "alzPWnOMUMOmpM5St8EvnDAZ4jR3L5WM" latest-minus-001.1.json
+aws s3api get-object --bucket s3-sqs-bridge-bucket --key events/1.json --version-id "krC5yOc7ESrGCo2KQn.V_5FuT6WK7m_U" latest-minus-000.1.json
+```
+
+Check the S3 versions return order against the file contents:
+```bash
+
+find . -maxdepth 1 -name "latest-minus-*.1.json" -exec sh -c 'for f do printf "%s: " "$f"; cat "$f"; done' _ {} + | sort -r
+```
+
+Output in the correct order:
+```log
+./latest-minus-004.1.json: {"id": "1", "value": "0000000001"}
+./latest-minus-003.1.json: {"id": "1", "value": "0000000002"}
+./latest-minus-002.1.json: {"id": "1", "value": "0000000003"}
+./latest-minus-001.1.json: {"id": "1", "value": "0000000004"}
+./latest-minus-000.1.json: {"id": "1", "value": "0000000005"}
+```
+
+Check the latest version matches the latest file:
+```bash
+
+aws s3api get-object --bucket s3-sqs-bridge-bucket --key events/1.json --version-id "krC5yOc7ESrGCo2KQn.V_5FuT6WK7m_U" latest.1.json
+cat latest-minus-000.1.json
+cat latest.1.json
+diff latest.1.json latest-minus-000.1.json
+```
+
+
+``
 
 Send and event to run the replayBatch Lambda function:
 ```bash
@@ -415,6 +475,7 @@ Example S3 Put event `s3-put-test-key.json`:
 
 Run the Docker container with a shell instead of the default entrypoint:
 ```bash
+
 docker build -t s3-sqs-bridge .
 docker run -it \
   --env BUCKET_NAME='s3-sqs-bridge-bucket-local' \

@@ -175,6 +175,7 @@ public class S3SqsBridgeStack extends Stack {
                 ))
                 .functionName(replayBatchLambdaFunctionName)
                 .reservedConcurrentExecutions(1)
+                .timeout(Duration.seconds(900))
                 .build();
         LogGroup replayBatchLambdaLogGroup = new LogGroup(this, "ReplayBatchLambdaLogGroup", LogGroupProps.builder()
                 .logGroupName("/aws/lambda/" + replayBatchLambda.getFunctionName())
@@ -202,6 +203,7 @@ public class S3SqsBridgeStack extends Stack {
                 ))
                 .functionName(sourceLambdaFunctionName)
                 .reservedConcurrentExecutions(1)
+                .timeout(Duration.seconds(1))
                 .build();
         LogGroup sourceLambdaLogGroup = new LogGroup(this, "SourceLambdaLogGroup", LogGroupProps.builder()
                 .logGroupName("/aws/lambda/" + sourceLambda.getFunctionName())
@@ -224,6 +226,7 @@ public class S3SqsBridgeStack extends Stack {
                 ))
                 .functionName(replayLambdaFunctionName)
                 .reservedConcurrentExecutions(1)
+                .timeout(Duration.seconds(1))
                 .build();
         LogGroup replayLambdaLogGroup = new LogGroup(this, "ReplayLambdaLogGroup", LogGroupProps.builder()
                 .logGroupName("/aws/lambda/" + replayLambda.getFunctionName())
