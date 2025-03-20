@@ -339,7 +339,6 @@ aws s3 ls s3-sqs-bridge-bucket/events/
 Output:
 ```
                            PRE events/
-
 upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json    
 upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json   
 2025-03-19 23:47:07         31 1.json
@@ -347,6 +346,7 @@ upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json
 
 Send and event to run the replayBatch Lambda function:
 ```bash
+
 aws lambda invoke --function-name replayBatchLambdaHandler \
   --payload '{}' response.json \
   ; cat response.json
