@@ -12,8 +12,11 @@
     "offsetsTableName": "s3-sqs-bridge-offsets-table",
     "projectionsTableName": "s3-sqs-bridge-projections-table",
     "lambdaEntry": "src/lib/main.",
-    "lambdaReplayBatchFunctionName": "replayBatchLambdaHandler",
-    "lambdaSourceFunctionName": "sourceLambdaHandler",
-    "lambdaReplayFunctionName": "replayLambdaHandler"
+    "replayBatchLambdaFunctionName": "s3-sqs-bridge-replay-batch-function",
+    "sourceLambdaFunctionName": "s3-sqs-bridge-source-function",
+    "replayLambdaFunctionName": "s3-sqs-bridge-replay-function",
+    "replayBatchLambdaHandlerFunctionName": "replayBatchLambdaHandler",
+    "sourceLambdaHandlerFunctionName": "sourceLambdaHandler",
+    "replayLambdaHandlerFunctionName": "replayLambdaHandler"
   }
 }

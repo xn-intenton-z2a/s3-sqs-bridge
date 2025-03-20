@@ -28,9 +28,12 @@ public class S3SqsBridgeStackTest {
                 "OFFSETS_TABLE_NAME", "s3-sqs-bridge-offsets-table-test",
                 "PROJECTIONS_TABLE_NAME", "s3-sqs-bridge-projections-table-test",
                 "LAMBDA_ENTRY", "src/lib/main.",
-                "LAMBDA_SOURCE_FUNCTION_NAME", "sourceLambdaHandler",
-                "LAMBDA_REPLAY_FUNCTION_NAME", "replayLambdaHandler",
-                "LAMBDA_REPLAY_BATCH_FUNCTION_NAME", "replayBatchLambdaHandler"
+                "REPLAY_BATCH_LAMBDA_FUNCTION_NAME", "s3-sqs-bridge-replay-batch-function",
+                "REPLAY_LAMBDA_FUNCTION_NAME", "s3-sqs-bridge-replay-function",
+                "SOURCE_LAMBDA_FUNCTION_NAME", "s3-sqs-bridge-source-function",
+                "REPLAY_BATCH_LAMBDA_HANDLER_FUNCTION_NAME", "replayBatchLambdaHandler",
+                "SOURCE_LAMBDA_HANDLER_FUNCTION_NAME", "sourceLambdaHandler",
+                "REPLAY_LAMBDA_HANDLER_FUNCTION_NAME", "replayLambdaHandler"
             );
 
     @Test

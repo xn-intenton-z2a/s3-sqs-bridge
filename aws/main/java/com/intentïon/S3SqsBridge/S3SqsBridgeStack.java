@@ -56,9 +56,12 @@ public class S3SqsBridgeStack extends Stack {
         final String offsetsTableName = getConfigValue("OFFSETS_TABLE_NAME", "offsetsTableName");
         final String projectionsTableName = getConfigValue("PROJECTIONS_TABLE_NAME", "projectionsTableName");
         final String lambdaEntry = getConfigValue("LAMBDA_ENTRY", "lambdaEntry");
-        final String lambdaSourceFunctionName = getConfigValue("LAMBDA_SOURCE_FUNCTION_NAME", "lambdaSourceFunctionName");
-        final String lambdaReplayFunctionName = getConfigValue("LAMBDA_REPLAY_FUNCTION_NAME", "lambdaReplayFunctionName");
-        final String lambdaReplayBatchFunctionName = getConfigValue("LAMBDA_REPLAY_BATCH_FUNCTION_NAME", "lambdaReplayBatchFunctionName");
+        final String replayLambdaFunctionName = getConfigValue("REPLAY_LAMBDA_FUNCTION_NAME", "replayLambdaFunctionName");
+        final String sourceLambdaFunctionName = getConfigValue("SOURCE_LAMBDA_FUNCTION_NAME", "sourceLambdaFunctionName");
+        final String replayBatchLambdaFunctionName = getConfigValue("REPLAY_BATCH_LAMBDA_FUNCTION_NAME", "replayBatchLambdaFunctionName");
+        final String replayBatchLambdaHandlerFunctionName = getConfigValue("REPLAY_BATCH_LAMBDA_HANDLER_FUNCTION_NAME", "replayBatchLambdaHandlerFunctionName");
+        final String sourceLambdaHandlerFunctionName = getConfigValue("SOURCE_LAMBDA_HANDLER_FUNCTION_NAME", "sourceLambdaHandlerFunctionName");
+        final String replayLambdaHandlerFunctionName = getConfigValue("REPLAY_LAMBDA_HANDLER_FUNCTION_NAME", "replayLambdaHandlerFunctionName");
 
         // CDK Resource creation
 
@@ -162,7 +165,7 @@ public class S3SqsBridgeStack extends Stack {
 
         DockerImageFunction replayBatchLambda = DockerImageFunction.Builder.create(this, "ReplayBatchLambda")
                 .code(DockerImageCode.fromImageAsset(".", AssetImageCodeProps.builder()
-                        .buildArgs(Map.of("HANDLER", lambdaEntry + lambdaReplayBatchFunctionName))
+                        .buildArgs(Map.of("HANDLER", lambdaEntry + replayBatchLambdaHandlerFunctionName))
                         .build()))
                 .environment(Map.of(
                         "BUCKET_NAME", bucketName,
@@ -170,7 +173,7 @@ public class S3SqsBridgeStack extends Stack {
                         "REPLAY_QUEUE_URL", replayQueue.getQueueUrl(),
                         "OFFSETS_TABLE_NAME", offsetsTable.getTableName()
                 ))
-                .functionName(lambdaReplayBatchFunctionName)
+                .functionName(replayBatchLambdaFunctionName)
                 .reservedConcurrentExecutions(1)
                 .build();
         LogGroup replayBatchLambdaLogGroup = new LogGroup(this, "ReplayBatchLambdaLogGroup", LogGroupProps.builder()
@@ -192,12 +195,12 @@ public class S3SqsBridgeStack extends Stack {
 
         DockerImageFunction sourceLambda = DockerImageFunction.Builder.create(this, "SourceLambda")
                 .code(DockerImageCode.fromImageAsset(".", AssetImageCodeProps.builder()
-                        .buildArgs(Map.of("HANDLER", lambdaEntry + lambdaSourceFunctionName))
+                        .buildArgs(Map.of("HANDLER", lambdaEntry + sourceLambdaHandlerFunctionName))
                         .build()))
                 .environment(Map.of(
                         "PROJECTIONS_TABLE_NAME", projectionsTable.getTableName()
                 ))
-                .functionName(lambdaSourceFunctionName)
+                .functionName(sourceLambdaFunctionName)
                 .reservedConcurrentExecutions(1)
                 .build();
         LogGroup sourceLambdaLogGroup = new LogGroup(this, "SourceLambdaLogGroup", LogGroupProps.builder()
@@ -214,12 +217,12 @@ public class S3SqsBridgeStack extends Stack {
 
         DockerImageFunction replayLambda = DockerImageFunction.Builder.create(this, "ReplayLambda")
                 .code(DockerImageCode.fromImageAsset(".", AssetImageCodeProps.builder()
-                        .buildArgs(Map.of("HANDLER", lambdaEntry + lambdaReplayFunctionName))
+                        .buildArgs(Map.of("HANDLER", lambdaEntry + replayLambdaHandlerFunctionName))
                         .build()))
                 .environment(Map.of(
                         "PROJECTIONS_TABLE_NAME", projectionsTable.getTableName()
                 ))
-                .functionName(lambdaReplayFunctionName)
+                .functionName(replayLambdaFunctionName)
                 .reservedConcurrentExecutions(1)
                 .build();
         LogGroup replayLambdaLogGroup = new LogGroup(this, "ReplayLambdaLogGroup", LogGroupProps.builder()
