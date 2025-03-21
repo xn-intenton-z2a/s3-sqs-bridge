@@ -348,6 +348,7 @@ upload: ./2.json to s3://s3-sqs-bridge-bucket/events/2.json
 2025-03-19 23:52:12         31 2.json
 ```
 
+List the versions of one s3 object:
 ```bash
 
 aws s3api list-object-versions \
@@ -402,27 +403,119 @@ diff latest.1.json latest-minus-000.1.json
 ```
 
 
-``
+Write to S3 (2 keys, 2 times each interleaved):
+```bash
+
+for value in $(seq 1 2); do
+  for id in $(seq 1 2); do
+    echo "{\"id\": \"${id?}\", \"value\": \"$(printf "%010d" "${value?}")\"}" > "${id?}.json"
+    aws s3 cp "${id?}.json" s3://s3-sqs-bridge-bucket/events/"${id?}.json"
+  done
+done
+```
+
+List the versions of all s3 with the events prefix (order between keys relies upon the S3 event time):
+```bash
+
+aws s3api list-object-versions \
+  --bucket s3-sqs-bridge-bucket \
+  --prefix events/ \
+  | jq -r '.Versions[] | "\(.Key) \(.LastModified) \(.VersionId) \(.IsLatest)"' \
+  | head -5 \
+  | tail -r
+```
+
+Count the attributes on the replay queue:
+```bash
+
+aws sqs get-queue-attributes \
+  --queue-url https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-replay-queue \
+  --attribute-names ApproximateNumberOfMessages
+```
+
+Output:
+```json
+{
+    "Attributes": {
+        "ApproximateNumberOfMessages": "0"
+    }
+}
+```
+
+Stop the replay queue from triggering the replay lambda then send another batch:
+```bash
+
+aws lambda update-event-source-mapping \
+  --uuid $(aws lambda list-event-source-mappings --function-name s3-sqs-bridge-replay-function | jq '.EventSourceMappings[0].UUID' --raw-output) \
+  --no-enabled
+```
 
 Send and event to run the replayBatch Lambda function:
 ```bash
 
-aws lambda invoke --function-name replayBatchLambdaHandler \
+aws lambda invoke --function-name s3-sqs-bridge-replay-batch-function \
   --payload '{}' response.json \
   ; cat response.json
 ```
 
 Output:
-```log
+```json lines
 {
     "StatusCode": 200,
     "ExecutedVersion": "$LATEST"
 }
 {
-    "handler":"src/lib/main.replayBatchLambdaHandler",
-    "versions":8,
-    "eventsReplayed":8,
-    "lastOffsetProcessed":"2025-03-20T00:07:59.000Z"
+    "handler": "src/lib/main.replayBatchLambdaHandler",
+    "versions": 243,
+    "eventsReplayed": 243,
+    "lastOffsetProcessed": "2025-03-20T00:07:59.000Z"
+}
+```
+
+Count the attributes on the replay queue after then replay lob has finished:
+```bash
+
+aws sqs get-queue-attributes \
+  --queue-url https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-replay-queue \
+  --attribute-names ApproximateNumberOfMessages
+```
+
+Output:
+```json
+{
+    "Attributes": {
+        "ApproximateNumberOfMessages": "243"
+    }
+}
+```
+
+Start the replay queue and let it drain:
+```bash
+
+aws lambda update-event-source-mapping \
+  --uuid $(aws lambda list-event-source-mappings --function-name s3-sqs-bridge-replay-function | jq '.EventSourceMappings[0].UUID' --raw-output) \
+  --enabled
+```
+
+Count the attributes on the replay while the replay lambda is running:
+```bash
+
+aws sqs get-queue-attributes \
+  --queue-url https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-replay-queue \
+  --attribute-names ApproximateNumberOfMessages
+```
+
+Output:
+```json lines
+{
+  "Attributes": {
+    "ApproximateNumberOfMessages": "233"
+  }
+}
+{
+  "Attributes": {
+    "ApproximateNumberOfMessages": "0"
+  }
 }
 ```
 
