@@ -160,24 +160,26 @@ export async function sendEventToSqs(event) {
 }
 
 export async function writeToOffsetsTable(item) {
+  const lastOffsetProcessed = item.lastOffsetProcessed ? { S: item.lastOffsetProcessed } : null;
   const params = {
     TableName: config.OFFSETS_TABLE_NAME,
     Item: {
       id: { S: item.id },
       lastModified: { S: item.lastModified.toString() },
-      lastOffsetProcessed: { S: item.lastOffsetProcessed }
+      lastOffsetProcessed
     }
   };
   await writeToTable(item, params);
 }
 
 export async function writeToProjectionsTable(item) {
+  const value = item.value ? { S: item.value } : null;
   const params = {
     TableName: config.PROJECTIONS_TABLE_NAME,
     Item: {
       id: { S: item.id },
       lastModified: { S: item.lastModified.toString() },
-      value: { S: item.value }
+      value
     }
   };
   await writeToTable(item, params);
@@ -241,13 +243,16 @@ export async function replay() {
   logInfo(`Processing ${versions.length} versions...`);
   const latestVersion = versions[versions.length - 1];
   const now = new Date().toISOString();
+  let lastOffsetProcessed = null;
+  if (latestVersion) {
+    lastOffsetProcessed = `${latestVersion.Key} ${latestVersion.LastModified} ${latestVersion.VersionId}`;
+  }
   await writeToOffsetsTable({
     id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
     lastModified: now,
-    lastOffsetProcessed: `${latestVersion.Key} ${latestVersion.LastModified} ${latestVersion.VersionId}`
+    lastOffsetProcessed
   });
   let eventsReplayed = 0;
-  let lastOffsetProcessed = null;
   for (const version of versions) {
     const event = {
       Records: [
@@ -272,7 +277,6 @@ export async function replay() {
     }
 
     await sendEventToSqs(event);
-    lastOffsetProcessed = version.LastModified;
 
     await writeToOffsetsTable({
       id: config.REPLAY_QUEUE_URL,
@@ -293,23 +297,30 @@ export async function replay() {
 export async function createProjection(record) {
   logInfo(`Creating projection from: ${record.body}...`);
   const messageBody = parseMessageBody(record.body);
-  const id = messageBody.Records[0].s3.object.key;
-  const now = new Date().toISOString();
-  const params = {
-    Bucket: config.BUCKET_NAME,
-    Key: id
+  const records = messageBody.Records || [];
+  for (const record of records) {
+    if (record.eventName === 'ObjectCreated:Put') {
+      const id = messageBody.Records[0].s3.object.key;
+      const now = new Date().toISOString();
+      const params = {
+        Bucket: config.BUCKET_NAME,
+        Key: id
+      }
+      const version = await s3.send(new GetObjectCommand(params));
+      await writeToProjectionsTable({
+        id,
+        lastModified: now,
+        value: version.Body
+      });
+      await writeToOffsetsTable({
+        id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
+        lastModified: now,
+        lastOffsetProcessed: `${version.Key} ${version.LastModified} ${version.VersionId}`
+      });
+    } else {
+      logError(`Unsupported event name: ${record.eventName}`);
+    }
   }
-  const version = await s3.send(new GetObjectCommand(params));
-  await writeToProjectionsTable({
-    id,
-    lastModified: now,
-    value: version.Body
-  });
-  await writeToOffsetsTable({
-    id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
-    lastModified: now,
-    lastOffsetProcessed: `${version.Key} ${version.LastModified} ${version.VersionId}`
-  });
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -343,6 +354,11 @@ export async function sourceLambdaHandler(event) {
     await createProjection(record);
     logInfo(`Created source-projection.`);
   }
+
+  // TODO: When we have gathered a sample of events, compute the digests.
+
+  // TODO: Send the digest via SQS to decide if we should schedule an action.
+
   return { handler: "src/lib/main.sourceLambdaHandler" };
 }
 

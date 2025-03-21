@@ -120,7 +120,7 @@ public class S3SqsBridgeStack extends Stack {
                         .type(AttributeType.STRING)
                         .build())
                 .sortKey(Attribute.builder()
-                        .name("offset") // lastModified
+                        .name("lastModified")
                         .type(AttributeType.STRING)
                         .build())
                 .removalPolicy(RemovalPolicy.DESTROY)
