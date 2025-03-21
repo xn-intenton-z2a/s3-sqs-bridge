@@ -7,6 +7,7 @@ import { z } from 'zod';
 import express from 'express';
 import { S3Client, ListObjectVersionsCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
+import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
 
 dotenv.config();
 
@@ -49,19 +50,10 @@ logConfig();
 
 const s3 = new S3Client({ endpoint: config.AWS_ENDPOINT, forcePathStyle: true });
 const sqs = new SQSClient({ endpoint: config.AWS_ENDPOINT });
-
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-function logInfo(message) {
-  console.log(JSON.stringify({ level: "info", timestamp: new Date().toISOString(), message }));
-}
-
-function logError(message, error) {
-  console.error(JSON.stringify({ level: "error", timestamp: new Date().toISOString(), message, error: error ? error.toString() : undefined }));
-}
+const dynamoClient = new DynamoDBClient({ endpoint: config.AWS_ENDPOINT });
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Replay functions
+// AWS Utility functions
 // ---------------------------------------------------------------------------------------------------------------------
 
 export async function listAndSortAllObjectVersions() {
@@ -167,6 +159,41 @@ export async function sendEventToSqs(event) {
   }
 }
 
+export async function writeToOffsetsTable(item) {
+  const params = {
+    TableName: config.OFFSETS_TABLE_NAME,
+    Item: {
+      id: { S: item.id },
+      lastModified: { S: item.lastModified.toString() },
+      lastOffsetProcessed: { S: item.lastOffsetProcessed }
+    }
+  };
+  await writeToTable(item, params);
+}
+
+export async function writeToProjectionsTable(item) {
+  const params = {
+    TableName: config.PROJECTIONS_TABLE_NAME,
+    Item: {
+      id: { S: item.id },
+      lastModified: { S: item.lastModified.toString() },
+      value: { S: item.value }
+    }
+  };
+  await writeToTable(item, params);
+}
+
+export async function writeToTable(item, params) {
+  try {
+    await dynamoClient.send(new PutItemCommand(params));
+    logInfo(`Successfully written offset to DynamoDB ${config.OFFSETS_TABLE_NAME}: ${JSON.stringify(item)}`);
+  } catch (error) {
+    logError("Error writing offset to DynamoDB", error);
+    // Rethrow the error or handle it as needed
+    throw error;
+  }
+}
+
 export function parseMessageBody(text) {
   try {
     return JSON.parse(text);
@@ -190,10 +217,35 @@ export async function retryOperationExponential(operation, retries = 3, delay = 
   }
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Utility functions
+// ---------------------------------------------------------------------------------------------------------------------
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+function logInfo(message) {
+  console.log(JSON.stringify({ level: "info", timestamp: new Date().toISOString(), message }));
+}
+
+function logError(message, error) {
+  console.error(JSON.stringify({ level: "error", timestamp: new Date().toISOString(), message, error: error ? error.toString() : undefined }));
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Replay functions
+// ---------------------------------------------------------------------------------------------------------------------
+
 export async function replay() {
   logInfo(`Starting replay job for bucket ${config.BUCKET_NAME} prefix ${config.OBJECT_PREFIX}`);
   const versions = await listAllObjectVersionsOldestFirst();
   logInfo(`Processing ${versions.length} versions...`);
+  const latestVersion = versions[versions.length - 1];
+  const now = new Date().toISOString();
+  await writeToOffsetsTable({
+    id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
+    lastModified: now,
+    lastOffsetProcessed: `${latestVersion.Key} ${latestVersion.LastModified} ${latestVersion.VersionId}`
+  });
   let eventsReplayed = 0;
   let lastOffsetProcessed = null;
   for (const version of versions) {
@@ -221,6 +273,13 @@ export async function replay() {
 
     await sendEventToSqs(event);
     lastOffsetProcessed = version.LastModified;
+
+    await writeToOffsetsTable({
+      id: config.REPLAY_QUEUE_URL,
+      lastModified: now,
+      lastOffsetProcessed: `${version.Key} ${version.LastModified} ${version.VersionId}`
+    });
+
     eventsReplayed++;
   }
   logInfo('replay job complete.');
@@ -233,7 +292,24 @@ export async function replay() {
 
 export async function createProjection(record) {
   logInfo(`Creating projection from: ${record.body}...`);
-  // TODO Create projections in the database
+  const messageBody = parseMessageBody(record.body);
+  const id = messageBody.Records[0].s3.object.key;
+  const now = new Date().toISOString();
+  const params = {
+    Bucket: config.BUCKET_NAME,
+    Key: id
+  }
+  const version = await s3.send(new GetObjectCommand(params));
+  await writeToProjectionsTable({
+    id,
+    lastModified: now,
+    value: version.Body
+  });
+  await writeToOffsetsTable({
+    id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
+    lastModified: now,
+    lastOffsetProcessed: `${version.Key} ${version.LastModified} ${version.VersionId}`
+  });
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
