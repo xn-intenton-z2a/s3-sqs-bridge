@@ -200,11 +200,14 @@ public class S3SqsBridgeStack extends Stack {
                         .buildArgs(Map.of("HANDLER", lambdaEntry + sourceLambdaHandlerFunctionName))
                         .build()))
                 .environment(Map.of(
+                        "BUCKET_NAME", bucketName,
+                        "OBJECT_PREFIX", objectPrefix,
+                        "OFFSETS_TABLE_NAME", offsetsTable.getTableName(),
                         "PROJECTIONS_TABLE_NAME", projectionsTable.getTableName()
                 ))
                 .functionName(sourceLambdaFunctionName)
                 .reservedConcurrentExecutions(1)
-                .timeout(Duration.seconds(1))
+                .timeout(Duration.seconds(2))
                 .build();
         LogGroup sourceLambdaLogGroup = new LogGroup(this, "SourceLambdaLogGroup", LogGroupProps.builder()
                 .logGroupName("/aws/lambda/" + sourceLambda.getFunctionName())
@@ -223,11 +226,14 @@ public class S3SqsBridgeStack extends Stack {
                         .buildArgs(Map.of("HANDLER", lambdaEntry + replayLambdaHandlerFunctionName))
                         .build()))
                 .environment(Map.of(
+                        "BUCKET_NAME", bucketName,
+                        "OBJECT_PREFIX", objectPrefix,
+                        "OFFSETS_TABLE_NAME", offsetsTable.getTableName(),
                         "PROJECTIONS_TABLE_NAME", projectionsTable.getTableName()
                 ))
                 .functionName(replayLambdaFunctionName)
                 .reservedConcurrentExecutions(1)
-                .timeout(Duration.seconds(1))
+                .timeout(Duration.seconds(2))
                 .build();
         LogGroup replayLambdaLogGroup = new LogGroup(this, "ReplayLambdaLogGroup", LogGroupProps.builder()
                 .logGroupName("/aws/lambda/" + replayLambda.getFunctionName())

@@ -188,7 +188,7 @@ export async function writeToProjectionsTable(item) {
 export async function writeToTable(item, params) {
   try {
     await dynamoClient.send(new PutItemCommand(params));
-    logInfo(`Successfully written offset to DynamoDB ${config.OFFSETS_TABLE_NAME}: ${JSON.stringify(item)}`);
+    logInfo(`Successfully written offset to DynamoDB ${config.OFFSETS_TABLE_NAME}`); // : ${JSON.stringify(item)}
   } catch (error) {
     logError("Error writing offset to DynamoDB", error);
     // Rethrow the error or handle it as needed
@@ -217,6 +217,66 @@ export async function retryOperationExponential(operation, retries = 3, delay = 
       await sleep(delay * Math.pow(2, attempt));
     }
   }
+}
+
+export function createS3EventFromVersion({key, versionId, lastModified}) {
+  return {
+    Records: [
+      {
+        eventVersion: "2.0",
+        eventSource: "aws:s3",
+        eventTime: lastModified,
+        eventName: "ObjectCreated:Put",
+        s3: {
+          s3SchemaVersion: "1.0",
+          bucket: {
+            name: config.BUCKET_NAME,
+            arn: "arn:aws:s3:::" + config.BUCKET_NAME
+          },
+          object: {
+            key,
+            versionId
+          }
+        }
+      }
+    ]
+  };
+}
+
+export function createSQSEventFromS3Event(s3Event) {
+  return {
+    Records: [
+      {
+        eventVersion: "2.0",
+        eventSource: "aws:sqs",
+        eventTime: s3Event.Records[0].eventTime,
+        eventName: "SendMessage",
+        body: JSON.stringify(s3Event)
+      }
+    ]
+  };
+}
+
+function streamToString(stream) {
+  return new Promise(function(resolve, reject) {
+    const chunks = [];
+    stream.on("data", function(chunk) {
+      chunks.push(chunk);
+    });
+    stream.on("error", function(err) {
+      reject(err);
+    });
+    stream.on("end", function() {
+      resolve(Buffer.concat(chunks).toString("utf-8"));
+    });
+  });
+}
+
+function getObjectContent(params, s3) {
+  return s3.send(new GetObjectCommand(params))
+    .then(function(object) {
+      return streamToString(object.Body);
+    });
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -254,29 +314,9 @@ export async function replay() {
   });
   let eventsReplayed = 0;
   for (const version of versions) {
-    const event = {
-      Records: [
-        {
-          eventVersion: "2.0",
-          eventSource: "aws:s3",
-          eventTime: version.LastModified,
-          eventName: "ObjectCreated:Put",
-          s3: {
-            s3SchemaVersion: "1.0",
-            bucket: {
-              name: config.BUCKET_NAME,
-              arn: "arn:aws:s3:::" + config.BUCKET_NAME
-            },
-            object: {
-              key: version.Key,
-              versionId: version.VersionId
-            }
-          }
-        }
-      ]
-    }
+    const s3Event = createS3EventFromVersion({key: version.Key, versionId: version.VersionId, lastModified: version.LastModified});
 
-    await sendEventToSqs(event);
+    await sendEventToSqs(s3Event);
 
     await writeToOffsetsTable({
       id: config.REPLAY_QUEUE_URL,
@@ -294,32 +334,42 @@ export async function replay() {
 // Projection functions
 // ---------------------------------------------------------------------------------------------------------------------
 
-export async function createProjection(record) {
-  logInfo(`Creating projection from: ${record.body}...`);
-  const messageBody = parseMessageBody(record.body);
-  const records = messageBody.Records || [];
-  for (const record of records) {
-    if (record.eventName === 'ObjectCreated:Put') {
-      const id = messageBody.Records[0].s3.object.key;
-      const now = new Date().toISOString();
-      const params = {
-        Bucket: config.BUCKET_NAME,
-        Key: id
-      }
-      const version = await s3.send(new GetObjectCommand(params));
-      await writeToProjectionsTable({
-        id,
-        lastModified: now,
-        value: version.Body
-      });
-      await writeToOffsetsTable({
-        id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
-        lastModified: now,
-        lastOffsetProcessed: `${version.Key} ${version.LastModified} ${version.VersionId}`
-      });
+export async function createProjections(s3Event) {
+  logInfo(`Creating projections from: ${JSON.stringify(s3Event, null, 2)}...`);
+  const s3EventRecords = s3Event.Records || [];
+  for (const s3EventRecord of s3EventRecords) {
+    if (s3EventRecord.eventName === 'ObjectCreated:Put') {
+      await createProjection(s3EventRecord)
     } else {
-      logError(`Unsupported event name: ${record.eventName}`);
+      logError(`Unsupported event name: ${s3EventRecord.eventName}`);
     }
+  }
+}
+
+export async function createProjection(s3PutEventRecord) {
+  if (s3PutEventRecord.eventName === 'ObjectCreated:Put') {
+    const id = s3PutEventRecord.s3.object.key;
+    const now = new Date().toISOString();
+    const params = {
+      Bucket: config.BUCKET_NAME,
+      Key: id,
+      VersionId: s3PutEventRecord.s3.object.versionId
+    }
+    const object = await getObjectContent(params, s3);
+    //const object = await s3.send(new GetObjectCommand(params));
+    //logInfo(`Version body is: ${JSON.stringify(object.Body)}...`);
+    await writeToProjectionsTable({
+      id,
+      lastModified: now,
+      value: object.Body //JSON.stringify(object.Body)
+    });
+    await writeToOffsetsTable({
+      id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
+      lastModified: now,
+      lastOffsetProcessed: `${object.Key} ${object.LastModified} ${object.VersionId}`
+    });
+  } else {
+    logError(`Unsupported event name: ${s3PutEventRecord.eventName}`);
   }
 }
 
@@ -343,15 +393,16 @@ export async function replayBatchLambdaHandler(event) {
   return { handler: "src/lib/main.replayBatchLambdaHandler", versions, eventsReplayed, lastOffsetProcessed };
 }
 
-export async function sourceLambdaHandler(event) {
-  logInfo(`Source Lambda received event: ${JSON.stringify(event, null, 2)}`);
+export async function sourceLambdaHandler(sqsEvent) {
+  logInfo(`Source Lambda received event: ${JSON.stringify(sqsEvent, null, 2)}`);
 
   // If event.Records is an array, use it.
   // Otherwise, treat the event itself as one record.
-  const records = Array.isArray(event.Records) ? event.Records : [event];
+  const sqsEventRecords = Array.isArray(sqsEvent.Records) ? sqsEvent.Records : [sqsEvent];
 
-  for (const record of records) {
-    await createProjection(record);
+  for (const sqsEventRecord of sqsEventRecords) {
+    const s3Event = parseMessageBody(sqsEventRecord.body);
+    await createProjections(s3Event);
     logInfo(`Created source-projection.`);
   }
 
@@ -362,15 +413,16 @@ export async function sourceLambdaHandler(event) {
   return { handler: "src/lib/main.sourceLambdaHandler" };
 }
 
-export async function replayLambdaHandler(event) {
-  logInfo(`Replay Lambda received event: ${JSON.stringify(event, null, 2)}`);
+export async function replayLambdaHandler(sqsEvent) {
+  logInfo(`Replay Lambda received event: ${JSON.stringify(sqsEvent, null, 2)}`);
 
   // If event.Records is an array, use it.
   // Otherwise, treat the event itself as one record.
-  const records = Array.isArray(event.Records) ? event.Records : [event];
+  const sqsEventRecords = Array.isArray(sqsEvent.Records) ? sqsEvent.Records : [sqsEvent];
 
-  for (const record of records) {
-    await createProjection(record);
+  for (const sqsEventRecord of sqsEventRecords) {
+    const s3Event = parseMessageBody(sqsEventRecord.body);
+    await createProjections(s3Event);
     logInfo(`Created replay-projection.`);
   }
   return { handler: "src/lib/main.replayLambdaHandler" };
@@ -381,14 +433,21 @@ export async function replayLambdaHandler(event) {
 // ---------------------------------------------------------------------------------------------------------------------
 
 export async function main(args = process.argv.slice(2)) {
+  const exampleS3ObjectVersion = {
+    key: 'events/1.json',
+    versionId: 'AZW7UcKuQ.8ZZ5GnL9TaTMnK10xH1DON',
+    lastModified: new Date().toISOString()
+  }
   if (args.includes('--help')) {
     console.log(`
       Usage:
       --help                     Show this help message (default)
-      --source-projection        Run realtime Lambda handler
-      --replay-projection        Run replay Lambda handler
+      --source-projection        Run Lambda handler for events from source
+      --replay-projection        Run Lambda handler for events created by replay
       --replay                   Run full bucket replay
       --healthcheck              Run healthcheck server
+     Lambda handlers for --source-projection --replay-projection process a put event for the following object:
+     ${JSON.stringify(exampleS3ObjectVersion, null, 2)}
     `);
     return;
   }
@@ -396,9 +455,13 @@ export async function main(args = process.argv.slice(2)) {
   if (args.includes('--replay')) {
     await replay();
   } else if (args.includes('--source-projection')) {
-    await sourceLambdaHandler({ "source": "main" });
+    const s3Event = createS3EventFromVersion(exampleS3ObjectVersion);
+    const sqsEvent = createSQSEventFromS3Event(s3Event);
+    await sourceLambdaHandler(sqsEvent);
   } else if (args.includes('--replay-projection')) {
-    await replayLambdaHandler({ "source": "main" });
+    const s3Event = createS3EventFromVersion(exampleS3ObjectVersion);
+    const sqsEvent = createSQSEventFromS3Event(s3Event);
+    await replayLambdaHandler(sqsEvent);
   } else if (args.includes('--healthcheck')) {
     healthCheckServer();
   } else {

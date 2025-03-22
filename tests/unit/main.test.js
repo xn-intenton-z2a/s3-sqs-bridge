@@ -11,7 +11,7 @@ import {
   parseMessageBody,
   retryOperationExponential,
   replay,
-  createProjection,
+  createProjections,
   replayBatchLambdaHandler,
   sourceLambdaHandler,
   replayLambdaHandler,
@@ -174,5 +174,9 @@ describe('S3 SQS Bridge Main.js Tests', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Healthcheck available at'));
     });
+
+    //it('--replay-projection processes an example event', async () => {
+    //  await main(['--replay-projection']);
+    //});
   });
 });

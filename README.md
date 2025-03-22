@@ -116,7 +116,7 @@ File as object "test-key":
 2025-03-18 21:22:35         10 test-key
 ```
 
-Run replay job:
+Run replay batch job:
 ```bash
 
 BUCKET_NAME='s3-sqs-bridge-bucket-local' \
@@ -177,7 +177,7 @@ Create the source queue:
 aws --endpoint-url=http://localhost:4566 sqs create-queue --queue-name s3-sqs-bridge-source-queue-local
 ```
 
-Set up the source queue to send events to the source queue when a Put event occurs:
+Set up the s3 bucket to send events to the source queue when a Put event occurs:
 ```bash
 
 aws --endpoint-url=http://localhost:4566 s3api put-bucket-notification-configuration --bucket s3-sqs-bridge-bucket-local --notification-configuration '{
@@ -228,7 +228,7 @@ Message on source queue:
 }
 ```
 
-Launch the reseed in a Container (the same Docker file is used for ECS):
+Launch the replay in a Container (the same Docker file is used for ECS):
 ```bash
 
 docker compose up --detach replay
@@ -259,6 +259,58 @@ s3-sqs-bridge  | npm notice Changelog: <https://github.com/npm/cli/releases/tag/
 s3-sqs-bridge  | npm notice Run `npm install -g npm@11.2.0` to update!
 s3-sqs-bridge  | npm notice 
 ```
+
+Create the DynamoDB tables
+
+For reply offset tracking:
+```bash
+
+aws dynamodb create-table \
+  --table-name s3-sqs-bridge-offsets-table-local \
+  --attribute-definitions AttributeName=id,AttributeType=S AttributeName=lastModified,AttributeType=S \
+  --key-schema AttributeName=id,KeyType=HASH AttributeName=lastModified,KeyType=RANGE \
+  --billing-mode PAY_PER_REQUEST \
+  --endpoint-url http://localhost:4566
+```  
+
+For projections:
+```bash
+aws dynamodb create-table \
+  --table-name s3-sqs-bridge-projections-table-local \
+  --attribute-definitions AttributeName=id,AttributeType=S AttributeName=lastModified,AttributeType=S \
+  --key-schema AttributeName=id,KeyType=HASH AttributeName=lastModified,KeyType=RANGE \
+  --billing-mode PAY_PER_REQUEST \
+  --endpoint-url http://localhost:4566
+```
+
+List the tables:
+```bash
+
+aws dynamodb list-tables \
+  --endpoint-url http://localhost:4566
+```
+
+Output:
+```json
+{
+    "TableNames": [
+        "s3-sqs-bridge-offsets-table-local",
+        "s3-sqs-bridge-projections-table-local"
+    ]
+}
+```
+
+Run replay projection job:
+```bash
+
+BUCKET_NAME='s3-sqs-bridge-bucket-local' \
+OBJECT_PREFIX='events/' \
+OFFSETS_TABLE_NAME=s3-sqs-bridge-offsets-table-local
+PROJECTIONS_TABLE_NAME=s3-sqs-bridge-projections-table-local
+AWS_ENDPOINT='http://localhost:4566' \
+npm run replay-projection
+```
+
 
 ---
 
