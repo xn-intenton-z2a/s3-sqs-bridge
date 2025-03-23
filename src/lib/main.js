@@ -465,9 +465,9 @@ export async function computeDigest(ignoreKeys) {
 
 export async function replayBatchLambdaHandler(event) {
   logInfo(`Replay Batch Lambda received event: ${JSON.stringify(event, null, 2)}`);
-  await enableDisableEventSourceMapping(config.SOURCE_LAMBDA_FUNCTION_NAME, false);
+  //await enableDisableEventSourceMapping(config.SOURCE_LAMBDA_FUNCTION_NAME, false);
   const { versions, eventsReplayed, lastOffsetProcessed } = await replay();
-  await enableDisableEventSourceMapping(config.SOURCE_LAMBDA_FUNCTION_NAME, true);
+  //await enableDisableEventSourceMapping(config.SOURCE_LAMBDA_FUNCTION_NAME, true);
   return { handler: "src/lib/main.replayBatchLambdaHandler", versions, eventsReplayed, lastOffsetProcessed };
 }
 

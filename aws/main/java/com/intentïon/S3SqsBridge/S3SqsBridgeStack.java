@@ -394,7 +394,8 @@ public class S3SqsBridgeStack extends Stack {
 
         PolicyStatement updateMappingPolicy = PolicyStatement.Builder.create()
                 .actions(Arrays.asList("lambda:UpdateEventSourceMapping"))
-                .resources(Arrays.asList("arn:aws:lambda:" + this.getRegion() + ":" + this.getRegion() + ":event-source-mapping:*"))
+                .resources(Arrays.asList("*"))
+                //.resources(Arrays.asList("arn:aws:lambda:" + this.getRegion() + ":" + this.getRegion() + ":event-source-mapping:*"))
                 .build();
 
         this.sourceLambda = DockerImageFunction.Builder.create(this, "SourceLambda")
