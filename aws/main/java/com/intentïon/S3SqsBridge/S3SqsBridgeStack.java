@@ -295,7 +295,7 @@ public class S3SqsBridgeStack extends Stack {
                         .build()))
                 .build();
 
-        Duration sourceLambdaDuration = Duration.seconds(2);
+        Duration sourceLambdaDuration = Duration.seconds(5);
         this.sourceDLQ = Queue.Builder.create(this, "SourceDLQ")
                 .queueName(sqsSourceQueueName + "-dlq")
                 .retentionPeriod(Duration.days(3))
@@ -314,7 +314,7 @@ public class S3SqsBridgeStack extends Stack {
                 new SqsDestination(this.sourceQueue)
         );
 
-        Duration replayLambdaDuration = Duration.seconds(2);
+        Duration replayLambdaDuration = Duration.seconds(5);
         this.replayQueueDLQ = Queue.Builder.create(this, "ReplayQueueDLQ")
                 .queueName(sqsReplayQueueName + "-dlq")
                 .retentionPeriod(Duration.days(3))

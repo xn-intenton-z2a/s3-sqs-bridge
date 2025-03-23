@@ -398,15 +398,7 @@ export async function replay() {
   });
   const versions = await listAllObjectVersionsOldestFirst();
   logInfo(`Processing ${versions.length} versions...`);
-  //const latestVersion = versions[versions.length - 1];
   let lastOffsetProcessed = null;
-  //if (latestVersion) {
-  //  lastOffsetProcessed = `${latestVersion.LastModified} ${latestVersion.Key} ${latestVersion.VersionId}`;
-  //}
-  //await writeToOffsetsTable({
-  //  id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
-  //  lastOffsetProcessed
-  //});
   let eventsReplayed = 0;
   if (versions.length === 0) {
     logInfo('No versions found to process.');
@@ -433,7 +425,7 @@ export async function replay() {
       await sendToSqs(s3Event, config.REPLAY_QUEUE_URL);
 
 
-      lastOffsetProcessed = `${objectMetaData.LastModified} ${objectMetaData.Key} ${objectMetaData.VersionId}`;
+      lastOffsetProcessed = `${objectMetaData.LastModified.toISOString()} ${objectMetaData.Key} ${objectMetaData.VersionId}`;
       await writeLastOffsetProcessedToOffsetsTable({
         id: config.REPLAY_QUEUE_URL,
         lastOffsetProcessed
@@ -478,9 +470,10 @@ export async function createProjection(s3PutEventRecord) {
     id: "digest",
     value: JSON.stringify(digest)
   });
+  const lastOffsetProcessed = `${objectMetaData.LastModified.toISOString()} ${id} ${versionId}`
   await writeLastOffsetProcessedToOffsetsTable({
     id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
-    lastOffsetProcessed: `${objectMetaData.LastModified} ${id} ${versionId}`
+    lastOffsetProcessed
   });
   return digest;
 }
