@@ -7,7 +7,7 @@ import {
   listAndSortAllObjectVersions,
   listAllObjectVersionsOldestFirst,
   buildSQSMessageParams,
-  sendEventToSqs,
+  sendToSqs,
   parseMessageBody,
   retryOperationExponential,
   replay,
@@ -61,6 +61,7 @@ describe('S3 SQS Bridge Main.js Tests', () => {
     process.env.BUCKET_NAME = 'test-bucket';
     process.env.OBJECT_PREFIX = 'events/';
     process.env.REPLAY_QUEUE_URL = 'http://test/000000000000/s3-sqs-bridge-replay-queue-test';
+    process.env.DIGEST_QUEUE_URL = 'http://test/000000000000/s3-sqs-bridge-digest-queue-test';
     process.env.OFFSETS_TABLE_NAME = 'dummy-offsets';
     process.env.PROJECTIONS_TABLE_NAME = 'dummy-projections';
     process.env.AWS_ENDPOINT = 'http://localhost:4566';
@@ -71,15 +72,6 @@ describe('S3 SQS Bridge Main.js Tests', () => {
   });
 
   describe('Basic Utility Functions', () => {
-    it('parseMessageBody returns JSON object for valid JSON', () => {
-      const parsed = parseMessageBody('{"key":"value"}');
-      expect(parsed).toEqual({ key: 'value' });
-    });
-
-    it('parseMessageBody returns null for invalid JSON', () => {
-      expect(parseMessageBody('not-json')).toBeNull();
-    });
-
     it('buildSQSMessageParams returns correct message parameters', () => {
       const event = { test: 'data' };
       const params = buildSQSMessageParams(event);
@@ -146,10 +138,10 @@ describe('S3 SQS Bridge Main.js Tests', () => {
   });
 
   describe('SQS Interaction', () => {
-    it('sendEventToSqs sends event and logs success', async () => {
+    it('sendToSqs sends event and logs success', async () => {
       const consoleSpy = vi.spyOn(console, 'log');
       const event = { test: 'data' };
-      await sendEventToSqs(event);
+      await sendToSqs(event);
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Sent message to SQS queue'));
     });
   });

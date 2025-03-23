@@ -267,8 +267,8 @@ For reply offset tracking:
 
 aws dynamodb create-table \
   --table-name s3-sqs-bridge-offsets-table-local \
-  --attribute-definitions AttributeName=id,AttributeType=S AttributeName=lastModified,AttributeType=S \
-  --key-schema AttributeName=id,KeyType=HASH AttributeName=lastModified,KeyType=RANGE \
+  --attribute-definitions AttributeName=id,AttributeType=S \
+  --key-schema AttributeName=id,KeyType=HASH \
   --billing-mode PAY_PER_REQUEST \
   --endpoint-url http://localhost:4566
 ```  
@@ -277,8 +277,8 @@ For projections:
 ```bash
 aws dynamodb create-table \
   --table-name s3-sqs-bridge-projections-table-local \
-  --attribute-definitions AttributeName=id,AttributeType=S AttributeName=lastModified,AttributeType=S \
-  --key-schema AttributeName=id,KeyType=HASH AttributeName=lastModified,KeyType=RANGE \
+  --attribute-definitions AttributeName=id,AttributeType=S \
+  --key-schema AttributeName=id,KeyType=HASH \
   --billing-mode PAY_PER_REQUEST \
   --endpoint-url http://localhost:4566
 ```
@@ -305,8 +305,8 @@ Run replay projection job:
 
 BUCKET_NAME='s3-sqs-bridge-bucket-local' \
 OBJECT_PREFIX='events/' \
-OFFSETS_TABLE_NAME=s3-sqs-bridge-offsets-table-local
-PROJECTIONS_TABLE_NAME=s3-sqs-bridge-projections-table-local
+OFFSETS_TABLE_NAME=s3-sqs-bridge-offsets-table-local \
+PROJECTIONS_TABLE_NAME=s3-sqs-bridge-projections-table-local \
 AWS_ENDPOINT='http://localhost:4566' \
 npm run replay-projection
 ```
@@ -377,12 +377,12 @@ arn:aws:cloudformation:eu-west-2:541134664601:stack/S3SqsBridgeStack/30cf37a0-05
 
 ```
 
-Write to S3 (2 keys, 5 times each):
+Write to S3 (2 keys, 2 times each, interleaved):
 ```bash
 
 aws s3 ls s3-sqs-bridge-bucket/events/
-for id in $(seq 1 2); do
-  for value in $(seq 1 5); do
+for value in $(seq 1 2); do
+  for id in $(seq 1 2); do
     echo "{\"id\": \"${id?}\", \"value\": \"$(printf "%010d" "${value?}")\"}" > "${id?}.json"
     aws s3 cp "${id?}.json" s3://s3-sqs-bridge-bucket/events/"${id?}.json"
   done
@@ -398,6 +398,61 @@ upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json
 upload: ./2.json to s3://s3-sqs-bridge-bucket/events/2.json   
 2025-03-19 23:47:07         31 1.json
 2025-03-19 23:52:12         31 2.json
+```
+
+List the versions of all s3 objects:
+```bash
+
+aws s3api list-object-versions \
+  --bucket s3-sqs-bridge-bucket \
+  --prefix events/ \
+  | jq -r '.Versions[] | "\(.LastModified) \(.Key) \(.VersionId) \(.IsLatest)"' \
+  | head -5 \
+  | tail -r
+```
+
+Output (note grouping by key, requiring a merge by LastModified to get the Put Event order):
+```log
+2025-03-23T02:37:10+00:00 events/2.json NGxS.PCWdSlxMPVIRreb_ra_WsTjc4L5 false
+2025-03-23T02:37:12+00:00 events/2.json 7SDSiqco1dgFGKZmRk8bjSoyi5eD5ZLW true
+2025-03-23T02:37:09+00:00 events/1.json cxY1weJ62JNq4DvqrgfvIWKJEYDQinly false
+2025-03-23T02:37:11+00:00 events/1.json wHEhP8RdXTD8JUsrrUlMfSANzm7ahDlv true
+```
+
+Check the projections table:
+```bash
+
+aws dynamodb scan \
+  --table-name s3-sqs-bridge-projections-table \
+  --output json \
+  | jq --compact-output '.Items[] | with_entries(if (.value | has("S")) then .value = .value.S else . end)' \
+  | tail --lines=5
+```
+
+Output:
+```json lines
+{"id":"events/1.json"}
+{"id":"events/1.json"}
+{"id":"events/2.json"}
+{"id":"events/1.json"}
+{"id":"events/2.json"}
+```
+
+Count the attributes on the digest queue:
+```bash
+
+aws sqs get-queue-attributes \
+  --queue-url https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-digest-queue \
+  --attribute-names ApproximateNumberOfMessages
+```
+
+Output:
+```json
+{
+  "Attributes": {
+    "ApproximateNumberOfMessages": "6"
+  }
+}
 ```
 
 List the versions of one s3 object:
@@ -454,27 +509,55 @@ cat latest.1.json
 diff latest.1.json latest-minus-000.1.json
 ```
 
-
-Write to S3 (2 keys, 2 times each interleaved):
+Empty the S3 bucket of events and versions:
 ```bash
 
+aws s3api delete-objects \
+  --bucket s3-sqs-bridge-bucket \
+  --delete file://<(aws s3api list-object-versions --bucket s3-sqs-bridge-bucket --prefix events/ --query "{Objects: [Versions,DeleteMarkers][][] | [].{Key: Key,VersionId: VersionId}}" --output json)
+```
+
+Write to S3 (2 keys, 2 times each, interleaved):
+```bash
+
+aws s3 ls s3-sqs-bridge-bucket/events/
 for value in $(seq 1 2); do
   for id in $(seq 1 2); do
     echo "{\"id\": \"${id?}\", \"value\": \"$(printf "%010d" "${value?}")\"}" > "${id?}.json"
     aws s3 cp "${id?}.json" s3://s3-sqs-bridge-bucket/events/"${id?}.json"
   done
 done
+aws s3 ls s3-sqs-bridge-bucket/events/
 ```
 
-List the versions of all s3 with the events prefix (order between keys relies upon the S3 event time):
+output:
+```log
+upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json       
+upload: ./2.json to s3://s3-sqs-bridge-bucket/events/2.json      
+upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json       
+upload: ./2.json to s3://s3-sqs-bridge-bucket/events/2.json       
+~/projects/s3-sqs-bridge % aws s3 ls s3-sqs-bridge-bucket/events/
+2025-03-23 02:37:11         35 1.json
+2025-03-23 02:37:12         35 2.json
+```
+
+List the versions of all s3 objects:
 ```bash
 
 aws s3api list-object-versions \
   --bucket s3-sqs-bridge-bucket \
   --prefix events/ \
-  | jq -r '.Versions[] | "\(.Key) \(.LastModified) \(.VersionId) \(.IsLatest)"' \
+  | jq -r '.Versions[] | "\(.LastModified) \(.Key) \(.VersionId) \(.IsLatest)"' \
   | head -5 \
   | tail -r
+```
+
+Output (note grouping by key, requiring a merge by LastModified to get the Put Event order):
+```log
+2025-03-23T02:37:10+00:00 events/2.json NGxS.PCWdSlxMPVIRreb_ra_WsTjc4L5 false
+2025-03-23T02:37:12+00:00 events/2.json 7SDSiqco1dgFGKZmRk8bjSoyi5eD5ZLW true
+2025-03-23T02:37:09+00:00 events/1.json cxY1weJ62JNq4DvqrgfvIWKJEYDQinly false
+2025-03-23T02:37:11+00:00 events/1.json wHEhP8RdXTD8JUsrrUlMfSANzm7ahDlv true
 ```
 
 Count the attributes on the replay queue:
@@ -494,7 +577,7 @@ Output:
 }
 ```
 
-Stop the replay queue from triggering the replay lambda then send another batch:
+Stop the replay queue from triggering the replay lambda then send a batch of messages:
 ```bash
 
 aws lambda update-event-source-mapping \
@@ -571,6 +654,52 @@ Output:
 }
 ```
 
+Check the projections table:
+```bash
+
+aws dynamodb scan \
+  --table-name s3-sqs-bridge-projections-table \
+  --output json \
+  | jq --compact-output '.Items[] | with_entries(if (.value | has("S")) then .value = .value.S else . end)' \
+  | tail --lines=5
+```
+
+Output:
+```json lines
+{"id":"events/1.json"}
+{"id":"events/1.json"}
+{"id":"events/2.json"}
+{"id":"events/1.json"}
+{"id":"events/2.json"}
+```
+
+Count the attributes on the digest queue:
+```bash
+
+aws sqs get-queue-attributes \
+  --queue-url https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-digest-queue \
+  --attribute-names ApproximateNumberOfMessages
+```
+
+Output (there should be double the digest messages from the replay plus the source):
+```json
+{
+  "Attributes": {
+    "ApproximateNumberOfMessages": "486"
+  }
+}
+```
+
+Run replay projection job:
+```bash
+
+BUCKET_NAME='s3-sqs-bridge-bucket' \
+OBJECT_PREFIX='events/' \
+OFFSETS_TABLE_NAME=s3-sqs-bridge-offsets-table \
+PROJECTIONS_TABLE_NAME=s3-sqs-bridge-projections-table \
+npm run replay-projection
+```
+
 ### Handy Commands
 
 Handy cleanup, Docker:
@@ -629,6 +758,34 @@ docker run -it \
   --env AWS_ENDPOINT='http://localhost:4566' \
   --entrypoint /bin/bash \
   s3-sqs-bridge:latest
+```
+
+Write with as many processes as possible for 1s to s3:
+```bash
+
+count=0; end=$(($(date +%s) + 1)); \
+while [ $(date +%s) -lt $end ]; do \
+  uuid=$(uuidgen); \
+  echo "{\"id\":\"$uuid\"}" > "$uuid.json"; \
+  aws s3 cp "$uuid.json" s3://s3-sqs-bridge-bucket/"$uuid.json" >/dev/null 2>&1 & \
+  count=$((count+1)); \
+done; \
+wait; \
+echo "Processes created: $count"; \
+aws s3 ls s3://s3-sqs-bridge-bucket/ | tail -n 5
+```
+
+Delete log groups:
+```bash
+
+aws logs delete-log-group \
+  --log-group-name "/aws/s3/s3-sqs-bridge-bucket"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-replay-batch-function"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-replay-function"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-source-function"
 ```
 
 ---
