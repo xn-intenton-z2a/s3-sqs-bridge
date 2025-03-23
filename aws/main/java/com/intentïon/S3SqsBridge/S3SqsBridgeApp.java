@@ -7,7 +7,7 @@ public class S3SqsBridgeApp {
     public static void main(final String[] args) {
         App app = new App();
 
-        S3SqsBridgeStack stack = S3SqsBridgeStack.Builder.create(app, "S3SqsBridgeConfigureAndBuildStack")
+        S3SqsBridgeStack stack = S3SqsBridgeStack.Builder.create(app, "S3SqsBridgeStack")
                 // TODO: LogGroup retention periods
                 .s3WriterArnPrinciple(System.getenv("S3_WRITER_ARN_PRINCIPLE"))
                 .s3WriterRoleName(System.getenv("S3_WRITER_ROLE_NAME"))
