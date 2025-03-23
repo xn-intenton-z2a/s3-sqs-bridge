@@ -407,6 +407,7 @@ export async function replay() {
   //  id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
   //  lastOffsetProcessed
   //});
+  let eventsReplayed = 0;
   if (versions.length === 0) {
     logInfo('No versions found to process.');
     lastOffsetProcessed = `${new Date().toISOString()} No versions found to replay`;
@@ -419,7 +420,6 @@ export async function replay() {
       lastOffsetProcessed
     });
   } else {
-    let eventsReplayed = 0;
     for (const version of versions) {
       const id = version.Key;
       const versionId = version.VersionId;

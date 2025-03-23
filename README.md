@@ -343,6 +343,24 @@ Unexpected error in background thread "software.amazon.jsii.JsiiRuntime.ErrorStr
 ```
 (Yes... the last line, the error "is a bug in the CDK, but it doesn't affect the deployment", according to Copilot.)
 
+Destroy a previous stack and delete related log groups:
+```bash
+
+npx cdk 
+```
+(The commands go in separately because the CDK can be interactive.)
+```bash
+
+aws logs delete-log-group \
+  --log-group-name "/aws/s3/s3-sqs-bridge-bucket"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-replay-batch-function"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-replay-function"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-source-function"
+```
+
 Deploys the AWS infrastructure including an App Runner service, an SQS queue, Lambda functions, and a PostgreSQL table.
 ```bash
 
