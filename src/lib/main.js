@@ -292,15 +292,21 @@ function streamToString(stream) {
 }
 
 async function getS3ObjectWithContent(s3BucketName, key, versionId) {
+  const objectMetaData = await getS3ObjectMetadata(s3BucketName, key, versionId)
+  const object = await streamToString(objectMetaData.Body);
+  return { objectMetaData, object };
+}
+
+async function getS3ObjectMetadata(s3BucketName, key, versionId) {
   const params = {
     Bucket: s3BucketName,
     Key: key,
     VersionId: versionId
   }
   const objectMetaData = await s3.send(new GetObjectCommand(params));
-  const object = await streamToString(objectMetaData.Body);
-  return { objectMetaData, object };
+  return objectMetaData;
 }
+
 
 // Function to scan through all pages in the projections table and return a map:
 // { <id>: { id: <id> } } for each projection.
@@ -401,19 +407,40 @@ export async function replay() {
   //  id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
   //  lastOffsetProcessed
   //});
-  let eventsReplayed = 0;
-  for (const version of versions) {
-    const s3Event = createS3EventFromVersion({key: version.Key, versionId: version.VersionId, lastModified: version.LastModified});
-
-    await sendToSqs(s3Event, config.REPLAY_QUEUE_URL);
-
-    lastOffsetProcessed = `${version.LastModified} ${version.Key} ${version.VersionId}`;
+  if (versions.length === 0) {
+    logInfo('No versions found to process.');
+    lastOffsetProcessed = `${new Date().toISOString()} No versions found to replay`;
     await writeLastOffsetProcessedToOffsetsTable({
       id: config.REPLAY_QUEUE_URL,
       lastOffsetProcessed
     });
+    await writeLastOffsetProcessedToOffsetsTable({
+      id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
+      lastOffsetProcessed
+    });
+  } else {
+    let eventsReplayed = 0;
+    for (const version of versions) {
+      const id = version.Key;
+      const versionId = version.VersionId;
+      const objectMetaData = await getS3ObjectMetadata(config.BUCKET_NAME, id, versionId);
+      const s3Event = createS3EventFromVersion({
+        key: objectMetaData.Key,
+        versionId: objectMetaData.VersionId,
+        lastModified: objectMetaData.LastModified
+      });
 
-    eventsReplayed++;
+      await sendToSqs(s3Event, config.REPLAY_QUEUE_URL);
+
+
+      lastOffsetProcessed = `${objectMetaData.LastModified} ${objectMetaData.Key} ${objectMetaData.VersionId}`;
+      await writeLastOffsetProcessedToOffsetsTable({
+        id: config.REPLAY_QUEUE_URL,
+        lastOffsetProcessed
+      });
+
+      eventsReplayed++;
+    }
   }
   logInfo('replay job complete.');
   return { versions: versions.length, eventsReplayed, lastOffsetProcessed };
