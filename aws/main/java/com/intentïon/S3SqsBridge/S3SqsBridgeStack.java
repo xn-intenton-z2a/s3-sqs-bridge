@@ -249,10 +249,10 @@ public class S3SqsBridgeStack extends Stack {
             this.eventsBucket = Bucket.fromBucketName(this, "EventsBucket", s3BucketName);
         } else {
             this.eventsBucket = Bucket.Builder.create(this, "EventsBucket")
-                    .bucketName(builder.s3BucketName)
+                    .bucketName(s3BucketName)
                     .versioned(true)
                     .removalPolicy(s3RetainBucket ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY)
-                    .autoDeleteObjects(!builder.s3RetainBucket)
+                    .autoDeleteObjects(!s3RetainBucket)
                     .build();
             this.eventsBucketLogGroup = LogGroup.Builder.create(this, "EventsBucketLogGroup")
                     .logGroupName("/aws/s3/" + this.eventsBucket.getBucketName())
@@ -405,6 +405,7 @@ public class S3SqsBridgeStack extends Stack {
                 .environment(Map.of(
                         "BUCKET_NAME", eventsBucket.getBucketName(),
                         "OBJECT_PREFIX", s3ObjectPrefix,
+                        "REPLAY_QUEUE_URL", this.replayQueue.getQueueUrl(),
                         "OFFSETS_TABLE_NAME", this.offsetsTable.getTableName(),
                         "PROJECTIONS_TABLE_NAME", this.projectionsTable.getTableName(),
                         "DIGEST_QUEUE_URL", this.digestQueue.getQueueUrl()
@@ -484,7 +485,7 @@ public class S3SqsBridgeStack extends Stack {
         this.offsetsTable.grantReadWriteData(this.replayLambda);
         this.projectionsTable.grantReadWriteData(this.replayLambda);
         this.replayLambda.addEventSource(new SqsEventSource(this.replayQueue, SqsEventSourceProps.builder()
-                .batchSize(10)
+                .batchSize(1)
                 .maxBatchingWindow(Duration.seconds(0))
                 .build()));
     }

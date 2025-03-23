@@ -167,7 +167,7 @@ export async function sendToSqs(body, sqsQueueUrl) {
   }
 }
 
-export async function writeToOffsetsTable(item) {
+export async function writeLastOffsetProcessedToOffsetsTable(item) {
   const lastOffsetProcessed = item.lastOffsetProcessed ? { S: item.lastOffsetProcessed } : null;
   const params = {
     TableName: config.OFFSETS_TABLE_NAME,
@@ -177,9 +177,10 @@ export async function writeToOffsetsTable(item) {
     }
   };
   await writeToTable(item, params);
+  logInfo(`Successfully wrote offset ${JSON.stringify(item.lastOffsetProcessed)} to DynamoDB table ${config.OFFSETS_TABLE_NAME}`); // : ${JSON.stringify(item)}
 }
 
-export async function readFromOffsetsTable(id) {
+export async function readLastOffsetProcessedFromOffsetsTableById(id) {
   const params = {
     TableName: config.OFFSETS_TABLE_NAME,
     Key: {
@@ -188,16 +189,19 @@ export async function readFromOffsetsTable(id) {
     ConsistentRead: true,
   };
 
+  logInfo(`Getting item with id "${id}" from table ${config.OFFSETS_TABLE_NAME}.`);
   const result = await dynamodb.send(new GetItemCommand(params));
 
   if (!result.Item) {
     throw new Error(`Item with id "${id}" not found in table ${config.OFFSETS_TABLE_NAME}.`);
+  } else {
+    logInfo(`Got item with id "${id}" from table ${config.OFFSETS_TABLE_NAME}: ${JSON.stringify(result.Item)}.`);
   }
 
-  return result.Item;
+  return result.Item.lastOffsetProcessed.S;
 }
 
-export async function writeToProjectionsTable(item) {
+export async function writeValueToProjectionsTable(item) {
   const value = item.value ? { S: item.value } : null;
   const params = {
     TableName: config.PROJECTIONS_TABLE_NAME,
@@ -207,14 +211,14 @@ export async function writeToProjectionsTable(item) {
     }
   };
   await writeToTable(item, params);
+  logInfo(`Successfully wrote value ${JSON.stringify(item.value)} to DynamoDB table ${config.PROJECTIONS_TABLE_NAME}`); // : ${JSON.stringify(item)}
 }
 
 export async function writeToTable(item, params) {
   try {
     await dynamodb.send(new PutItemCommand(params));
-    logInfo(`Successfully wrote offset to DynamoDB table ${config.OFFSETS_TABLE_NAME}`); // : ${JSON.stringify(item)}
   } catch (error) {
-    logError(`Error writing offset to DynamoDB table ${config.OFFSETS_TABLE_NAME}`, error);
+    logError(`Error writing offset to DynamoDB table ${params.TableName}`, error);
     throw error;
   }
 }
@@ -321,7 +325,7 @@ export async function getProjectionIdsMap(ignoreKeys) {
       for (const item of result.Items) {
         // If you're using the low-level DynamoDB API, attributes might be in the form { S: 'value' }.
         // Here we assume that a transformation (for example, using DynamoDB DocumentClient) already yields plain values.
-        const id = item.id;
+        const id = item.id.S;
         if(ignoreKeys && ignoreKeys.includes(id)) {
           continue;
         }
@@ -378,11 +382,11 @@ function logError(message, error) {
 
 export async function replay() {
   logInfo(`Starting replay job for bucket ${config.BUCKET_NAME} prefix ${config.OBJECT_PREFIX}`);
-  await writeToOffsetsTable({
+  await writeLastOffsetProcessedToOffsetsTable({
     id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
     lastOffsetProcessed: null
   });
-  await writeToOffsetsTable({
+  await writeLastOffsetProcessedToOffsetsTable({
     id: config.REPLAY_QUEUE_URL,
     lastOffsetProcessed: null
   });
@@ -391,7 +395,7 @@ export async function replay() {
   //const latestVersion = versions[versions.length - 1];
   let lastOffsetProcessed = null;
   //if (latestVersion) {
-  //  lastOffsetProcessed = `${latestVersion.Key} ${latestVersion.LastModified} ${latestVersion.VersionId}`;
+  //  lastOffsetProcessed = `${latestVersion.LastModified} ${latestVersion.Key} ${latestVersion.VersionId}`;
   //}
   //await writeToOffsetsTable({
   //  id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
@@ -403,8 +407,8 @@ export async function replay() {
 
     await sendToSqs(s3Event, config.REPLAY_QUEUE_URL);
 
-    lastOffsetProcessed = `${version.Key} ${version.LastModified} ${version.VersionId}`;
-    await writeToOffsetsTable({
+    lastOffsetProcessed = `${version.LastModified} ${version.Key} ${version.VersionId}`;
+    await writeLastOffsetProcessedToOffsetsTable({
       id: config.REPLAY_QUEUE_URL,
       lastOffsetProcessed
     });
@@ -420,14 +424,16 @@ export async function replay() {
 // ---------------------------------------------------------------------------------------------------------------------
 
 export async function createProjections(s3Event) {
-  logInfo(`Creating projections from: ${JSON.stringify(s3Event, null, 2)}...`);
+  logInfo(`Creating projections from: ${JSON.stringify(s3Event)}...`);
   const s3EventRecords = s3Event.Records || [];
+  let digest = null;
   for (const s3EventRecord of s3EventRecords) {
     if (s3EventRecord.eventName !== 'ObjectCreated:Put') {
       throw new Error(`Unsupported event name: ${s3EventRecord.eventName}`);
     }
-    await createProjection(s3EventRecord);
+    digest = await createProjection(s3EventRecord);
   }
+  return digest;
 }
 
 export async function createProjection(s3PutEventRecord) {
@@ -435,19 +441,19 @@ export async function createProjection(s3PutEventRecord) {
   const versionId = s3PutEventRecord.s3.object.versionId
   const {objectMetaData, object} = await getS3ObjectWithContent(config.BUCKET_NAME, id, versionId);
   //const object = await s3.send(new GetObjectCommand(params));
-  logInfo(`Version object is: ${JSON.stringify(object)}...`);
-  await writeToProjectionsTable({
+  logInfo(`Version object is: ${object}...`);
+  await writeValueToProjectionsTable({
     id,
-    value: object.Body //JSON.stringify(object.Body)
+    value: object
   });
   const digest = await computeDigest(["digest"]);
-  await writeToProjectionsTable({
+  await writeValueToProjectionsTable({
     id: "digest",
-    value: object.Body //JSON.stringify(object.Body)
+    value: JSON.stringify(digest)
   });
-  await writeToOffsetsTable({
+  await writeLastOffsetProcessedToOffsetsTable({
     id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
-    lastOffsetProcessed: `${id} ${objectMetaData.LastModified} ${versionId}`
+    lastOffsetProcessed: `${objectMetaData.LastModified} ${id} ${versionId}`
   });
   return digest;
 }
@@ -456,7 +462,7 @@ export async function computeDigest(ignoreKeys) {
   const digest = await getProjectionIdsMap(ignoreKeys);
   // TODO: When we have gathered a sample of events, compute the digests.
   // TODO: Find a way to externalise the digest so a consuming library can inject a custom digest into the stack.
-  return await digest;
+  return digest;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -464,7 +470,7 @@ export async function computeDigest(ignoreKeys) {
 // ---------------------------------------------------------------------------------------------------------------------
 
 export async function replayBatchLambdaHandler(event) {
-  logInfo(`Replay Batch Lambda received event: ${JSON.stringify(event, null, 2)}`);
+  logInfo(`Replay Batch Lambda received event: ${JSON.stringify(event)}`);
   //await enableDisableEventSourceMapping(config.SOURCE_LAMBDA_FUNCTION_NAME, false);
   const { versions, eventsReplayed, lastOffsetProcessed } = await replay();
   //await enableDisableEventSourceMapping(config.SOURCE_LAMBDA_FUNCTION_NAME, true);
@@ -473,14 +479,16 @@ export async function replayBatchLambdaHandler(event) {
 
 export async function sourceLambdaHandler(sqsEvent) {
   logInfo(
-    `Source Lambda received event: ${JSON.stringify(sqsEvent, null, 2)}`
+    `Source Lambda received event: ${JSON.stringify(sqsEvent)}`
   );
 
   // If the latest bucket offset processed is null or behind the latest queue offset processed, error out, replay needed.
-  const { lastOffsetProcessed: replayQueueLastOffsetProcessed } = await readFromOffsetsTable(config.REPLAY_QUEUE_URL);
-  const { lastOffsetProcessed: bucketLastOffsetProcessed } = await readFromOffsetsTable(`${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`);
+  const replayQueueLastOffsetProcessed = await readLastOffsetProcessedFromOffsetsTableById(config.REPLAY_QUEUE_URL);
+  const bucketLastOffsetProcessed = await readLastOffsetProcessedFromOffsetsTableById(`${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`);
   if (!bucketLastOffsetProcessed || bucketLastOffsetProcessed < replayQueueLastOffsetProcessed) {
     throw new Error(`Bucket offset processed ${bucketLastOffsetProcessed} is behind replay queue offset processed ${replayQueueLastOffsetProcessed}. Replay needed.`);
+  }else{
+    logInfo(`Bucket offset processed ${bucketLastOffsetProcessed} is at or ahead of the replay queue offset processed ${replayQueueLastOffsetProcessed}. Ready to read from source.`);
   }
 
   // If event.Records is an array, use it. Otherwise, treat the event itself as one record.
@@ -494,7 +502,7 @@ export async function sourceLambdaHandler(sqsEvent) {
       const s3Event = JSON.parse(sqsEventRecord.body);
       const digest = await createProjections(s3Event);
       await sendToSqs(digest, config.DIGEST_QUEUE_URL);
-      logInfo(`Created source-projection for with digest (and TODO dispatched to SQS): ${digest}`);
+      logInfo(`Created source-projection for with digest (and TODO dispatched to SQS): ${JSON.stringify(digest)}`);
     } catch (error) {
       // Log the error and add the record's messageId to the partial batch response
       logError(
@@ -513,7 +521,7 @@ export async function sourceLambdaHandler(sqsEvent) {
 }
 
 export async function replayLambdaHandler(sqsEvent) {
-  logInfo(`Replay Lambda received event: ${JSON.stringify(sqsEvent, null, 2)}`);
+  logInfo(`Replay Lambda received event: ${JSON.stringify(sqsEvent)}`);
 
   // If event.Records is an array, use it.
   // Otherwise, treat the event itself as one record.
@@ -527,7 +535,7 @@ export async function replayLambdaHandler(sqsEvent) {
       const s3Event = JSON.parse(sqsEventRecord.body);
       const digest = await createProjections(s3Event);
       // NOTE: Replay does not send the digest via SQS.
-      logInfo(`Created replay-projection for with digest: ${digest}`);
+      logInfo(`Created replay-projection with digest: ${digest}`);
     } catch (error) {
       // Log the error and add the record's messageId to the partial batch response
       logError(`Error processing record ${sqsEventRecord.messageId}: ${error.message}`, error);
