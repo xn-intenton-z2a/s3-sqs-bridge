@@ -220,7 +220,7 @@ Output, first the current state of the topic, then the new messages:
 ```
 
 Crash out of the script with Ctrl-C:
-```bash
+```log
 ^CTraceback (most recent call last):
   File "/usr/local/bin/aws", line 19, in <module>
     import awscli.clidriver
@@ -276,7 +276,18 @@ It is possible to build a chat client in 50 lines of Bash using S3 as a message 
 the AWS CLI to publish and poll messages from an S3 bucket. It allows multiple users to chat in real-time by 
 writing messages to the S3 bucket and reading them back.
 
-Save this script as `s3-chat.sh`, make it executable and run it.
+Save this script as `./scripts/s3-chat.sh`, make it executable and run it
+e.g.
+```bash
+
+S3CHAT_USER='User-Left' ./scripts/s3-chat.sh
+```
+e.g.
+```bash
+
+S3CHAT_USER='User-Right' ./scripts/s3-chat.sh
+```
+The S3 Chat script:
 ```bash
 
 #!/bin/bash
