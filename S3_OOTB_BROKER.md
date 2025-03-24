@@ -15,6 +15,7 @@ S3 has some broker like features:
 This is an offshoot from another project where I began to set up Tansu io backed by 3S and switched to use S3 directly (ref. https://github.com/tansu-io/tansu).
 
 ---
+# Live Demo
 
 ## Starting with nothing
 _(The Bucket does not exist.)_
@@ -22,7 +23,12 @@ _(The Bucket does not exist.)_
 List a non-existent bucket:
 ```bash
 
-aws s3 ls s3://s3-ootb-broker
+aws s3 ls s3://your-s3-ootb-broker-bucket
+```
+
+Expected output, if the bucket exists, but you don't have full access chose a different bucket name:
+```log
+An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist
 ```
 
 ## Create broker instance
@@ -31,13 +37,13 @@ _(Create an S3 Bucket.)_
 Create a bucket:
 ```bash
 
-aws s3 mb s3://s3-ootb-broker
+aws s3 mb s3://your-s3-ootb-broker-bucket
 ```
 
 Turn on versioning:
 ```bash
 
-aws s3api put-bucket-versioning --bucket s3-ootb-broker --versioning-configuration Status=Enabled
+aws s3api put-bucket-versioning --bucket your-s3-ootb-broker-bucket --versioning-configuration Status=Enabled
 ```
 
 ## Create a topic
@@ -46,13 +52,13 @@ _(Create a prefix in an S3 Bucket.)_
 Create a pre-fix in S3:
 ```bash
 
-aws s3api put-object --bucket s3-ootb-broker --key topic/
+aws s3api put-object --bucket your-s3-ootb-broker-bucket --key topic/
 ```
 
 View the prefix in the bucket:
 ```bash
 
-aws s3 ls s3://s3-ootb-broker/topic/ --summarize
+aws s3 ls s3://your-s3-ootb-broker-bucket/topic/ --summarize
 ```
 
 Output:
@@ -70,15 +76,15 @@ _(Copy files to the S3 prefix.)_
 Copy 2 versions of message with key "id-1.json" to the topic amd 1 version of "id-2.json":
 ```bash
 
-echo "{\"id\": \"1\", \"value\": \"001\"}" > id-1.json ; aws s3 cp id-1.json s3://s3-ootb-broker/topic/id-1.json
-echo "{\"id\": \"1\", \"value\": \"002\"}" > id-1.json ; aws s3 cp id-1.json s3://s3-ootb-broker/topic/id-1.json
-echo "{\"id\": \"2\", \"value\": \"001\"}" > id-2.json ; aws s3 cp id-2.json s3://s3-ootb-broker/topic/id-2.json
+echo "{\"id\": \"1\", \"value\": \"001\"}" > id-1.json ; aws s3 cp id-1.json s3://your-s3-ootb-broker-bucket/topic/id-1.json
+echo "{\"id\": \"1\", \"value\": \"002\"}" > id-1.json ; aws s3 cp id-1.json s3://your-s3-ootb-broker-bucket/topic/id-1.json
+echo "{\"id\": \"2\", \"value\": \"001\"}" > id-2.json ; aws s3 cp id-2.json s3://your-s3-ootb-broker-bucket/topic/id-2.json
 ```
 
 View the prefix in the bucket:
 ```bash
 
-aws s3 ls s3://s3-ootb-broker/topic/ --summarize
+aws s3 ls s3://your-s3-ootb-broker-bucket/topic/ --summarize
 ```
 
 Output:
@@ -98,7 +104,7 @@ List the versions of all s3 objects:
 ```bash
 
 aws s3api list-object-versions \
-  --bucket s3-ootb-broker \
+  --bucket your-s3-ootb-broker-bucket \
   --prefix topic/ \
   | jq -r '.Versions[] | "\(.LastModified) \(.Key) \(.VersionId) \(.IsLatest)"' \
   | head -50 \
@@ -121,7 +127,7 @@ _(Copy an object to the local filesystem.)_
 Copy the latest version of the object "id-1.json" to the local filesystem:
 ```bash
 
-aws s3 cp s3://s3-ootb-broker/topic/id-1.json copy-of-id-1.json
+aws s3 cp s3://your-s3-ootb-broker-bucket/topic/id-1.json copy-of-id-1.json
 cat copy-of-id-1.json
 ```
 
@@ -137,12 +143,12 @@ Copy the all the versions of the object "id-1.json" to the local filesystem:
 ```bash
 
 for version in $(aws s3api list-object-versions \
-    --bucket s3-ootb-broker \
+    --bucket your-s3-ootb-broker-bucket \
     --prefix topic/id-1.json \
     --query 'reverse(Versions[].VersionId)' \
     --output text | tr ' ' '\n'); do 
       aws s3api get-object \
-        --bucket s3-ootb-broker \
+        --bucket your-s3-ootb-broker-bucket \
         --key topic/id-1.json \
         --version-id "$version" \
         ./id-tmp.json > /dev/null \
@@ -170,7 +176,7 @@ fi
 while true; do
   last_modified=$(cat "$last_modified_file")
   new_versions=$(aws s3api list-object-versions \
-    --bucket s3-ootb-broker \
+    --bucket your-s3-ootb-broker-bucket \
     --prefix topic/ \
     --query "sort_by(Versions[?LastModified > \`${last_modified?}\`], &LastModified)" \
     --output json)
@@ -178,7 +184,7 @@ while true; do
     key=$(echo "${item?}" | jq -r '.Key')
     version=$(echo "${item?}" | jq -r '.VersionId')
     last_modified=$(echo "${item?}" | jq -r '.LastModified')
-    aws s3api get-object --bucket s3-ootb-broker \
+    aws s3api get-object --bucket your-s3-ootb-broker-bucket \
       --key "${key?}" \
       --version-id "${version?}" \
       ./id-tmp.json > /dev/null && \
@@ -196,7 +202,7 @@ In another terminal, or another country, write to S3 (2 keys, 2 times each, inte
 for value in $(seq 3 4); do
   for id in $(seq 1 2); do
     echo "{\"id\": \"${id?}\", \"value\": \"$(printf "%03d" "${value?}")\"}" > "id-${id?}.json"
-    aws s3 cp "id-${id?}.json" s3://s3-ootb-broker/topic/"id-${id?}.json"
+    aws s3 cp "id-${id?}.json" s3://your-s3-ootb-broker-bucket/topic/"id-${id?}.json"
   done
 done
 ```
@@ -240,7 +246,7 @@ In another terminal write to S3 (2 keys, 2 times each, interleaved, using ids 3 
 for value in $(seq 3 4); do
   for id in $(seq 3 4); do
     echo "{\"id\": \"${id?}\", \"value\": \"$(printf "%03d" "${value?}")\"}" > "id-${id?}.json"
-    aws s3 cp "id-${id?}.json" s3://s3-ootb-broker/topic/"id-${id?}.json"
+    aws s3 cp "id-${id?}.json" s3://your-s3-ootb-broker-bucket/topic/"id-${id?}.json"
   done
 done
 ```
@@ -251,7 +257,6 @@ Output shows only the new messages:
 {"id": "4", "value": "003"}
 {"id": "3", "value": "004"}
 {"id": "4", "value": "004"}
-
 ```
 
 Tail the offset file:
@@ -286,7 +291,7 @@ echo '2. Optionally set the environment variable S3CHAT_USER to your preferred u
 echo '3. Run this script in as many bash terminals as you like.'
 echo '4. Type your message at the prompt and press Enter. All participants will see every published message.'
 echo '5. Type /exit to quit.'
-BUCKET="s3-ootb-broker"
+BUCKET="your-s3-ootb-broker-bucket"
 TOPIC="chat"
 LAST_MODIFIED_FILE="/tmp/s3chat_last_modified_$$.txt"
 if [ ! -f "$LAST_MODIFIED_FILE" ]; then
@@ -313,7 +318,6 @@ poll_messages() {
             msg_timestamp=$(echo "$item" | jq -r '.LastModified')
             aws s3api get-object --bucket "$BUCKET" --key "$key" --version-id "$version" /tmp/s3chat_msg.json > /dev/null 2>&1
             if [ -s /tmp/s3chat_msg.json ]; then
-                # Extract fields and display in a friendly format.
                 user_field=$(jq -r '.user' /tmp/s3chat_msg.json)
                 message_field=$(jq -r '.message' /tmp/s3chat_msg.json)
                 timestamp_field=$(jq -r '.timestamp' /tmp/s3chat_msg.json)
@@ -338,26 +342,61 @@ while true; do
     publish_message "$user_input"
 done
 ```
+(Th2 S3 Chat source code is from ChatGPT o30-mini-high, it is above my bash skill level.)
+
+Chat session from User-Left (timestamped messages include messages echoing to self, originating text has no timestamp):
+```log
+> 
+[2025-03-24T21:48:17+00:00] User-Left: 
+Hello from left.
+> 
+[2025-03-24T21:48:32+00:00] User-Left: Hello from left.
+
+[2025-03-24T21:48:43+00:00] User-Right: Hello from right.
+```
+
+Chat session from User-Right:
+```log
+> 
+[2025-03-24T21:48:17+00:00] User-Left: 
+
+[2025-03-24T21:48:32+00:00] User-Left: Hello from left.
+Hello from right.
+> 
+[2025-03-24T21:48:43+00:00] User-Right: Hello from right.
+```
+
 
 ## Decommission the broker
 
 Delete all versions of all objects then delete the bucket:
 ```bash
 
-aws s3api list-object-versions --bucket s3-ootb-broker --output json | \
-  jq -r '.Versions[] | "aws s3api delete-object --bucket s3-ootb-broker --key \(.Key) --version-id \(.VersionId)"' | bash
-aws s3api list-object-versions --bucket s3-ootb-broker --output json | \
-  jq -r '.DeleteMarkers[] | "aws s3api delete-object --bucket s3-ootb-broker --key \(.Key) --version-id \(.VersionId)"' | bash
-aws s3 rb s3://s3-ootb-broker
+aws s3api list-object-versions --bucket your-s3-ootb-broker-bucket --output json | \
+  jq -r '.Versions[] | "aws s3api delete-object --bucket your-s3-ootb-broker-bucket --key \(.Key) --version-id \(.VersionId)"' | bash
+aws s3api list-object-versions --bucket your-s3-ootb-broker-bucket --output json | \
+  jq -r '.DeleteMarkers[] | "aws s3api delete-object --bucket your-s3-ootb-broker-bucket --key \(.Key) --version-id \(.VersionId)"' | bash
+aws s3 rb s3://your-s3-ootb-broker-bucket
 ```
 
 Final check to list a non-existent bucket again:
 ```bash
 
-aws s3 ls s3://s3-ootb-broker
+aws s3 ls s3://your-s3-ootb-broker-bucket
 ```
 
 Output:
 ```log
 An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist
+```
+
+# Portability
+
+Shell scripts have only run on my MacBook Pro with the AWS CLI v2.24.24 and jq v1.7.1. The scripts are not portable to other platforms or versions of the AWS CLI.
+```bash
+
+uname -a
+```
+```log
+Darwin MacBook-Pro.local 24.3.0 Darwin Kernel Version 24.3.0: Thu Jan  2 20:22:00 PST 2025; root:xnu-11215.81.4~3/RELEASE_X86_64 x86_64
 ```

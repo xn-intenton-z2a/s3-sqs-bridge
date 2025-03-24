@@ -10,7 +10,7 @@ echo '2. Optionally set the environment variable S3CHAT_USER to your preferred u
 echo '3. Run this script in as many bash terminals as you like.'
 echo '4. Type your message at the prompt and press Enter. All participants will see every published message.'
 echo '5. Type /exit to quit.'
-BUCKET="s3-ootb-broker"
+BUCKET="your-s3-ootb-broker-bucket"
 TOPIC="chat"
 LAST_MODIFIED_FILE="/tmp/s3chat_last_modified_$$.txt"
 if [ ! -f "$LAST_MODIFIED_FILE" ]; then
