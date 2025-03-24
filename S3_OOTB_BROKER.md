@@ -1,14 +1,14 @@
 # An Amazon S3 Bucket is a Message Broker.
 
 S3 has some broker like features:
-* Always on (paying only for storage when idle).
-* Redundancy is encapsulated behind a single endpoint.
-* Built in data retention lifecycle management.
+* Always on (paying only for storage when idle) with 99.99% availability (ref. https://aws.amazon.com/s3/faqs/).
 * Durable storage with 99.999999999% (11 nines) data durability (ref. https://aws.amazon.com/s3/faqs/).
 * High throughput 3,500 PUT requests per second per prefix (ref. https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html).
 * 5GB per single PUT request (ref. https://aws.amazon.com/s3/faqs/).
 * Unlimited prefixes and an unlimited number of objects (ref. https://aws.amazon.com/s3/faqs/).
 * Chronological write order is preserved allow any intermediate state to be reconstructed.
+* Built in data retention lifecycle management.
+* Operation level access control using IAM policies (e.g. readonly consumers are possible).
 
 (S3 can feel a bit slow but S3 Express One Zone promises "single digit" millisecond latency, ref. https://aws.amazon.com/s3/storage-classes/express-one-zone/).
 
@@ -22,7 +22,7 @@ _(The Bucket does not exist.)_
 List a non-existent bucket:
 ```bash
 
-aws s3 ls s3://s3-otb-broker
+aws s3 ls s3://s3-ootb-broker
 ```
 
 ## Create broker instance
@@ -31,13 +31,13 @@ _(Create an S3 Bucket.)_
 Create a bucket:
 ```bash
 
-aws s3 mb s3://s3-otb-broker
+aws s3 mb s3://s3-ootb-broker
 ```
 
 Turn on versioning:
 ```bash
 
-aws s3api put-bucket-versioning --bucket s3-otb-broker --versioning-configuration Status=Enabled
+aws s3api put-bucket-versioning --bucket s3-ootb-broker --versioning-configuration Status=Enabled
 ```
 
 ## Create a topic
@@ -46,13 +46,13 @@ _(Create a prefix in an S3 Bucket.)_
 Create a pre-fix in S3:
 ```bash
 
-aws s3api put-object --bucket s3-otb-broker --key topic/
+aws s3api put-object --bucket s3-ootb-broker --key topic/
 ```
 
 View the prefix in the bucket:
 ```bash
 
-aws s3 ls s3://s3-otb-broker/topic/ --summarize
+aws s3 ls s3://s3-ootb-broker/topic/ --summarize
 ```
 
 Output:
@@ -70,15 +70,15 @@ _(Copy files to the S3 prefix.)_
 Copy 2 versions of message with key "id-1.json" to the topic amd 1 version of "id-2.json":
 ```bash
 
-echo "{\"id\": \"1\", \"value\": \"001\"}" > id-1.json ; aws s3 cp id-1.json s3://s3-otb-broker/topic/id-1.json
-echo "{\"id\": \"1\", \"value\": \"002\"}" > id-1.json ; aws s3 cp id-1.json s3://s3-otb-broker/topic/id-1.json
-echo "{\"id\": \"2\", \"value\": \"001\"}" > id-2.json ; aws s3 cp id-2.json s3://s3-otb-broker/topic/id-2.json
+echo "{\"id\": \"1\", \"value\": \"001\"}" > id-1.json ; aws s3 cp id-1.json s3://s3-ootb-broker/topic/id-1.json
+echo "{\"id\": \"1\", \"value\": \"002\"}" > id-1.json ; aws s3 cp id-1.json s3://s3-ootb-broker/topic/id-1.json
+echo "{\"id\": \"2\", \"value\": \"001\"}" > id-2.json ; aws s3 cp id-2.json s3://s3-ootb-broker/topic/id-2.json
 ```
 
 View the prefix in the bucket:
 ```bash
 
-aws s3 ls s3://s3-otb-broker/topic/ --summarize
+aws s3 ls s3://s3-ootb-broker/topic/ --summarize
 ```
 
 Output:
@@ -98,7 +98,7 @@ List the versions of all s3 objects:
 ```bash
 
 aws s3api list-object-versions \
-  --bucket s3-otb-broker \
+  --bucket s3-ootb-broker \
   --prefix topic/ \
   | jq -r '.Versions[] | "\(.LastModified) \(.Key) \(.VersionId) \(.IsLatest)"' \
   | head -50 \
@@ -121,7 +121,7 @@ _(Copy an object to the local filesystem.)_
 Copy the latest version of the object "id-1.json" to the local filesystem:
 ```bash
 
-aws s3 cp s3://s3-otb-broker/topic/id-1.json copy-of-id-1.json
+aws s3 cp s3://s3-ootb-broker/topic/id-1.json copy-of-id-1.json
 cat copy-of-id-1.json
 ```
 
@@ -137,12 +137,12 @@ Copy the all the versions of the object "id-1.json" to the local filesystem:
 ```bash
 
 for version in $(aws s3api list-object-versions \
-    --bucket s3-otb-broker \
+    --bucket s3-ootb-broker \
     --prefix topic/id-1.json \
     --query 'reverse(Versions[].VersionId)' \
     --output text | tr ' ' '\n'); do 
       aws s3api get-object \
-        --bucket s3-otb-broker \
+        --bucket s3-ootb-broker \
         --key topic/id-1.json \
         --version-id "$version" \
         ./id-tmp.json > /dev/null \
@@ -170,7 +170,7 @@ fi
 while true; do
   last_modified=$(cat "$last_modified_file")
   new_versions=$(aws s3api list-object-versions \
-    --bucket s3-otb-broker \
+    --bucket s3-ootb-broker \
     --prefix topic/ \
     --query "sort_by(Versions[?LastModified > \`${last_modified?}\`], &LastModified)" \
     --output json)
@@ -178,7 +178,7 @@ while true; do
     key=$(echo "${item?}" | jq -r '.Key')
     version=$(echo "${item?}" | jq -r '.VersionId')
     last_modified=$(echo "${item?}" | jq -r '.LastModified')
-    aws s3api get-object --bucket s3-otb-broker \
+    aws s3api get-object --bucket s3-ootb-broker \
       --key "${key?}" \
       --version-id "${version?}" \
       ./id-tmp.json > /dev/null && \
@@ -196,7 +196,7 @@ In another terminal, or another country, write to S3 (2 keys, 2 times each, inte
 for value in $(seq 3 4); do
   for id in $(seq 1 2); do
     echo "{\"id\": \"${id?}\", \"value\": \"$(printf "%03d" "${value?}")\"}" > "id-${id?}.json"
-    aws s3 cp "id-${id?}.json" s3://s3-otb-broker/topic/"id-${id?}.json"
+    aws s3 cp "id-${id?}.json" s3://s3-ootb-broker/topic/"id-${id?}.json"
   done
 done
 ```
@@ -240,7 +240,7 @@ In another terminal write to S3 (2 keys, 2 times each, interleaved, using ids 3 
 for value in $(seq 3 4); do
   for id in $(seq 3 4); do
     echo "{\"id\": \"${id?}\", \"value\": \"$(printf "%03d" "${value?}")\"}" > "id-${id?}.json"
-    aws s3 cp "id-${id?}.json" s3://s3-otb-broker/topic/"id-${id?}.json"
+    aws s3 cp "id-${id?}.json" s3://s3-ootb-broker/topic/"id-${id?}.json"
   done
 done
 ```
@@ -266,22 +266,95 @@ Output updates one per polling interval:
 2025-03-24T18:07:25+00:00
 ```
 
+## Build a chat client in 50 lines of Bash
+It is possible to build a chat client in 50 lines of Bash using S3 as a message broker. The script below uses 
+the AWS CLI to publish and poll messages from an S3 bucket. It allows multiple users to chat in real-time by 
+writing messages to the S3 bucket and reading them back.
+
+Save this script as `s3-chat.sh`, make it executable and run it.
+```bash
+
+#!/bin/bash
+echo 'S3 Chat: An interactive chat session using Amazon S3 as a message broker.'
+echo 'Setup:'
+echo '1. Create an S3 bucket (if not already created):  aws s3 mb s3://your-chat-bucket'
+echo '2. Enable versioning on the bucket:               aws s3api put-bucket-versioning --bucket your-chat-bucket --versioning-configuration Status=Enabled'
+echo '3. Create a chat topic (prefix):                  aws s3api put-object --bucket your-chat-bucket --key chat/'
+echo 'Usage:'
+echo '1. Set BUCKET below to your S3 bucket name.'
+echo '2. Optionally set the environment variable S3CHAT_USER to your preferred username (default is the output of whoami).'
+echo '3. Run this script in as many bash terminals as you like.'
+echo '4. Type your message at the prompt and press Enter. All participants will see every published message.'
+echo '5. Type /exit to quit.'
+BUCKET="s3-ootb-broker"
+TOPIC="chat"
+LAST_MODIFIED_FILE="/tmp/s3chat_last_modified_$$.txt"
+if [ ! -f "$LAST_MODIFIED_FILE" ]; then
+    echo "1970-01-01T00:00:00Z" > "$LAST_MODIFIED_FILE"
+fi
+publish_message() {
+    local msg="$1"
+    local user="${S3CHAT_USER:-$(whoami)}"
+    local timestamp
+    timestamp=$(date -Iseconds)
+    local filename="msg-$(date +%s%N).json"
+    echo "{\"user\": \"${user}\", \"message\": \"${msg}\", \"timestamp\": \"${timestamp}\"}" > "$filename"
+    aws s3 cp "$filename" "s3://${BUCKET}/${TOPIC}/${filename}" > /dev/null 2>&1
+    rm "$filename"
+}
+poll_messages() {
+    while true; do
+        last_modified=$(cat "$LAST_MODIFIED_FILE")
+        new_msgs=$(aws s3api list-object-versions --bucket "$BUCKET" --prefix "${TOPIC}/" \
+          --query "sort_by(Versions[?LastModified > \`${last_modified}\`], &LastModified)" --output json)
+        echo "$new_msgs" | jq -c '.[]' | while read -r item; do
+            key=$(echo "$item" | jq -r '.Key')
+            version=$(echo "$item" | jq -r '.VersionId')
+            msg_timestamp=$(echo "$item" | jq -r '.LastModified')
+            aws s3api get-object --bucket "$BUCKET" --key "$key" --version-id "$version" /tmp/s3chat_msg.json > /dev/null 2>&1
+            if [ -s /tmp/s3chat_msg.json ]; then
+                # Extract fields and display in a friendly format.
+                user_field=$(jq -r '.user' /tmp/s3chat_msg.json)
+                message_field=$(jq -r '.message' /tmp/s3chat_msg.json)
+                timestamp_field=$(jq -r '.timestamp' /tmp/s3chat_msg.json)
+                echo -e "\n[${timestamp_field}] ${user_field}: ${message_field}"
+            fi
+            echo "$msg_timestamp" > "$LAST_MODIFIED_FILE"
+            rm -f /tmp/s3chat_msg.json
+        done
+        sleep 1
+    done
+}
+poll_messages &
+POLL_PID=$!
+trap "kill $POLL_PID; exit" SIGINT SIGTERM
+echo "Welcome to S3 Chat! Type your message and press Enter. Type /exit to quit."
+while true; do
+    read -r -p "> " user_input
+    if [ "$user_input" = "/exit" ]; then
+        kill $POLL_PID
+        exit 0
+    fi
+    publish_message "$user_input"
+done
+```
+
 ## Decommission the broker
 
 Delete all versions of all objects then delete the bucket:
 ```bash
 
-aws s3api list-object-versions --bucket s3-otb-broker --output json | \
-  jq -r '.Versions[] | "aws s3api delete-object --bucket s3-otb-broker --key \(.Key) --version-id \(.VersionId)"' | bash
-aws s3api list-object-versions --bucket s3-otb-broker --output json | \
-  jq -r '.DeleteMarkers[] | "aws s3api delete-object --bucket s3-otb-broker --key \(.Key) --version-id \(.VersionId)"' | bash
-aws s3 rb s3://s3-otb-broker
+aws s3api list-object-versions --bucket s3-ootb-broker --output json | \
+  jq -r '.Versions[] | "aws s3api delete-object --bucket s3-ootb-broker --key \(.Key) --version-id \(.VersionId)"' | bash
+aws s3api list-object-versions --bucket s3-ootb-broker --output json | \
+  jq -r '.DeleteMarkers[] | "aws s3api delete-object --bucket s3-ootb-broker --key \(.Key) --version-id \(.VersionId)"' | bash
+aws s3 rb s3://s3-ootb-broker
 ```
 
 Final check to list a non-existent bucket again:
 ```bash
 
-aws s3 ls s3://s3-otb-broker
+aws s3 ls s3://s3-ootb-broker
 ```
 
 Output:
