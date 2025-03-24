@@ -4,15 +4,15 @@ S3 has some broker like features:
 * Always on (paying only for storage when idle).
 * Redundancy is encapsulated behind a single endpoint.
 * Built in data retention lifecycle management.
-* Durable storage with 99.999999999% (11 nines) data durability (https://aws.amazon.com/s3/faqs/).
-* High throughput 3,500 PUT requests per second per prefix (https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html).
-* 5GB per single PUT request (https://aws.amazon.com/s3/faqs/).
-* Unlimited prefixes and an unlimited number of objects (https://aws.amazon.com/s3/faqs/).
+* Durable storage with 99.999999999% (11 nines) data durability (ref. https://aws.amazon.com/s3/faqs/).
+* High throughput 3,500 PUT requests per second per prefix (ref. https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html).
+* 5GB per single PUT request (ref. https://aws.amazon.com/s3/faqs/).
+* Unlimited prefixes and an unlimited number of objects (ref. https://aws.amazon.com/s3/faqs/).
 * Chronological write order is preserved allow any intermediate state to be reconstructed.
 
-(S3 can feel a bit slow but S3 Express One Zone promises "single digit" millisecond latency: https://aws.amazon.com/s3/storage-classes/express-one-zone/).
+(S3 can feel a bit slow but S3 Express One Zone promises "single digit" millisecond latency, ref. https://aws.amazon.com/s3/storage-classes/express-one-zone/).
 
-In this paper we demonstrate the broker-like behaviour of S3 using only the AWS CLI and some Bash scripts.
+This is an offshoot from another project where I began to set up Tansu io backed by 3S and switched to use S3 directly (ref. https://github.com/tansu-io/tansu).
 
 ---
 
