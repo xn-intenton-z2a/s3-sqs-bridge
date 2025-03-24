@@ -147,15 +147,15 @@ export async function listAllObjectVersionsOldestFirst() {
   return merged;
 }
 
-export function buildSQSMessageParams(body) {
+export function buildSQSMessageParams(body, sqsQueueUrl) {
   return {
-    QueueUrl: config.REPLAY_QUEUE_URL,
+    QueueUrl: sqsQueueUrl,
     MessageBody: JSON.stringify(body)
   };
 }
 
 export async function sendToSqs(body, sqsQueueUrl) {
-  const params = buildSQSMessageParams(body);
+  const params = buildSQSMessageParams(body, sqsQueueUrl);
   try {
     const result = await retryOperationExponential(async () =>
         await sqs.send(new SendMessageCommand(params))
@@ -478,8 +478,8 @@ export async function createProjection(s3PutEventRecord) {
   const versionId = s3PutEventRecord.s3.object.versionId
   const {objectMetaData, object, version} = await getS3ObjectWithContentAndVersion(config.BUCKET_NAME, id, versionId);
   //const object = await s3.send(new GetObjectCommand(params));
-  logInfo(`Version object is: ${JSON.stringify(version)} for actual object ${object}...`);
-  if (!version.IsLatest) {
+  //logInfo(`versionId is: ${JSON.stringify(version.versionId)} for actual object ${object} expected ${versionId}`);
+  if (version && !version.IsLatest) {
     logError(`This is not the latest version of the object: ${id} ${versionId}`);
     // TODO: Add the version to the projection and check if we are older than that (rather than the latest as above)
     // TODO: Add a count of the number of versions to the projection.

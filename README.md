@@ -449,11 +449,8 @@ aws dynamodb scan \
 
 Output:
 ```json lines
-{"id":"events/1.json"}
-{"id":"events/1.json"}
-{"id":"events/2.json"}
-{"id":"events/1.json"}
-{"id":"events/2.json"}
+{"id":"events/1.json","value":"{\"id\": \"1\", \"value\": \"0000000002\"}\n"}
+{"id":"events/2.json","value":"{\"id\": \"2\", \"value\": \"0000000002\"}\n"}
 ```
 
 Count the attributes on the digest queue:
