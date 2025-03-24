@@ -7,7 +7,7 @@ S3 has some broker like features:
 * 5GB per single PUT request (ref. https://aws.amazon.com/s3/faqs/).
 * Unlimited prefixes and an unlimited number of objects (ref. https://aws.amazon.com/s3/faqs/).
 * Chronological write order is preserved allow any intermediate state to be reconstructed.
-* Built in data retention lifecycle management.
+* Built in object level data retention lifecycle management.
 * Operation level access control using IAM policies (e.g. readonly consumers are possible).
 
 (S3 can feel a bit slow but S3 Express One Zone promises "single digit" millisecond latency, ref. https://aws.amazon.com/s3/storage-classes/express-one-zone/).
