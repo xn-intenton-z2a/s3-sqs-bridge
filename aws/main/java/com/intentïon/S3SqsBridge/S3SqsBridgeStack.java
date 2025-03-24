@@ -49,7 +49,6 @@ public class S3SqsBridgeStack extends Stack {
     public Queue replayQueueDLQ;
     public Queue replayQueue;
     public IQueue digestQueue;
-    public Duration digestLambdaDuration;
     public Queue digestQueueDLQ;
     public Table offsetsTable;
     public Table projectionsTable;
@@ -296,17 +295,18 @@ public class S3SqsBridgeStack extends Stack {
                 .build();
 
         Duration sourceLambdaDuration = Duration.seconds(5);
+        Duration sourceQueueDuration = Duration.seconds(sourceLambdaDuration.toSeconds().intValue() * 2);
         this.sourceDLQ = Queue.Builder.create(this, "SourceDLQ")
                 .queueName(sqsSourceQueueName + "-dlq")
                 .retentionPeriod(Duration.days(3))
                 .build();
         this.sourceQueue = Queue.Builder.create(this, "SourceQueue")
                 .queueName(sqsSourceQueueName)
-                .visibilityTimeout(sourceLambdaDuration)
+                .visibilityTimeout(sourceQueueDuration)
                 .retentionPeriod(Duration.hours(24))
                 .deadLetterQueue(DeadLetterQueue.builder()
                         .queue(this.sourceDLQ)
-                        .maxReceiveCount(1)
+                        .maxReceiveCount(5)
                         .build())
                 .build();
         this.eventsBucket.addEventNotification(
@@ -314,37 +314,38 @@ public class S3SqsBridgeStack extends Stack {
                 new SqsDestination(this.sourceQueue)
         );
 
-        Duration replayLambdaDuration = Duration.seconds(5);
+        Duration replayLambdaDuration = Duration.seconds(3);
+        Duration replayQueueDuration = Duration.seconds(replayLambdaDuration.toSeconds().intValue() * 2);
         this.replayQueueDLQ = Queue.Builder.create(this, "ReplayQueueDLQ")
                 .queueName(sqsReplayQueueName + "-dlq")
                 .retentionPeriod(Duration.days(3))
                 .build();
         this.replayQueue = Queue.Builder.create(this, "ReplayQueue")
                 .queueName(sqsReplayQueueName)
-                .visibilityTimeout(replayLambdaDuration)
+                .visibilityTimeout(replayQueueDuration)
                 .retentionPeriod(Duration.hours(24))
                 .deadLetterQueue(DeadLetterQueue.builder()
                         .queue(this.replayQueueDLQ)
-                        .maxReceiveCount(1)
+                        .maxReceiveCount(5)
                         .build())
                 .build();
 
         if (sqsUseExistingDigestQueue) {
             this.digestQueue = Queue.fromQueueArn(this, "DigestQueue", sqsDigestQueueArn);
         } else {
-            this.digestLambdaDuration = Duration.seconds(2);
+            Duration digestQueueDuration = Duration.seconds(30);
             this.digestQueueDLQ = Queue.Builder.create(this, "DigestQueueDLQ")
                     .queueName(sqsDigestQueueName + "-dlq")
                     .retentionPeriod(Duration.days(3))
                     .build();
             this.digestQueue = Queue.Builder.create(this, "DigestQueue")
                     .queueName(sqsDigestQueueName)
-                    .visibilityTimeout(this.digestLambdaDuration)
+                    .visibilityTimeout(digestQueueDuration)
                     .removalPolicy(sqsRetainDigestQueue ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY)
                     .retentionPeriod(Duration.hours(24))
                     .deadLetterQueue(DeadLetterQueue.builder()
                             .queue(this.digestQueueDLQ)
-                            .maxReceiveCount(1)
+                            .maxReceiveCount(5)
                             .build())
                     .build();
         }

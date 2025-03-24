@@ -291,6 +291,12 @@ function streamToString(stream) {
   });
 }
 
+async function getS3ObjectWithContentAndVersion(s3BucketName, key, versionId) {
+  const version = await getS3ObjectVersion(s3BucketName, key, versionId)
+  const { objectMetaData, object } = await getS3ObjectWithContent(s3BucketName, key, versionId)
+  return { objectMetaData, object, version };
+}
+
 async function getS3ObjectWithContent(s3BucketName, key, versionId) {
   const objectMetaData = await getS3ObjectMetadata(s3BucketName, key, versionId)
   const object = await streamToString(objectMetaData.Body);
@@ -307,6 +313,15 @@ async function getS3ObjectMetadata(s3BucketName, key, versionId) {
   return objectMetaData;
 }
 
+async function getS3ObjectVersion(s3BucketName, key, versionId) {
+  const params = {
+    Bucket: s3BucketName,
+    Key: key,
+    VersionId: versionId
+  }
+  const objectMetaData = await s3.send(new GetObjectCommand(params));
+  return objectMetaData;
+}
 
 // Function to scan through all pages in the projections table and return a map:
 // { <id>: { id: <id> } } for each projection.
@@ -413,19 +428,22 @@ export async function replay() {
     });
   } else {
     for (const version of versions) {
+      logInfo(`Replaying version: ${JSON.stringify(version)}`);
       const id = version.Key;
       const versionId = version.VersionId;
       const objectMetaData = await getS3ObjectMetadata(config.BUCKET_NAME, id, versionId);
-      const s3Event = createS3EventFromVersion({
-        key: objectMetaData.Key,
-        versionId: objectMetaData.VersionId,
-        lastModified: objectMetaData.LastModified
-      });
+      const lastModified = objectMetaData.LastModified.toISOString()
+      const versionMetadata = {
+        key: id,
+        versionId: versionId,
+        lastModified
+      };
+      logInfo(`Creating s3 Put event from versionMetadata: ${JSON.stringify(versionMetadata)} from object metadata LastModified: ${objectMetaData.LastModified}`);
+      const s3Event = createS3EventFromVersion(versionMetadata);
 
       await sendToSqs(s3Event, config.REPLAY_QUEUE_URL);
 
-
-      lastOffsetProcessed = `${objectMetaData.LastModified.toISOString()} ${objectMetaData.Key} ${objectMetaData.VersionId}`;
+      lastOffsetProcessed = `${lastModified} ${id} ${versionId}`;
       await writeLastOffsetProcessedToOffsetsTable({
         id: config.REPLAY_QUEUE_URL,
         lastOffsetProcessed
@@ -458,23 +476,36 @@ export async function createProjections(s3Event) {
 export async function createProjection(s3PutEventRecord) {
   const id = s3PutEventRecord.s3.object.key;
   const versionId = s3PutEventRecord.s3.object.versionId
-  const {objectMetaData, object} = await getS3ObjectWithContent(config.BUCKET_NAME, id, versionId);
+  const {objectMetaData, object, version} = await getS3ObjectWithContentAndVersion(config.BUCKET_NAME, id, versionId);
   //const object = await s3.send(new GetObjectCommand(params));
-  logInfo(`Version object is: ${object}...`);
-  await writeValueToProjectionsTable({
-    id,
-    value: object
-  });
+  logInfo(`Version object is: ${version} for actual object ${object}...`);
+  if (!version.IsLatest) {
+    logError(`This is not the latest version of the object: ${id} ${versionId}`);
+    // TODO: Add the version to the projection and check if we are older than that (rather than the latest as above)
+    // TODO: Add a count of the number of versions to the projection.
+  } else {
+    await writeValueToProjectionsTable({
+      id,
+      value: object
+    });
+  }
   const digest = await computeDigest(["digest"]);
   await writeValueToProjectionsTable({
     id: "digest",
     value: JSON.stringify(digest)
   });
   const lastOffsetProcessed = `${objectMetaData.LastModified.toISOString()} ${id} ${versionId}`
-  await writeLastOffsetProcessedToOffsetsTable({
-    id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
-    lastOffsetProcessed
-  });
+  const bucketLastOffsetProcessed = await readLastOffsetProcessedFromOffsetsTableById(`${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`);
+  if (lastOffsetProcessed < bucketLastOffsetProcessed) {
+    logError(`Bucket offset ${bucketLastOffsetProcessed} is already at or ahead of this object's offset at ${lastOffsetProcessed}. Skipping offset update.`);
+  }else{
+    logInfo(`Bucket offset ${bucketLastOffsetProcessed} is being replaced by this object's offset at ${lastOffsetProcessed}.`);
+    await writeLastOffsetProcessedToOffsetsTable({
+      id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
+      lastOffsetProcessed
+    });
+  }
+
   return digest;
 }
 
@@ -555,7 +586,7 @@ export async function replayLambdaHandler(sqsEvent) {
       const s3Event = JSON.parse(sqsEventRecord.body);
       const digest = await createProjections(s3Event);
       // NOTE: Replay does not send the digest via SQS.
-      logInfo(`Created replay-projection with digest: ${digest}`);
+      logInfo(`Created replay-projection with digest: ${JSON.stringify(digest)}`);
     } catch (error) {
       // Log the error and add the record's messageId to the partial batch response
       logError(`Error processing record ${sqsEventRecord.messageId}: ${error.message}`, error);
