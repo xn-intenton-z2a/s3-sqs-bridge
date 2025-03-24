@@ -198,7 +198,7 @@ export async function readLastOffsetProcessedFromOffsetsTableById(id) {
     logInfo(`Got item with id "${id}" from table ${config.OFFSETS_TABLE_NAME}: ${JSON.stringify(result.Item)}.`);
   }
 
-  return result.Item.lastOffsetProcessed.S;
+  return result.Item.lastOffsetProcessed === undefined ? undefined : result.Item.lastOffsetProcessed.S;
 }
 
 export async function writeValueToProjectionsTable(item) {
@@ -478,17 +478,17 @@ export async function createProjection(s3PutEventRecord) {
   const versionId = s3PutEventRecord.s3.object.versionId
   const {objectMetaData, object, version} = await getS3ObjectWithContentAndVersion(config.BUCKET_NAME, id, versionId);
   //const object = await s3.send(new GetObjectCommand(params));
-  logInfo(`Version object is: ${version} for actual object ${object}...`);
+  logInfo(`Version object is: ${JSON.stringify(version)} for actual object ${object}...`);
   if (!version.IsLatest) {
     logError(`This is not the latest version of the object: ${id} ${versionId}`);
     // TODO: Add the version to the projection and check if we are older than that (rather than the latest as above)
     // TODO: Add a count of the number of versions to the projection.
-  } else {
-    await writeValueToProjectionsTable({
-      id,
-      value: object
-    });
-  }
+  } //else {
+  await writeValueToProjectionsTable({
+    id,
+    value: object
+  });
+  //}
   const digest = await computeDigest(["digest"]);
   await writeValueToProjectionsTable({
     id: "digest",
@@ -513,6 +513,8 @@ export async function computeDigest(ignoreKeys) {
   const digest = await getProjectionIdsMap(ignoreKeys);
   // TODO: When we have gathered a sample of events, compute the digests.
   // TODO: Find a way to externalise the digest so a consuming library can inject a custom digest into the stack.
+  // TODO: Export every useful function here and write some initialisers for re-use too
+  // TODO: Create a sample skeleton implementation that delegates to this library.
   return digest;
 }
 

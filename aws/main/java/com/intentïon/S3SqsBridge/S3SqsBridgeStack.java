@@ -383,9 +383,14 @@ public class S3SqsBridgeStack extends Stack {
                 .resources(Arrays.asList(this.eventsBucket.getBucketArn() + "/" + s3ObjectPrefix + "*"))
                 .build();
 
-        PolicyStatement sqsSendMessagePolicy = PolicyStatement.Builder.create()
+        PolicyStatement sqsSendMessageToReplayQueuePolicy = PolicyStatement.Builder.create()
                 .actions(List.of("sqs:SendMessage"))
                 .resources(List.of(this.replayQueue.getQueueArn()))
+                .build();
+
+        PolicyStatement sqsSendMessageToDigestQueuePolicy = PolicyStatement.Builder.create()
+                .actions(List.of("sqs:SendMessage"))
+                .resources(List.of(this.digestQueue.getQueueArn()))
                 .build();
 
         PolicyStatement listMappingPolicy = PolicyStatement.Builder.create()
@@ -421,6 +426,7 @@ public class S3SqsBridgeStack extends Stack {
                 .removalPolicy(RemovalPolicy.DESTROY)
                 .build());
         this.sourceLambda.addToRolePolicy(getObjectPolicy);
+        this.sourceLambda.addToRolePolicy(sqsSendMessageToDigestQueuePolicy);
         this.offsetsTable.grantReadWriteData(this.sourceLambda);
         this.projectionsTable.grantReadWriteData(this.sourceLambda);
         this.sourceLambda.addEventSource(new SqsEventSource(this.sourceQueue, SqsEventSourceProps.builder()
@@ -451,7 +457,7 @@ public class S3SqsBridgeStack extends Stack {
                 .build());
         this.replayBatchLambda.addToRolePolicy(listBucketPolicy);
         this.replayBatchLambda.addToRolePolicy(getObjectPolicy);
-        this.replayBatchLambda.addToRolePolicy(sqsSendMessagePolicy);
+        this.replayBatchLambda.addToRolePolicy(sqsSendMessageToReplayQueuePolicy);
         this.replayBatchLambda.addToRolePolicy(listMappingPolicy);
         this.replayBatchLambda.addToRolePolicy(updateMappingPolicy);
         this.offsetsTable.grantReadWriteData(this.replayBatchLambda);
