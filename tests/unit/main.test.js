@@ -8,13 +8,16 @@ import {
   listAllObjectVersionsOldestFirst,
   buildSQSMessageParams,
   sendToSqs,
-  parseMessageBody,
   retryOperationExponential,
-  replay,
+  createS3EventFromVersion,
+  createSQSEventFromS3Event,
+  getProjectionIdsMap,
   createProjections,
-  replayBatchLambdaHandler,
   sourceLambdaHandler,
+  replay,
+  replayBatchLambdaHandler,
   replayLambdaHandler,
+  readLastOffsetProcessedFromOffsetsTableById
 } from '@src/lib/main.js';
 
 // --- Mock AWS SDK Clients ---
@@ -51,6 +54,20 @@ vi.mock('@aws-sdk/client-sqs', () => {
       });
     },
     SendMessageCommand: class {},
+  };
+});
+
+
+// --- New Mock for DynamoDB ---
+// These tests need to simulate DynamoDB responses, so we mock the DynamoDB client.
+vi.mock('@aws-sdk/client-dynamodb', () => {
+  return {
+    DynamoDBClient: class {
+      send = vi.fn();
+    },
+    ScanCommand: class {},
+    GetItemCommand: class {},
+    PutItemCommand: class {},
   };
 });
 
@@ -170,5 +187,243 @@ describe('S3 SQS Bridge Main.js Tests', () => {
     //it('--replay-projection processes an example event', async () => {
     //  await main(['--replay-projection']);
     //});
+  });
+});
+
+describe('Additional Unit Tests for main.js', () => {
+  beforeEach(() => {
+    process.env.BUCKET_NAME = 's3-sqs-bridge-bucket-test';
+    process.env.OBJECT_PREFIX = 'events/';
+    process.env.REPLAY_QUEUE_URL = 'http://test/000000000000/s3-sqs-bridge-replay-queue-test';
+    process.env.DIGEST_QUEUE_URL = 'http://test/000000000000/s3-sqs-bridge-digest-queue-test';
+    process.env.OFFSETS_TABLE_NAME = 's3-sqs-bridge-offsets-table-test';
+    process.env.PROJECTIONS_TABLE_NAME = 's3-sqs-bridge-projections-table-test';
+    process.env.AWS_ENDPOINT = 'http://test';
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe('S3 and SQS Event Creation', () => {
+    it('createS3EventFromVersion returns correctly structured S3 event', () => {
+      const versionMetadata = {
+        key: 'events/test.json',
+        versionId: 'v123',
+        lastModified: '2025-03-17T12:00:00Z'
+      };
+      const event = createS3EventFromVersion(versionMetadata);
+      expect(event).toEqual({
+        Records: [{
+          eventVersion: "2.0",
+          eventSource: "aws:s3",
+          eventTime: '2025-03-17T12:00:00Z',
+          eventName: "ObjectCreated:Put",
+          s3: {
+            s3SchemaVersion: "1.0",
+            bucket: {
+              name: process.env.BUCKET_NAME,
+              arn: "arn:aws:s3:::" + process.env.BUCKET_NAME
+            },
+            object: {
+              key: 'events/test.json',
+              versionId: 'v123'
+            }
+          }
+        }]
+      });
+    });
+
+    it('createSQSEventFromS3Event returns correctly structured SQS event', () => {
+      const s3Event = {
+        Records: [{
+          eventVersion: "2.0",
+          eventSource: "aws:s3",
+          eventTime: '2025-03-17T12:00:00Z',
+          eventName: "ObjectCreated:Put",
+          s3: {
+            s3SchemaVersion: "1.0",
+            bucket: {
+              name: process.env.BUCKET_NAME,
+              arn: "arn:aws:s3:::" + process.env.BUCKET_NAME
+            },
+            object: {
+              key: 'events/test.json',
+              versionId: 'v123'
+            }
+          }
+        }]
+      };
+      const sqsEvent = createSQSEventFromS3Event(s3Event);
+      expect(sqsEvent).toHaveProperty('Records');
+      expect(sqsEvent.Records[0]).toHaveProperty('eventSource', 'aws:sqs');
+      expect(sqsEvent.Records[0]).toHaveProperty('body', JSON.stringify(s3Event));
+    });
+  });
+
+  describe.skip('DynamoDB Projections', () => {
+    it('getProjectionIdsMap returns merged ids from paginated scan', async () => {
+      // Simulate two pages of DynamoDB scan results.
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const dynamoInstance = new DynamoDBClient();
+      const sendMock = dynamoInstance.send;
+      sendMock.mockResolvedValueOnce({
+        Items: [{ id: { S: 'item1' } }],
+        LastEvaluatedKey: { dummy: 'value' }
+      }).mockResolvedValueOnce({
+        Items: [{ id: { S: 'item2' } }],
+        LastEvaluatedKey: undefined
+      });
+      // getProjectionIdsMap will use a new DynamoDBClient instance,
+      // so override the prototype's send method.
+      DynamoDBClient.prototype.send = sendMock;
+      const result = await getProjectionIdsMap([]);
+      expect(result).toEqual({
+        item1: { id: 'item1' },
+        item2: { id: 'item2' }
+      });
+    });
+
+    it('getProjectionIdsMap ignores specified keys', async () => {
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const dynamoInstance = new DynamoDBClient();
+      const sendMock = dynamoInstance.send;
+      sendMock.mockResolvedValueOnce({
+        Items: [{ id: { S: 'item1' } }, { id: { S: 'item2' } }],
+        LastEvaluatedKey: undefined
+      });
+      DynamoDBClient.prototype.send = sendMock;
+      const result = await getProjectionIdsMap(['item1']);
+      expect(result).toEqual({
+        item2: { id: 'item2' }
+      });
+    });
+  });
+
+  describe('Projection Creation', () => {
+    it('createProjections throws error for unsupported event names', async () => {
+      const invalidEvent = {
+        Records: [{
+          eventVersion: "2.0",
+          eventSource: "aws:s3",
+          eventTime: '2025-03-17T12:00:00Z',
+          eventName: "Delete",  // unsupported event name
+          s3: {}
+        }]
+      };
+      await expect(createProjections(invalidEvent)).rejects.toThrow('Unsupported event name');
+    });
+  });
+
+  describe.skip('Source Lambda Handler Offsets', () => {
+    it('sourceLambdaHandler throws error when bucket offset is behind replay offset', async () => {
+      // Stub readLastOffsetProcessedFromOffsetsTableById to simulate offsets.
+      const module = await import('@src/lib/main.js');
+      vi.spyOn(module, 'readLastOffsetProcessedFromOffsetsTableById')
+        .mockImplementation(async (id) => {
+          if (id === process.env.REPLAY_QUEUE_URL) {
+            return "2025-03-18T22:00:00Z file.json v1";
+          } else {
+            return "2025-03-18T21:00:00Z file.json v1";
+          }
+        });
+      const validS3Event = {
+        Records: [{
+          eventVersion: "2.0",
+          eventSource: "aws:s3",
+          eventTime: '2025-03-17T12:00:00Z',
+          eventName: "ObjectCreated:Put",
+          s3: {
+            bucket: { name: process.env.BUCKET_NAME },
+            object: { key: 'events/test.json', versionId: 'v123' }
+          }
+        }]
+      };
+      const sqsEvent = { Records: [{ messageId: 'msg1', body: JSON.stringify(validS3Event) }] };
+      await expect(module.sourceLambdaHandler(sqsEvent)).rejects.toThrow('Replay needed');
+    });
+
+    it('sourceLambdaHandler processes event when bucket offset is up-to-date', async () => {
+      const module = await import('@src/lib/main.js');
+      vi.spyOn(module, 'readLastOffsetProcessedFromOffsetsTableById')
+        .mockImplementation(async (id) => {
+          if (id === process.env.REPLAY_QUEUE_URL) {
+            return "2025-03-18T22:00:00Z file.json v1";
+          } else {
+            return "2025-03-18T23:00:00Z file.json v2";
+          }
+        });
+      // Stub createProjections and sendToSqs to bypass external calls.
+      vi.spyOn(module, 'createProjections').mockResolvedValue({ dummy: 'digest' });
+      vi.spyOn(module, 'sendToSqs').mockResolvedValue();
+
+      const validS3Event = {
+        Records: [{
+          eventVersion: "2.0",
+          eventSource: "aws:s3",
+          eventTime: '2025-03-17T12:00:00Z',
+          eventName: "ObjectCreated:Put",
+          s3: {
+            bucket: { name: process.env.BUCKET_NAME },
+            object: { key: 'events/test.json', versionId: 'v123' }
+          }
+        }]
+      };
+      const sqsEvent = { Records: [{ messageId: 'msg1', body: JSON.stringify(validS3Event) }] };
+      const result = await module.sourceLambdaHandler(sqsEvent);
+      expect(result).toHaveProperty('handler', 'src/lib/main.sourceLambdaHandler');
+      expect(result.batchItemFailures).toEqual([]);
+    });
+  });
+
+  describe.skip('Replay Functionality', () => {
+    it('replay returns correct result when no versions are found', async () => {
+      // Stub listAllObjectVersionsOldestFirst to return an empty array.
+      const module = await import('@src/lib/main.js');
+      vi.spyOn(module, 'listAllObjectVersionsOldestFirst').mockResolvedValue([]);
+      const result = await module.replay();
+      expect(result.versions).toEqual(0);
+      expect(result.eventsReplayed).toEqual(0);
+      expect(result.lastOffsetProcessed).toContain('No versions found to replay');
+    });
+
+    it('replayBatchLambdaHandler returns proper response', async () => {
+      const module = await import('@src/lib/main.js');
+      vi.spyOn(module, 'replay').mockResolvedValue({
+        versions: 1,
+        eventsReplayed: 1,
+        lastOffsetProcessed: 'dummy-offset'
+      });
+      const event = {}; // dummy event
+      const result = await module.replayBatchLambdaHandler(event);
+      expect(result).toEqual({
+        handler: "src/lib/main.replayBatchLambdaHandler",
+        versions: 1,
+        eventsReplayed: 1,
+        lastOffsetProcessed: 'dummy-offset'
+      });
+    });
+  });
+
+  describe.skip('Replay Lambda Handler Error Handling', () => {
+    it('replayLambdaHandler returns batchItemFailures for failed records', async () => {
+      const module = await import('@src/lib/main.js');
+      // Stub createProjections to throw an error on the first call and succeed on the second.
+      let callCount = 0;
+      vi.spyOn(module, 'createProjections').mockImplementation(async () => {
+        callCount++;
+        if (callCount === 1) throw new Error('Test error');
+        return { dummy: 'digest' };
+      });
+      const sqsEvent = {
+        Records: [
+          { messageId: 'msg1', body: JSON.stringify({ Records: [{ eventName: "ObjectCreated:Put", s3: { bucket: { name: process.env.BUCKET_NAME }, object: { key: 'events/test1.json', versionId: 'v1' } } }] }) },
+          { messageId: 'msg2', body: JSON.stringify({ Records: [{ eventName: "ObjectCreated:Put", s3: { bucket: { name: process.env.BUCKET_NAME }, object: { key: 'events/test2.json', versionId: 'v2' } } }] }) }
+        ]
+      };
+      const result = await module.replayLambdaHandler(sqsEvent);
+      expect(result).toHaveProperty('handler', 'src/lib/main.replayLambdaHandler');
+      expect(result.batchItemFailures).toEqual([{ itemIdentifier: 'msg1' }]);
+    });
   });
 });

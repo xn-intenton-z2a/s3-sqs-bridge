@@ -13,7 +13,7 @@ import { LambdaClient, ListEventSourceMappingsCommand, UpdateEventSourceMappingC
 dotenv.config();
 
 if (process.env.VITEST || process.env.NODE_ENV === "development") {
-  process.env.BUCKET_NAME = process.env.BUCKET_NAME || " s3-sqs-bridge-bucket-test";
+  process.env.BUCKET_NAME = process.env.BUCKET_NAME || "s3-sqs-bridge-bucket-test";
   process.env.OBJECT_PREFIX = process.env.OBJECT_PREFIX || "events/";
   process.env.REPLAY_QUEUE_URL = process.env.REPLAY_QUEUE_URL || "http://test/000000000000/s3-sqs-bridge-replay-queue-test";
   process.env.DIGEST_QUEUE_URL = process.env.DIGEST_QUEUE_URL || "http://test/000000000000/s3-sqs-bridge-digest-queue-test";
@@ -342,7 +342,7 @@ export async function getProjectionIdsMap(ignoreKeys) {
 
     const result = await dynamodb.send(new ScanCommand(params));
 
-    if (result.Items) {
+    if (result && result.Items) {
       for (const item of result.Items) {
         // If you're using the low-level DynamoDB API, attributes might be in the form { S: 'value' }.
         // Here we assume that a transformation (for example, using DynamoDB DocumentClient) already yields plain values.
@@ -354,7 +354,7 @@ export async function getProjectionIdsMap(ignoreKeys) {
       }
     }
 
-    lastEvaluatedKey = result.LastEvaluatedKey;
+    lastEvaluatedKey = (result === undefined ? undefined : result.LastEvaluatedKey);
   } while (lastEvaluatedKey);
 
   return idsMap;
@@ -432,7 +432,7 @@ export async function replay() {
       const id = version.Key;
       const versionId = version.VersionId;
       const objectMetaData = await getS3ObjectMetadata(config.BUCKET_NAME, id, versionId);
-      const lastModified = objectMetaData.LastModified.toISOString()
+      const lastModified = ((objectMetaData === undefined || objectMetaData.LastModified === undefined) ? undefined : objectMetaData.LastModified.toISOString());
       const versionMetadata = {
         key: id,
         versionId: versionId,
