@@ -1,4 +1,5 @@
 # An Amazon S3 Bucket is a Message Broker.
+(And an IRC style is a chat client.)
 
 S3 has some broker like features:
 * Always on (paying only for storage when idle) with 99.99% availability (ref. https://aws.amazon.com/s3/faqs/).
@@ -6,15 +7,16 @@ S3 has some broker like features:
 * High throughput 3,500 PUT requests per second per prefix (ref. https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html).
 * 5GB per single PUT request (ref. https://aws.amazon.com/s3/faqs/).
 * Unlimited prefixes and an unlimited number of objects (ref. https://aws.amazon.com/s3/faqs/).
-* Chronological write order is preserved allow any intermediate state to be reconstructed.
+* Chronological write order is preserved for objects by key (and by second precision between objects in Standard Buckets).
 * Built in object level data retention lifecycle management.
-* Operation level access control using IAM policies (e.g. readonly consumers are possible).
+* Operation level access control using IAM policies (e.g. readonly consumers of a single prefix are possible).
 
-(S3 can feel a bit slow but S3 Express One Zone promises "single digit" millisecond latency, ref. https://aws.amazon.com/s3/storage-classes/express-one-zone/).
+S3 can feel a bit slow but S3 Express One Zone promises "single digit" millisecond latency, (ref. https://aws.amazon.com/s3/storage-classes/express-one-zone/).
 
-This is an offshoot from another project where I began to set up Tansu io backed by 3S and switched to use S3 directly (ref. https://github.com/tansu-io/tansu).
+This is an offshoot from another project where I began to set up [tansu io](https://github.com/tansu-io/tansu), a Kakfa replacement with 3S storage, but S3 was all I needed.
 
 ---
+
 # Live Demo
 
 ## Starting with nothing
@@ -49,7 +51,7 @@ aws s3api put-bucket-versioning --bucket your-s3-ootb-broker-bucket --versioning
 ## Create a topic
 _(Create a prefix in an S3 Bucket.)_
 
-Create a pre-fix in S3:
+Create a prefix in S3:
 ```bash
 
 aws s3api put-object --bucket your-s3-ootb-broker-bucket --key topic/
@@ -68,7 +70,6 @@ Output:
 Total Objects: 1
    Total Size: 0
 ```
-
 
 ## Publish messages to a topic
 _(Copy files to the S3 prefix.)_
@@ -271,12 +272,17 @@ Output updates one per polling interval:
 2025-03-24T18:07:25+00:00
 ```
 
-## Build a chat client in 50 lines of Bash
-It is possible to build a chat client in 50 lines of Bash using S3 as a message broker. The script below uses 
-the AWS CLI to publish and poll messages from an S3 bucket. It allows multiple users to chat in real-time by 
-writing messages to the S3 bucket and reading them back.
+## Build a chat client
+The script below uses the AWS CLI to publish and poll messages from an S3 bucket. It allows multiple users to chat in
+real-time by writing messages to the S3 bucket and reading them back.
 
-Save this script as `./scripts/s3-chat.sh`, make it executable and run it
+Create a chat prefix in S3:
+```bash
+
+aws s3api put-object --bucket your-s3-ootb-broker-bucket --key chat/
+```
+
+Save the script below as `./scripts/s3-chat.sh`, make it executable and run it.
 e.g.
 ```bash
 
@@ -287,10 +293,9 @@ e.g.
 
 S3CHAT_USER='User-Right' ./scripts/s3-chat.sh
 ```
-The S3 Chat script:
+The S3 Chat Bash script:
 ```bash
 
-#!/bin/bash
 echo 'S3 Chat: An interactive chat session using Amazon S3 as a message broker.'
 echo 'Setup:'
 echo '1. Create an S3 bucket (if not already created):  aws s3 mb s3://your-chat-bucket'
@@ -353,30 +358,60 @@ while true; do
     publish_message "$user_input"
 done
 ```
-(Th2 S3 Chat source code is from ChatGPT o30-mini-high, it is above my bash skill level.)
+(The S3 Chat source code is from ChatGPT o30-mini-high, it is above my bash skill level.)
 
 Chat session from User-Left (timestamped messages include messages echoing to self, originating text has no timestamp):
 ```log
+Welcome to S3 Chat! Type your message and press Enter. Type /exit to quit.
+> Hello from right
 > 
-[2025-03-24T21:48:17+00:00] User-Left: 
-Hello from left.
-> 
-[2025-03-24T21:48:32+00:00] User-Left: Hello from left.
+[2025-03-24T22:22:12+00:00] User-Right: Hello from right
 
-[2025-03-24T21:48:43+00:00] User-Right: Hello from right.
+[2025-03-24T22:22:27+00:00] User-Left: Hello from left
 ```
 
 Chat session from User-Right:
 ```log
+Welcome to S3 Chat! Type your message and press Enter. Type /exit to quit.
 > 
-[2025-03-24T21:48:17+00:00] User-Left: 
-
-[2025-03-24T21:48:32+00:00] User-Left: Hello from left.
-Hello from right.
+[2025-03-24T22:22:12+00:00] User-Right: Hello from right
+Hello from left 
 > 
-[2025-03-24T21:48:43+00:00] User-Right: Hello from right.
+[2025-03-24T22:22:27+00:00] User-Left: Hello from left
 ```
 
+Open it up to the world:
+Below is a set of AWS CLI commands that will disable the public access blocks and then apply a bucket policy to allow 
+public read and write (anonymous) access. *Be aware:* This makes your bucket publicly writable and readable by anyone on
+the internet and can be a significant security risk.
+```bash
+
+aws s3api put-public-access-block \
+  --bucket s3-public-chat-bucket-32db9bc3-d7e0-4871-85ed-5003e3a963a5 \
+  --public-access-block-configuration '{
+  "BlockPublicAcls": false,
+  "IgnorePublicAcls": false,
+  "BlockPublicPolicy": false,
+  "RestrictPublicBuckets": false
+}'
+aws s3api put-bucket-policy \
+  --bucket s3-public-chat-bucket-32db9bc3-d7e0-4871-85ed-5003e3a963a5 \
+  --policy '{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowPublicReadWrite",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": [
+         "s3:GetObject",
+         "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::s3-public-chat-bucket-32db9bc3-d7e0-4871-85ed-5003e3a963a5/*"
+    }
+  ]
+}'
+```
 
 ## Decommission the broker
 
@@ -401,6 +436,8 @@ Output:
 An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist
 ```
 
+---
+
 # Portability
 
 Shell scripts have only run on my MacBook Pro with the AWS CLI v2.24.24 and jq v1.7.1. The scripts are not portable to other platforms or versions of the AWS CLI.
@@ -411,3 +448,9 @@ uname -a
 ```log
 Darwin MacBook-Pro.local 24.3.0 Darwin Kernel Version 24.3.0: Thu Jan  2 20:22:00 PST 2025; root:xnu-11215.81.4~3/RELEASE_X86_64 x86_64
 ```
+
+---
+
+# License
+
+Distributed under the [MIT License](LICENSE).
