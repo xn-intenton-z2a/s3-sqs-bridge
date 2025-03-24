@@ -465,10 +465,14 @@ Output:
 ```json
 {
   "Attributes": {
-    "ApproximateNumberOfMessages": "6"
+    "ApproximateNumberOfMessages": "4"
   }
 }
 ```
+
+---
+
+## Debugging
 
 List the versions of one s3 object:
 ```bash
