@@ -190,7 +190,7 @@ while true; do
 done
 ```
 
-Write to S3 (2 keys, 2 times each, interleaved):
+In another terminal, or another country, write to S3 (2 keys, 2 times each, interleaved):
 ```bash
 
 for value in $(seq 3 4); do
@@ -199,6 +199,71 @@ for value in $(seq 3 4); do
     aws s3 cp "id-${id?}.json" s3://s3-otb-broker/topic/"id-${id?}.json"
   done
 done
+```
+
+Output, first the current state of the topic, then the new messages:
+```log
+{"id": "1", "value": "001"}
+{"id": "1", "value": "002"}
+{"id": "2", "value": "001"}
+{"id": "1", "value": "003"}
+{"id": "2", "value": "003"}
+{"id": "1", "value": "004"}
+{"id": "2", "value": "004"}
+
+```
+
+Crash out of the script with Ctrl-C:
+```bash
+^CTraceback (most recent call last):
+  File "/usr/local/bin/aws", line 19, in <module>
+    import awscli.clidriver
+  File "/usr/local/Cellar/awscli/2.24.24/libexec/lib/python3.12/site-packages/awscli/__init__.py", line 20, in <module>
+    import importlib.abc
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 946, in _load_unlocked
+KeyboardInterrupt
+```
+
+## Resume consumption from the previous offset
+_(Read the last offset from a text file)_
+
+Re-run the previous Poll for messages script and see :
+```bash
+(As above.)
+```
+
+In another terminal write to S3 (2 keys, 2 times each, interleaved, using ids 3 and 4):
+```bash
+
+for value in $(seq 3 4); do
+  for id in $(seq 3 4); do
+    echo "{\"id\": \"${id?}\", \"value\": \"$(printf "%03d" "${value?}")\"}" > "id-${id?}.json"
+    aws s3 cp "id-${id?}.json" s3://s3-otb-broker/topic/"id-${id?}.json"
+  done
+done
+```
+
+Output shows only the new messages:
+```log
+{"id": "3", "value": "003"}
+{"id": "4", "value": "003"}
+{"id": "3", "value": "004"}
+{"id": "4", "value": "004"}
+
+```
+
+Tail the offset file:
+```bash
+
+tail -f last_modified.txt
+```
+
+Output updates one per polling interval:
+```log
+2025-03-24T18:06:05+00:00
+2025-03-24T18:07:25+00:00
 ```
 
 ## Decommission the broker
