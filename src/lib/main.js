@@ -511,10 +511,6 @@ export async function createProjection(s3PutEventRecord) {
 
 export async function computeDigest(ignoreKeys) {
   const digest = await getProjectionIdsMap(ignoreKeys);
-  // TODO: When we have gathered a sample of events, compute the digests.
-  // TODO: Find a way to externalise the digest so a consuming library can inject a custom digest into the stack.
-  // TODO: Export every useful function here and write some initialisers for re-use too
-  // TODO: Create a sample skeleton implementation that delegates to this library.
   return digest;
 }
 
