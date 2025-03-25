@@ -110,7 +110,7 @@ jobs:
     permissions:
       contents: write
       packages: write
-    uses: '.github/workflows/wfr-publish-maven.yml'
+    uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-publish-maven.yml@main'
     with:
       versionIncrement: ${{ inputs.versionIncrement || 'prerelease' }}
       mavenBuildScript: './mvnw clean install'
