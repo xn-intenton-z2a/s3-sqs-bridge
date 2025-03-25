@@ -53,6 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -67,26 +68,21 @@ jobs:
 
       - run: npm ci
 
-      - name: Dump token contents
-        shell: bash
-        run: |
-          # Replace MY_ID_TOKEN with the actual variable holding the token
-          TOKEN="${{ steps.configure-aws-credentials.outputs.id-token }}"
-          
-          # Print the raw token (be cautious with sensitive data)
-          echo "Raw Token: $TOKEN"
-          
-          # Decode the JWT payload (the token is divided into three parts separated by '.')
-          PAYLOAD=$(echo "$TOKEN" | awk -F. '{print $2}' | base64 --decode 2>/dev/null)
-          
-          echo "Decoded Token Payload:"
-          echo "$PAYLOAD" | jq .
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::541134664601:role/s3-sqs-bridge-deployment-role
+          role-to-assume: arn:aws:iam::541134664601:role/s3-sqs-bridge-github-actions-role
           aws-region: eu-west-2
+          audience: sts.amazonaws.com
+          output-credentials: true
+          retry-max-attempts: 3
+
+      #- name: Configure AWS Credentials
+      #  uses: aws-actions/configure-aws-credentials@v4
+      #  with:
+      #    role-to-assume: arn:aws:iam::541134664601:role/s3-sqs-bridge-deployment-role
+      #    role-chaining: true
+      #    aws-region: eu-west-2
 
       - name: Set up Node.js
         uses: actions/setup-node@v3

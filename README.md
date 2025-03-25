@@ -47,14 +47,14 @@ Additional files include GitHub workflows (for CI/CD and maintenance scripts) an
 
 ## TODO
 
-* [~] An S3 policy statement with just the right permissions for the CDK deployment and script to create it.
-* [~] A role to assume to do the deployment and script to create it.
-* [ ] Script to set up the OCID for the IAM/GitHub integration.
-* [ ] Install s3-bridge from a GitHub Actions Workflow using the branch name in all resources (if not main).
+* [x] An S3 policy statement with just the right permissions for the CDK deployment and script to create it.
+* [x] A role to assume to do the deployment and script to create it.
+* [x] Script to set up the OCID for the IAM/GitHub integration.
+* [~] Install s3-bridge from a GitHub Actions Workflow using the branch name in all resources (if not main).
 * [ ] Publish a Jar to a GitHub Maven Repository.
 * [ ] Publish the JS to a GitHub NPM Repository.
 * [ ] Find a way to externalise the digest so a consuming library can inject a custom digest into the stack.
-* [ ] Export every useful function here and write some initialisers for re-use too
+* [ ] Export every useful function here and add some initialisers for re-use.
 * [ ] Create a sample skeleton implementation that delegates to this library.
 
 ---
