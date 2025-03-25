@@ -438,6 +438,42 @@ An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The s
 
 ---
 
+# Users
+
+If following the steps in the (README.md)[README.md] then the following script will assume a role and export the credentials
+
+Assume the deployment role:
+```bash
+
+ROLE_ARN="arn:aws:iam::541134664601:role/s3-sqs-bridge-deployment-role"
+SESSION_NAME="s3-sqs-bridge-deployment-session-local"
+ASSUME_ROLE_OUTPUT=$(aws sts assume-role --role-arn "$ROLE_ARN" --role-session-name "$SESSION_NAME" --output json)
+if [ $? -ne 0 ]; then
+  echo "Error: Failed to assume role."
+  exit 1
+fi
+export AWS_ACCESS_KEY_ID=$(echo "$ASSUME_ROLE_OUTPUT" | jq -r '.Credentials.AccessKeyId')
+export AWS_SECRET_ACCESS_KEY=$(echo "$ASSUME_ROLE_OUTPUT" | jq -r '.Credentials.SecretAccessKey')
+export AWS_SESSION_TOKEN=$(echo "$ASSUME_ROLE_OUTPUT" | jq -r '.Credentials.SessionToken')
+EXPIRATION=$(echo "$ASSUME_ROLE_OUTPUT" | jq -r '.Credentials.Expiration')
+echo "Assumed role successfully. Credentials valid until: $EXPIRATION"
+```
+Output:
+```log
+Assumed role successfully. Credentials valid until: 2025-03-25T02:27:18+00:00
+```
+
+```bash
+
+unset AWS_ACCESS_KEY_ID
+unset AWS_SECRET_ACCESS_KEY
+unset AWS_SESSION_TOKEN
+unset EXPIRATION
+```
+
+
+---
+
 # Portability
 
 Shell scripts have only run on my MacBook Pro with the AWS CLI v2.24.24 and jq v1.7.1. The scripts are not portable to other platforms or versions of the AWS CLI.

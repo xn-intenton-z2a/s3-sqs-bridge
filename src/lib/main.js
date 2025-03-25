@@ -34,9 +34,9 @@ const configSchema = z.object({
   AWS_ENDPOINT: z.string().optional()
 });
 
-const config = configSchema.parse(process.env);
+export const config = configSchema.parse(process.env);
 
-function logConfig() {
+export function logConfig() {
   console.log(JSON.stringify({
     level: "info",
     timestamp: new Date().toISOString(),
@@ -55,10 +55,10 @@ function logConfig() {
 }
 logConfig();
 
-const s3 = new S3Client({ endpoint: config.AWS_ENDPOINT, forcePathStyle: true });
-const sqs = new SQSClient({ endpoint: config.AWS_ENDPOINT });
-const dynamodb = new DynamoDBClient({ endpoint: config.AWS_ENDPOINT });
-const lambda = new LambdaClient();
+export const s3 = new S3Client({ endpoint: config.AWS_ENDPOINT, forcePathStyle: true });
+export const sqs = new SQSClient({ endpoint: config.AWS_ENDPOINT });
+export const dynamodb = new DynamoDBClient({ endpoint: config.AWS_ENDPOINT });
+export const lambda = new LambdaClient();
 
 // ---------------------------------------------------------------------------------------------------------------------
 // AWS Utility functions
@@ -276,7 +276,7 @@ export function createSQSEventFromS3Event(s3Event) {
   };
 }
 
-function streamToString(stream) {
+export function streamToString(stream) {
   return new Promise(function(resolve, reject) {
     const chunks = [];
     stream.on("data", function(chunk) {
@@ -291,19 +291,19 @@ function streamToString(stream) {
   });
 }
 
-async function getS3ObjectWithContentAndVersion(s3BucketName, key, versionId) {
+export async function getS3ObjectWithContentAndVersion(s3BucketName, key, versionId) {
   const version = await getS3ObjectVersion(s3BucketName, key, versionId)
   const { objectMetaData, object } = await getS3ObjectWithContent(s3BucketName, key, versionId)
   return { objectMetaData, object, version };
 }
 
-async function getS3ObjectWithContent(s3BucketName, key, versionId) {
+export async function getS3ObjectWithContent(s3BucketName, key, versionId) {
   const objectMetaData = await getS3ObjectMetadata(s3BucketName, key, versionId)
   const object = await streamToString(objectMetaData.Body);
   return { objectMetaData, object };
 }
 
-async function getS3ObjectMetadata(s3BucketName, key, versionId) {
+export async function getS3ObjectMetadata(s3BucketName, key, versionId) {
   const params = {
     Bucket: s3BucketName,
     Key: key,
@@ -313,7 +313,7 @@ async function getS3ObjectMetadata(s3BucketName, key, versionId) {
   return objectMetaData;
 }
 
-async function getS3ObjectVersion(s3BucketName, key, versionId) {
+export async function getS3ObjectVersion(s3BucketName, key, versionId) {
   const params = {
     Bucket: s3BucketName,
     Key: key,
@@ -360,7 +360,7 @@ export async function getProjectionIdsMap(ignoreKeys) {
   return idsMap;
 }
 
-async function enableDisableEventSourceMapping(functionName, enable) {
+export async function enableDisableEventSourceMapping(functionName, enable) {
     const listMappingsCommand = new ListEventSourceMappingsCommand({
       FunctionName: functionName,
     });
@@ -387,13 +387,13 @@ async function enableDisableEventSourceMapping(functionName, enable) {
 // Utility functions
 // ---------------------------------------------------------------------------------------------------------------------
 
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+export const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-function logInfo(message) {
+export function logInfo(message) {
   console.log(JSON.stringify({ level: "info", timestamp: new Date().toISOString(), message }));
 }
 
-function logError(message, error) {
+export function logError(message, error) {
   console.error(JSON.stringify({ level: "error", timestamp: new Date().toISOString(), message, error: error ? error.toString() : undefined }));
 }
 
@@ -602,7 +602,7 @@ export async function replayLambdaHandler(sqsEvent) {
 // Health check server
 // ---------------------------------------------------------------------------------------------------------------------
 
-function healthCheckServer() {
+export function healthCheckServer() {
   const app = express();
   app.get('/', (req, res) => res.send('S3 SQS Bridge OK'));
   app.listen(8080, () => logInfo('Healthcheck available at :8080'));

@@ -86,3 +86,31 @@ jobs:
         id: main
         shell: bash
         run: timeout 5m ${{ vars.MAIN_SCRIPT || 'npm run start' }}
+
+  mvn-packge-cdk-synth:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'corretto'
+          java-version: 21
+          cache: 'maven'
+
+      - run: npm ci
+
+      - name: package
+        id: package
+        shell: bash
+        run: ./mvnw clean package
+
+      - name: synth
+        id: synth
+        shell: bash
+        run: npx cdk synth --strict --validation --no-staging --trace

@@ -1,0 +1,202 @@
+# .github/workflows/wfr-publish-maven.yml
+
+#
+# agentic-lib
+# Copyright (C) 2025 Polycode Limited
+#
+# This file is part of agentic-lib.
+#
+# agentic-lib is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License v3.0 (GPL‑3).
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# IMPORTANT: Any derived work must include the following attribution:
+# "This work is derived from https://github.com/xn-intenton-z2a/agentic-lib"
+#
+
+name: ∞ Publish Maven packages
+
+on:
+  workflow_call:
+    inputs:
+      versionIncrement:
+        description: 'The version increment segment for Maven release. Expected values: major | minor | patch | premajor | preminor | prepatch | prerelease.'
+        required: true
+        type: string
+        default: 'prerelease'
+      mavenBuildScript:
+        description: 'The Maven build command, e.g. "./mvnw clean install".'
+        type: string
+        required: false
+        default: './mvnw clean install'
+      mavenDeployScript:
+        description: 'The Maven deploy command, e.g. "./mvnw deploy -P release".'
+        type: string
+        required: false
+        default: './mvnw deploy -P release'
+      releaseNotes:
+        description: 'The release notes for the GitHub release.'
+        type: string
+        required: false
+        default: 'Feature release.'
+      gitUserEmail:
+        description: 'The email to use for git commits.'
+        type: string
+        required: false
+        default: 'action@github.com'
+      gitUserName:
+        description: 'The name to use for git commits.'
+        type: string
+        required: false
+        default: 'GitHub Actions[bot]'
+      gitCommitMessage:
+        description: 'The commit message for version bump commits.'
+        type: string
+        required: false
+        default: 'chore: version bump'
+    secrets:
+      PERSONAL_ACCESS_TOKEN:
+        required: false
+    outputs:
+      releasedVersion:
+        description: 'The version that was released. e.g. "1.0.1"'
+        value: ${{ jobs.publish.outputs.releasedVersion }}
+      newVersion:
+        description: 'The new version after bumping, e.g. "1.0.2-SNAPSHOT"'
+        value: ${{ jobs.publish.outputs.newVersion }}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    env:
+      versionIncrement: ${{ inputs.versionIncrement }}
+      mavenBuildScript: ${{ inputs.mavenBuildScript }}
+      mavenDeployScript: ${{ inputs.mavenDeployScript }}
+      releaseNotes: ${{ inputs.releaseNotes }}
+      gitUserEmail: ${{ inputs.gitUserEmail }}
+      gitUserName: ${{ inputs.gitUserName }}
+      gitCommitMessage: ${{ inputs.gitCommitMessage }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Build project before publishing begins
+        id: build
+        shell: bash
+        run: ${{ env.mavenBuildScript }}
+
+      - name: Examine the git working copy (pre-release)
+        shell: bash
+        run: |
+          git config --local user.email "${{ env.gitUserEmail }}"
+          git config --local user.name "${{ env.gitUserName }}"
+          git status -v
+
+      - name: released
+        id: released
+        if: ${{ env.versionIncrement == 'major' || env.versionIncrement == 'minor' || env.versionIncrement == 'patch' }}
+        shell: bash
+        run: |
+          currentVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          # Bump version for release: remove -SNAPSHOT if present
+          newVersion=${currentVersion/-SNAPSHOT/}
+          mvn versions:set -DnewVersion=$newVersion
+          ${{ env.mavenBuildScript }}
+          ${{ env.mavenDeployScript }}
+          git push --follow-tags
+          echo "releasedVersion=${newVersion}" >> $GITHUB_OUTPUT
+          echo "releasedVersion=${newVersion}"
+
+      - name: Create GitHub Release
+        if: ${{ env.versionIncrement == 'major' || env.versionIncrement == 'minor' || env.versionIncrement == 'patch' }}
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.released.outputs.releasedVersion }}
+          name: Release ${{ steps.released.outputs.releasedVersion }}
+          body: ${{ env.releaseNotes }}
+
+      - name: Rotate to next snapshot version (from a released version)
+        if: ${{ env.versionIncrement == 'major' || env.versionIncrement == 'minor' || env.versionIncrement == 'patch' }}
+        shell: bash
+        run: |
+          currentVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ "$currentVersion" != *-SNAPSHOT ]]; then
+            newVersion="${currentVersion}-SNAPSHOT"
+            mvn versions:set -DnewVersion=$newVersion
+          fi
+
+      - name: Rotate to next pre-release version
+        if: ${{ env.versionIncrement == 'premajor' || env.versionIncrement == 'preminor' || env.versionIncrement == 'prepatch' || env.versionIncrement == 'prerelease' }}
+        shell: bash
+        run: |
+          currentVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          newVersion="${currentVersion%-SNAPSHOT}-SNAPSHOT"
+          mvn versions:set -DnewVersion=$newVersion
+
+      - name: rotated
+        id: rotated
+        shell: bash
+        run: |
+          newVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "newVersion=${newVersion}" >> $GITHUB_OUTPUT
+          echo "newVersion=${newVersion}"
+
+      - name: Examine the git working copy (post-rotation)
+        shell: bash
+        run: |
+          git config --local user.email "${{ env.gitUserEmail }}"
+          git config --local user.name "${{ env.gitUserName }}"
+          git status -v
+
+      - name: Run build after version bump
+        run: ${{ env.mavenBuildScript }}
+
+      - name: Examine the git working copy (pre-push)
+        shell: bash
+        run: |
+          git config --local user.email "${{ env.gitUserEmail }}"
+          git config --local user.name "${{ env.gitUserName }}"
+          git status -v
+
+      - name: Push version commit
+        id: push
+        shell: bash
+        run: |
+          git config --local user.email "${{ env.gitUserEmail }}"
+          git config --local user.name "${{ env.gitUserName }}"
+          git add -v --all
+          newVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          git commit -m "${newVersion?}"
+          git push origin HEAD
+
+      - name: Upload pom.xml artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pom-xml
+          path: "./pom.xml"
+
+      - name: Log final version
+        shell: bash
+        run: |
+          echo "Final version: ${{ steps.rotated.outputs.newVersion }}"
+
+    outputs:
+      releasedVersion: ${{ steps.released.outputs.releasedVersion }}
+      newVersion: ${{ steps.rotated.outputs.newVersion }}

@@ -52,8 +52,11 @@ Additional files include GitHub workflows (for CI/CD and maintenance scripts) an
 * [x] Script to set up the OCID for the IAM/GitHub integration.
 * [x] Install s3-bridge from a GitHub Actions Workflow using the branch name in all resources (if not main).
 * [x] Publish the JS to a GitHub NPM Repository.
-* [ ] Publish a Jar to a GitHub Maven Repository.
-* [ ] Export every useful function here and add some initialisers for re-use.
+* [x] Export every useful function here and add some initialisers for re-use.
+* [~] Publish a Jar to a GitHub Maven Repository.
+* [ ] Deploy a Stack from the agentic-lib project.
+* [ ] Reintegrate the workflows with agentic-lib.
+* [ ] Reinstate the agentic workflows with maintenance focused task.
 
 ---
 

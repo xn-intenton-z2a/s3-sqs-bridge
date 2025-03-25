@@ -61,6 +61,34 @@ jobs:
         shell: bash
         run: timeout 5m ${{ vars.MAIN_SCRIPT || 'npm run start' }}
 
+  mvn-packge-cdk-synth:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'corretto'
+          java-version: 21
+          cache: 'maven'
+
+      - name: package
+        id: package
+        shell: bash
+        run: ./mvnw clean package
+
+      - name: synth
+        id: synth
+        shell: bash
+        run: npx cdk synth --strict --validation --no-staging
+
   publish:
     needs:
       - npm-test-and-run-main
@@ -71,7 +99,22 @@ jobs:
     with:
       versionIncrement: ${{ inputs.versionIncrement || 'prerelease' }}
       buildScript: 'npm run build'
-      releaseNotes: 'Release incrment: ${{ inputs.versionIncrement }}.'
+      releaseNotes: 'Release increment: ${{ inputs.versionIncrement }}.'
       npmAuthOrganisation: 'xn-intenton-z2a'
+      gitUserEmail: 'action@github.com'
+      gitUserName: 'GitHub Actions[bot]'
+
+  publish-maven:
+    needs:
+      - npm-test-and-run-main
+    permissions:
+      contents: write
+      packages: write
+    uses: '.github/workflows/wfr-publish-maven.yml'
+    with:
+      versionIncrement: ${{ inputs.versionIncrement || 'prerelease' }}
+      mavenBuildScript: './mvnw clean install'
+      mavenDeployScript: './mvnw deploy -P release'
+      releaseNotes: 'Release increment: ${{ inputs.versionIncrement }}.'
       gitUserEmail: 'action@github.com'
       gitUserName: 'GitHub Actions[bot]'
