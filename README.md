@@ -111,7 +111,7 @@ trust policy so that they can assume the role: `s3-sqs-bridge-deployment-role`:
 		{
 			"Sid": "Statement1",
 			"Effect": "Allow",
-			"Action": ["sts:AssumeRole"],
+			"Action": ["sts:AssumeRole", "sts:TagSession"],
 			"Resource": ["arn:aws:iam::541134664601:role/s3-sqs-bridge-deployment-role"]
 		}
 	]
