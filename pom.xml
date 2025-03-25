@@ -75,6 +75,12 @@
     <profiles>
         <profile>
             <id>release</id>
+            <distributionManagement>
+                <repository>
+                    <id>github</id>
+                    <url>https://github.com/xn-intenton-z2a/s3-sqs-bridge</url>
+                </repository>
+            </distributionManagement>
             <build>
                 <plugins>
                     <plugin>
