@@ -111,8 +111,8 @@ jobs:
       contents: write
       packages: write
     #uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-publish-maven.yml@main'
-    uses: '.github/workflows/wfr-publish-maven.yml@main'
-    #uses: .github/workflows/wfr-publish-maven.yml
+    #uses: '.github/workflows/wfr-publish-maven.yml@main'
+    uses: ./.github/workflows/wfr-publish-maven.yml
     with:
       versionIncrement: ${{ inputs.versionIncrement || 'prerelease' }}
       mavenBuildScript: './mvnw clean install'
