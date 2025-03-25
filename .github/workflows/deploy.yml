@@ -31,10 +31,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
+
       - run: npm install
 
       - name: test
@@ -51,6 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: 'corretto'
@@ -81,8 +84,6 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - run: npm ci
-
       - run: npm install -g aws-cdk
 
       - name: Configure AWS Credentials
@@ -95,7 +96,7 @@ jobs:
           output-credentials: true
           retry-max-attempts: 3
 
-      - run: aws s3 sts get-caller-identity --region eu-west-2
+      - run: aws sts get-caller-identity --region eu-west-2
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -108,3 +109,31 @@ jobs:
           retry-max-attempts: 3
 
       - run: aws s3 ls --region eu-west-2
+
+      - run: npm ci
+
+      - name: test
+        id: test
+        shell: bash
+        run: npm test
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'corretto'
+          java-version: 21
+          cache: 'maven'
+
+      - name: package
+        id: package
+        shell: bash
+        run: ./mvnw clean package
+
+      - name: synth
+        id: synth
+        shell: bash
+        run: npx cdk synth
+
+      - name: deploy
+        id: deploy
+        shell: bash
+        run: npx cdk deploy
