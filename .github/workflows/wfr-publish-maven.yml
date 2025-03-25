@@ -140,12 +140,12 @@ jobs:
         if: ${{ env.versionIncrement == 'major' || env.versionIncrement == 'minor' || env.versionIncrement == 'patch' }}
         shell: bash
         run: |
-          currentVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          currentVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout --settings settings.xml)
           # Bump version for release: remove -SNAPSHOT if present
           newVersion=${currentVersion/-SNAPSHOT/}
-          mvn versions:set -DnewVersion=$newVersion
-          ${{ env.mavenBuildScript }}
-          ${{ env.mavenDeployScript }}
+          mvn versions:set -DnewVersion=$newVersion --settings settings.xml
+          ${{ env.mavenBuildScript }} --settings settings.xml
+          ${{ env.mavenDeployScript }} --settings settings.xml
           git push --follow-tags
           echo "releasedVersion=${newVersion}" >> $GITHUB_OUTPUT
           echo "releasedVersion=${newVersion}"
@@ -192,7 +192,7 @@ jobs:
           git status -v
 
       - name: Run build after version bump
-        run: ${{ env.mavenBuildScript }}
+        run: ${{ env.mavenBuildScript }} --settings settings.xml
 
       - name: Examine the git working copy (pre-push)
         shell: bash
@@ -208,7 +208,7 @@ jobs:
           git config --local user.email "${{ env.gitUserEmail }}"
           git config --local user.name "${{ env.gitUserName }}"
           git add -v --all
-          newVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          newVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout --settings settings.xml)
           git commit -m "${newVersion?}"
           git push origin HEAD
 
