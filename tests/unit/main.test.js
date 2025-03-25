@@ -91,7 +91,7 @@ describe('S3 SQS Bridge Main.js Tests', () => {
   describe('Basic Utility Functions', () => {
     it('buildSQSMessageParams returns correct message parameters', () => {
       const event = { test: 'data' };
-      const params = buildSQSMessageParams(event);
+      const params = buildSQSMessageParams(event, process.env.REPLAY_QUEUE_URL);
       expect(params).toEqual({
         QueueUrl: process.env.REPLAY_QUEUE_URL,
         MessageBody: JSON.stringify(event),
