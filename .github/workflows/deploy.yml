@@ -67,6 +67,21 @@ jobs:
 
       - run: npm ci
 
+      - name: Dump token contents
+        shell: bash
+        run: |
+          # Replace MY_ID_TOKEN with the actual variable holding the token
+          TOKEN="${{ steps.configure-aws-credentials.outputs.id-token }}"
+          
+          # Print the raw token (be cautious with sensitive data)
+          echo "Raw Token: $TOKEN"
+          
+          # Decode the JWT payload (the token is divided into three parts separated by '.')
+          PAYLOAD=$(echo "$TOKEN" | awk -F. '{print $2}' | base64 --decode 2>/dev/null)
+          
+          echo "Decoded Token Payload:"
+          echo "$PAYLOAD" | jq .
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
