@@ -72,17 +72,23 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::541134664601:role/s3-sqs-bridge-github-actions-role
+          role-chaining: false
           aws-region: eu-west-2
           audience: sts.amazonaws.com
           output-credentials: true
           retry-max-attempts: 3
 
-      #- name: Configure AWS Credentials
-      #  uses: aws-actions/configure-aws-credentials@v4
-      #  with:
-      #    role-to-assume: arn:aws:iam::541134664601:role/s3-sqs-bridge-deployment-role
-      #    role-chaining: true
-      #    aws-region: eu-west-2
+      - run: aws s3 sts get-caller-identity --region eu-west-2
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::541134664601:role/s3-sqs-bridge-deployment-role
+          role-chaining: true
+          aws-region: eu-west-2
+          audience: sts.amazonaws.com
+          output-credentials: true
+          retry-max-attempts: 3
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
