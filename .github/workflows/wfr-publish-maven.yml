@@ -33,6 +33,11 @@ on:
         required: true
         type: string
         default: 'prerelease'
+      githubRelease:
+        description: 'Whether to create a GitHub release. e.g. true'
+        type: boolean
+        required: false
+        default: true
       mavenBuildScript:
         description: 'The Maven build command, e.g. "./mvnw clean install".'
         type: string
@@ -130,6 +135,14 @@ jobs:
           git push --follow-tags
           echo "releasedVersion=${newVersion}" >> $GITHUB_OUTPUT
           echo "releasedVersion=${newVersion}"
+
+      - name: Create GitHub Release
+        if: ${{ inputs.githubRelease == 'true' || env.versionIncrement == 'major' || env.versionIncrement == 'minor' || env.versionIncrement == 'patch' }}
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.released.outputs.releasedVersion }}
+          name: Release ${{ steps.released.outputs.releasedVersion }}
+          body: ${{ env.releaseNotes }}
 
       - name: Rotate to next snapshot version (from a released version)
         if: ${{ env.versionIncrement == 'major' || env.versionIncrement == 'minor' || env.versionIncrement == 'patch' }}

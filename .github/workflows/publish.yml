@@ -98,6 +98,7 @@ jobs:
     uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-publish.yml@2.6.6'
     with:
       versionIncrement: ${{ inputs.versionIncrement || 'prerelease' }}
+      #githubRelease: 'true'
       buildScript: 'npm run build'
       releaseNotes: 'Release increment: ${{ inputs.versionIncrement }}.'
       npmAuthOrganisation: 'xn-intenton-z2a'
@@ -117,8 +118,9 @@ jobs:
     uses: ./.github/workflows/wfr-publish-maven.yml
     with:
       versionIncrement: ${{ inputs.versionIncrement || 'prerelease' }}
+      githubRelease: 'false'
       mavenBuildScript: './mvnw clean install'
-      mavenDeployScript: './mvnw deploy -P release'
+      mavenDeployScript: './mvnw deploy --activate-profiles release'
       releaseNotes: 'Release increment: ${{ inputs.versionIncrement }}.'
       gitUserEmail: 'action@github.com'
       gitUserName: 'GitHub Actions[bot]'
