@@ -61,7 +61,7 @@ jobs:
         shell: bash
         run: timeout 5m ${{ vars.MAIN_SCRIPT || 'npm run start' }}
 
-  mvn-packge-cdk-synth:
+  mvn-package-cdk-synth:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -107,6 +107,8 @@ jobs:
   publish-maven:
     needs:
       - npm-test-and-run-main
+      - publish
+      - mvn-package-cdk-synth
     permissions:
       contents: write
       packages: write
