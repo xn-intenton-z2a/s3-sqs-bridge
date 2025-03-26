@@ -1,6 +1,6 @@
 {
   "name": "@xn-intenton-z2a/s3-sqs-bridge",
-  "version": "0.8.0",
+  "version": "0.8.1-0",
   "description": "S3 SQS Bridge for integrating Kafka, AWS SQS, Lambda, and Postgres projections.",
   "type": "module",
   "main": "src/lib/main.js",
