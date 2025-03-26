@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.xn-intenton-z2a</groupId>
     <artifactId>s3-sqs-bridge</artifactId>
-    <version>0.19.1-0</version>
+    <version>0.20.1-0</version>
     <packaging>jar</packaging>
 
     <properties>
