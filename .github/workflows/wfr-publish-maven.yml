@@ -108,9 +108,9 @@ jobs:
         shell: bash
         run: ${{ env.mavenBuildScript }}
 
-      - name: Run deploy without deploying
-        shell: bash
-        run: ./mvnw --batch-mode --debug -Dmaven.wagon.http.debug=true ‑Dmaven.deploy.skip=true deploy
+      #- name: Run deploy without deploying
+      #  shell: bash
+      #  run: ./mvnw --batch-mode --debug -Dmaven.wagon.http.debug=true ‑Dmaven.deploy.skip=true deploy
 
       - name: Validate settings.xml
         shell: bash
