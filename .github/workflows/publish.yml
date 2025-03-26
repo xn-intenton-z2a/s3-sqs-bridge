@@ -120,7 +120,7 @@ jobs:
       versionIncrement: ${{ inputs.versionIncrement || 'prerelease' }}
       githubRelease: false
       mavenBuildScript: './mvnw --batch-mode clean package'
-      mavenDeployScript: './mvnw --batch-mode --debug --Dmaven.wagon.http.debug=true deploy'
+      mavenDeployScript: './mvnw --batch-mode --debug -Dmaven.wagon.http.debug=true deploy'
       releaseNotes: 'Release increment: ${{ inputs.versionIncrement }}.'
       gitUserEmail: 'action@github.com'
       gitUserName: 'GitHub Actions[bot]'
