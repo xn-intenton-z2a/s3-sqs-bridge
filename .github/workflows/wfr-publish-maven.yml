@@ -131,6 +131,9 @@ jobs:
           newVersion=${currentVersion/-SNAPSHOT/}
           mvn versions:set -DnewVersion=$newVersion
           ${{ env.mavenBuildScript }}
+          mvn help:effective-settings
+          cat ~/.m2/settings.xml
+          echo "Deploying version: $newVersion"
           ${{ env.mavenDeployScript }}
           git push --follow-tags
           echo "releasedVersion=${newVersion}" >> $GITHUB_OUTPUT
