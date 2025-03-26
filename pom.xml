@@ -50,7 +50,7 @@
         <repository>
             <id>github</id>
             <name>GitHub Packages</name>
-            <url>https://github.com/xn-intenton-z2a/s3-sqs-bridge</url>
+            <url>https://maven.pkg.github.com/xn-intenton-z2a/s3-sqs-bridge</url>
         </repository>
     </distributionManagement>
 
