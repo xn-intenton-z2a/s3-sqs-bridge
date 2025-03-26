@@ -191,23 +191,23 @@ jobs:
       - name: Run build after version bump
         run: ${{ env.mavenBuildScript }}
 
-      - name: Examine the git working copy (pre-push)
-        shell: bash
-        run: |
-          git config --local user.email "${{ env.gitUserEmail }}"
-          git config --local user.name "${{ env.gitUserName }}"
-          git status -v
+      #- name: Examine the git working copy (pre-push)
+      #  shell: bash
+      #  run: |
+      #    git config --local user.email "${{ env.gitUserEmail }}"
+      #    git config --local user.name "${{ env.gitUserName }}"
+      #    git status -v
 
-      - name: Push version commit
-        id: push
-        shell: bash
-        run: |
-          git config --local user.email "${{ env.gitUserEmail }}"
-          git config --local user.name "${{ env.gitUserName }}"
-          git add -v --all
-          newVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          git commit -m "${newVersion?}"
-          git push origin HEAD
+      #- name: Push version commit
+      #  id: push
+      #  shell: bash
+      #  run: |
+      #    git config --local user.email "${{ env.gitUserEmail }}"
+      #    git config --local user.name "${{ env.gitUserName }}"
+      #    git add -v --all
+      #    newVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+      #    git commit -m "${newVersion?}"
+      #    git push origin HEAD
 
       - name: Upload pom.xml artifact
         uses: actions/upload-artifact@v4
