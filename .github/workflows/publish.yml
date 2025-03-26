@@ -119,8 +119,8 @@ jobs:
     with:
       versionIncrement: ${{ inputs.versionIncrement || 'prerelease' }}
       githubRelease: false
-      mavenBuildScript: './mvnw clean install'
-      mavenDeployScript: './mvnw deploy --activate-profiles release'
+      mavenBuildScript: './mvnw --batch-mode clean package'
+      mavenDeployScript: './mvnw --batch-mode deploy'
       releaseNotes: 'Release increment: ${{ inputs.versionIncrement }}.'
       gitUserEmail: 'action@github.com'
       gitUserName: 'GitHub Actions[bot]'

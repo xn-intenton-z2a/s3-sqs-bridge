@@ -103,24 +103,10 @@ jobs:
           java-version: 21
           cache: 'maven'
 
-      - name: Configure Maven settings
-        run: |
-            cat <<EOF > settings.xml
-            <settings>
-              <servers>
-                <server>
-                  <id>github</id>
-                  <username>${{ github.actor }}</username>
-                  <password>${{ secrets.GITHUB_TOKEN }}</password>
-                </server>
-              </servers>
-            </settings>
-            EOF
-
       - name: Build project before publishing begins
         id: build
         shell: bash
-        run: ${{ env.mavenBuildScript }} --settings settings.xml
+        run: ${{ env.mavenBuildScript }}
 
       - name: Examine the git working copy (pre-release)
         shell: bash
@@ -140,15 +126,17 @@ jobs:
         if: ${{ env.versionIncrement == 'major' || env.versionIncrement == 'minor' || env.versionIncrement == 'patch' }}
         shell: bash
         run: |
-          currentVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout --settings settings.xml)
+          currentVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           # Bump version for release: remove -SNAPSHOT if present
           newVersion=${currentVersion/-SNAPSHOT/}
-          mvn versions:set -DnewVersion=$newVersion --settings settings.xml
-          ${{ env.mavenBuildScript }} --settings settings.xml
-          ${{ env.mavenDeployScript }} --settings settings.xml
+          mvn versions:set -DnewVersion=$newVersion
+          ${{ env.mavenBuildScript }}
+          ${{ env.mavenDeployScript }}
           git push --follow-tags
           echo "releasedVersion=${newVersion}" >> $GITHUB_OUTPUT
           echo "releasedVersion=${newVersion}"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Create GitHub Release
         if: ${{ inputs.githubRelease == true || env.versionIncrement == 'major' || env.versionIncrement == 'minor' || env.versionIncrement == 'patch' }}
@@ -192,7 +180,7 @@ jobs:
           git status -v
 
       - name: Run build after version bump
-        run: ${{ env.mavenBuildScript }} --settings settings.xml
+        run: ${{ env.mavenBuildScript }}
 
       - name: Examine the git working copy (pre-push)
         shell: bash
@@ -208,7 +196,7 @@ jobs:
           git config --local user.email "${{ env.gitUserEmail }}"
           git config --local user.name "${{ env.gitUserName }}"
           git add -v --all
-          newVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout --settings settings.xml)
+          newVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           git commit -m "${newVersion?}"
           git push origin HEAD
 

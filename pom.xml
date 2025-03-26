@@ -46,6 +46,14 @@
         </dependency>
     </dependencies>
 
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://github.com/xn-intenton-z2a/s3-sqs-bridge</url>
+        </repository>
+    </distributionManagement>
+
     <build>
         <!-- Change the default source directories -->
         <sourceDirectory>aws/main/java</sourceDirectory>
@@ -69,31 +77,18 @@
                     <forkCount>0</forkCount>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>3.1.4</version>
+                <configuration>
+                    <repositoryId>github</repositoryId>
+                    <url>https://github.com/xn-intenton-z2a/s3-sqs-bridge</url>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
     <profiles>
-        <profile>
-            <id>release</id>
-            <distributionManagement>
-                <repository>
-                    <id>github</id>
-                    <url>https://github.com/xn-intenton-z2a/s3-sqs-bridge</url>
-                </repository>
-            </distributionManagement>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-deploy-plugin</artifactId>
-                        <version>3.1.4</version>
-                        <configuration>
-                            <repositoryId>github</repositoryId>
-                            <url>https://github.com/xn-intenton-z2a/s3-sqs-bridge</url>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
     </profiles>
 </project>
