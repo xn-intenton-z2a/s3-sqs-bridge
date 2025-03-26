@@ -33,8 +33,13 @@ on:
         required: true
         type: string
         default: 'prerelease'
-      versionOverride:
-        description: 'The version number to set instead of following the version increment. e.g. "1.0.0"'
+      releaseVersionOverride:
+        description: 'The version number to set instead of following the current version. e.g. "0.0.1"'
+        required: false
+        type: string
+        default: ''
+      newVersionOverride:
+        description: 'The version number to set instead of following the version increment. e.g. "0.0.2"'
         required: false
         type: string
         default: ''
@@ -90,7 +95,8 @@ jobs:
 
     env:
       versionIncrement: ${{ inputs.versionIncrement }}
-      versionOverride: ${{ inputs.versionOverride }}
+      releaseVersionOverride: ${{ inputs.releaseVersionOverride }}
+      newVersionOverride: ${{ inputs.newVersionOverride }}
       mavenBuildScript: ${{ inputs.mavenBuildScript }}
       mavenDeployScript: ${{ inputs.mavenDeployScript }}
       releaseNotes: ${{ inputs.releaseNotes }}
@@ -140,10 +146,18 @@ jobs:
         if: ${{ env.versionIncrement == 'major' || env.versionIncrement == 'minor' || env.versionIncrement == 'patch' }}
         shell: bash
         run: |
-          currentVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          # Bump version for release: remove -SNAPSHOT if present
-          newVersion=${currentVersion/-SNAPSHOT/}
-          mvn versions:set -DnewVersion=$newVersion
+          releaseVersionOverride='${{ env.releaseVersionOverride }}'
+          if [[ -n "$releaseVersionOverride" ]]; then
+            newVersion="$releaseVersionOverride"
+            mvn versions:set -DnewVersion=$newVersion
+            echo "Using version override: $newVersion"
+          else
+            currentVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+            # Bump version for release: remove -SNAPSHOT if present
+            newVersion=${currentVersion/-SNAPSHOT/}
+            mvn versions:set -DnewVersion=$newVersion
+            echo "Using stadard version increment: $newVersion"
+          fi
           ${{ env.mavenBuildScript }}
           echo "Deploying version: $newVersion"
           ${{ env.mavenDeployScript }}
@@ -165,9 +179,10 @@ jobs:
         if: ${{ env.versionIncrement == 'major' || env.versionIncrement == 'minor' || env.versionIncrement == 'patch' }}
         shell: bash
         run: |
-          versionOverride='${{ inputs.versionOverride }}'
-          if [[ -n "$versionOverride" ]]; then
-            newVersion="$versionOverride"
+          newVersionOverride='${{ env.newVersionOverride }}'
+          if [[ -n "$newVersionOverride" ]]; then
+            newVersion="$newVersionOverride"
+            mvn versions:set -DnewVersion=$newVersion
             echo "Using version override: $newVersion"
           else
             currentVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
@@ -182,9 +197,10 @@ jobs:
         if: ${{ env.versionIncrement == 'premajor' || env.versionIncrement == 'preminor' || env.versionIncrement == 'prepatch' || env.versionIncrement == 'prerelease' }}
         shell: bash
         run: |
-          versionOverride='${{ inputs.versionOverride }}'
-          if [[ -n "$versionOverride" ]]; then
-            newVersion="$versionOverride"
+          newVersionOverride='${{ env.newVersionOverride }}'
+          if [[ -n "$newVersionOverride" ]]; then
+            newVersion="$newVersionOverride"
+            mvn versions:set -DnewVersion=$newVersion
             echo "Using version override: $newVersion"
           else
             currentVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
@@ -224,8 +240,8 @@ jobs:
         run: |
           git config --local user.email "${{ env.gitUserEmail }}"
           git config --local user.name "${{ env.gitUserName }}"
-          versionOverride='${{ inputs.versionOverride }}'
-          if [[ -n "$versionOverride" ]]; then
+          newVersionOverride='${{ env.newVersionOverride }}'
+          if [[ -n "$newVersionOverride" ]]; then
             git add -v --all
             newVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
             git commit -m "${newVersion?}"

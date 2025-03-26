@@ -118,7 +118,8 @@ jobs:
     uses: ./.github/workflows/wfr-publish-maven.yml
     with:
       versionIncrement: ${{ inputs.versionIncrement || 'prerelease' }}
-      versionOverride: ${{ needs.publish.outputs.newVersion }}
+      releaseVersionOverride: ${{ needs.publish.outputs.releasedVersion }}
+      newVersionOverride: ${{ needs.publish.outputs.newVersion }}
       githubRelease: false
       mavenBuildScript: './mvnw --batch-mode clean install'
       mavenDeployScript: './mvnw --batch-mode deploy'
