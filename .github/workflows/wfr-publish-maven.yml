@@ -108,6 +108,14 @@ jobs:
         shell: bash
         run: ${{ env.mavenBuildScript }}
 
+      - name: Run deploy without deploying
+        shell: bash
+        run: ${{ env.mavenBuildScript }} ‑Dmaven.deploy.skip=true
+
+      - name: Validate settings.xml
+        shell: bash
+        run: mvn help:effective-settings
+
       - name: Examine the git working copy (pre-release)
         shell: bash
         run: |
@@ -131,8 +139,6 @@ jobs:
           newVersion=${currentVersion/-SNAPSHOT/}
           mvn versions:set -DnewVersion=$newVersion
           ${{ env.mavenBuildScript }}
-          mvn help:effective-settings
-          cat ~/.m2/settings.xml
           echo "Deploying version: $newVersion"
           ${{ env.mavenDeployScript }}
           git push --follow-tags
