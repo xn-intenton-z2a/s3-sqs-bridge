@@ -53,7 +53,7 @@ Additional files include GitHub workflows (for CI/CD and maintenance scripts) an
 * [x] Install s3-bridge from a GitHub Actions Workflow using the branch name in all resources (if not main).
 * [x] Publish the JS to a GitHub NPM Repository.
 * [x] Export every useful function here and add some initialisers for re-use.
-* [~] Publish a Jar to a GitHub Maven Repository.
+* [x] Publish a Jar to a GitHub Maven Repository.
 * [ ] Deploy a Stack from the agentic-lib project.
 * [ ] Reintegrate the workflows with agentic-lib.
 * [ ] Reinstate the agentic workflows with maintenance focused task.
