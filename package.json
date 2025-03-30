@@ -38,8 +38,6 @@
     "@aws-sdk/client-lambda": "^3.307.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "kafkajs": "^2.2.4",
-    "pg": "^8.13.3",
     "zod": "^3.24.2"
   },
   "devDependencies": {

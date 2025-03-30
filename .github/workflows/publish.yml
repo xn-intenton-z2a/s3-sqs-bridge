@@ -113,9 +113,9 @@ jobs:
     permissions:
       contents: write
       packages: write
-    #uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-publish-maven.yml@main'
-    #uses: '.github/workflows/wfr-publish-maven.yml@main'
-    uses: ./.github/workflows/wfr-publish-maven.yml
+    #uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-publish-mvn.yml@main'
+    #uses: '.github/workflows/wfr-publish-mvn.yml@main'
+    uses: ./.github/workflows/wfr-publish-mvn.yml
     with:
       versionIncrement: ${{ inputs.versionIncrement || 'prerelease' }}
       releaseVersionOverride: ${{ needs.publish.outputs.releasedVersion }}

@@ -10,7 +10,7 @@ An alternate version of the Deployment to AWS with localstack and direct executi
 
 ```bash
 
-git clone https://github.com/your-username/s3-sqs-bridge.git
+git clone https://github.com/xn-intenton-z2a/s3-sqs-bridge.git
 cd s3-sqs-bridge
 ```
 
