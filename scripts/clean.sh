@@ -18,17 +18,15 @@ if [[ -e 'package.json' ]]; then
   npm link
 fi
 
-# Docker clean and build
+# Docker clean
 if [[ -e 'Dockerfile' ]]; then
   docker system prune --all --force --volumes
-  #docker build -t s3-consumer-to-sqs .
 fi
 
-# CDK clean and build
+# Java/CDK clean
 if [[ -e 'pom.xml' ]]; then
   rm -rf target
   rm -rf cdk.out
   rm -rf ~/.m2/repository
-  #mvn clean package
-  #cdk synth
+  mvn clean
 fi

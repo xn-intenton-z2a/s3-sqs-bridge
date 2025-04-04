@@ -49,7 +49,14 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-      - run: npm install
+
+      - name: Set up ~/.npmrc
+        run: |
+          echo "@xn-intenton-z2a:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.PERSONAL_ACCESS_TOKEN }}" >> ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
+
+      - run: npm ci
 
       - name: test
         id: test
@@ -63,6 +70,9 @@ jobs:
 
   mvn-package-cdk-synth:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -71,6 +81,12 @@ jobs:
           node-version: 20
           cache: 'npm'
 
+      - name: Set up ~/.npmrc
+        run: |
+          echo "@xn-intenton-z2a:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.PERSONAL_ACCESS_TOKEN }}" >> ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
+
       - run: npm ci
 
       - uses: actions/setup-java@v4
@@ -78,24 +94,34 @@ jobs:
           distribution: 'corretto'
           java-version: 21
           cache: 'maven'
+          server-password: PERSONAL_ACCESS_TOKEN
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: package
         id: package
         shell: bash
         run: ./mvnw clean package
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: synth
         id: synth
         shell: bash
         run: npx cdk synth --strict --validation --no-staging
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
-  publish:
+  publish-npm:
     needs:
       - npm-test-and-run-main
     permissions:
       contents: write
       packages: write
-    uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-publish.yml@2.6.6'
+    uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-publish-npm.yml@2.13.0'
     with:
       versionIncrement: ${{ inputs.versionIncrement || 'prerelease' }}
       #githubRelease: true
@@ -104,25 +130,27 @@ jobs:
       npmAuthOrganisation: 'xn-intenton-z2a'
       gitUserEmail: 'action@github.com'
       gitUserName: 'GitHub Actions[bot]'
+    secrets:
+      PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
-  publish-maven:
+  publish-mvn:
     needs:
       - npm-test-and-run-main
-      - publish
+      - publish-npm
       - mvn-package-cdk-synth
     permissions:
       contents: write
       packages: write
-    #uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-publish-mvn.yml@main'
-    #uses: '.github/workflows/wfr-publish-mvn.yml@main'
-    uses: ./.github/workflows/wfr-publish-mvn.yml
+    uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-publish-mvn.yml@2.13.0'
     with:
       versionIncrement: ${{ inputs.versionIncrement || 'prerelease' }}
-      releaseVersionOverride: ${{ needs.publish.outputs.releasedVersion }}
-      newVersionOverride: ${{ needs.publish.outputs.newVersion }}
+      releaseVersionOverride: ${{ needs.publish-npm.outputs.releasedVersion }}
+      newVersionOverride: ${{ needs.publish-npm.outputs.newVersion }}
       githubRelease: false
       mavenBuildScript: './mvnw --batch-mode clean install'
       mavenDeployScript: './mvnw --batch-mode deploy'
       releaseNotes: 'Release increment: ${{ inputs.versionIncrement }}.'
       gitUserEmail: 'action@github.com'
       gitUserName: 'GitHub Actions[bot]'
+    secrets:
+      PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}

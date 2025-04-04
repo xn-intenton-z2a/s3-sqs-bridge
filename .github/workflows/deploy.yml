@@ -37,7 +37,13 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - run: npm install
+      - name: Set up ~/.npmrc
+        run: |
+          echo "@xn-intenton-z2a:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.PERSONAL_ACCESS_TOKEN }}" >> ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
+
+      - run: npm ci
 
       - name: test
         id: test
@@ -54,21 +60,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Set up ~/.npmrc
+        run: |
+          echo "@xn-intenton-z2a:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.PERSONAL_ACCESS_TOKEN }}" >> ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
+
+      - run: npm ci
+
       - uses: actions/setup-java@v4
         with:
           distribution: 'corretto'
           java-version: 21
           cache: 'maven'
+          server-password: PERSONAL_ACCESS_TOKEN
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: package
         id: package
         shell: bash
         run: ./mvnw clean package
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: synth
         id: synth
         shell: bash
         run: npx cdk synth --strict --validation --no-staging
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
   deploy:
     needs:
@@ -89,12 +118,25 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - run: npm install -g aws-cdk
+      - name: Set up ~/.npmrc
+        run: |
+          echo "@xn-intenton-z2a:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.PERSONAL_ACCESS_TOKEN }}" >> ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
+
+      - run: npm ci
+
+      - name: test
+        id: test
+        shell: bash
+        run: npm test
+
+      #- run: npm install -g aws-cdk
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::541134664601:role/s3-sqs-bridge-github-actions-role
+          role-to-assume: arn:aws:iam::541134664601:role/agentic-lib-github-actions-role
           role-chaining: false
           aws-region: eu-west-2
           audience: sts.amazonaws.com
@@ -107,7 +149,7 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::541134664601:role/s3-sqs-bridge-deployment-role
+          role-to-assume: arn:aws:iam::541134664601:role/agentic-lib-deployment-role
           role-chaining: true
           aws-region: eu-west-2
           audience: sts.amazonaws.com
@@ -117,30 +159,36 @@ jobs:
 
       - run: aws s3 ls --region eu-west-2
 
-      - run: npm ci
-
-      - name: test
-        id: test
-        shell: bash
-        run: npm test
-
       - uses: actions/setup-java@v4
         with:
           distribution: 'corretto'
           java-version: 21
           cache: 'maven'
+          server-password: PERSONAL_ACCESS_TOKEN
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: package
         id: package
         shell: bash
         run: ./mvnw clean package
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: synth
         id: synth
         shell: bash
-        run: npx cdk synth --strict --validation
+        run: npx cdk synth AgenticLibStack S3SqsBridgeStack --ci true --strict --validation
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: deploy
         id: deploy
         shell: bash
-        run: npx cdk deploy
+        run: npx cdk deploy AgenticLibStack --require-approval never --ci true --verbose --strict --validation
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
