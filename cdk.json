@@ -1,7 +1,7 @@
 {
   "app": "mvn exec:java -Dexec.mainClass=com.intentïon.S3SqsBridge.S3SqsBridgeApp",
-  "synthStacks": "S3SqsBridgeStack",
-  "deployStacks": "S3SqsBridgeStack",
+  "synthStacks": "npx cdk synth S3SqsBridgeStack --ci true --strict --validation",
+  "deployStacks": "npx cdk deploy S3SqsBridgeStack --require-approval never --ci true --verbose --strict --validation",
   "context": {
     "s3WriterArnPrinciple": "arn:aws:iam::541134664601:user/polycode-deploy",
     "s3WriterRoleName": "s3-sqs-bridge-bucket-writer-role",
