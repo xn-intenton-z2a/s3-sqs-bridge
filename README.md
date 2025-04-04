@@ -9,7 +9,7 @@ original order.
 
 This is an offshoot from another project where I began to set up [tansu io](https://github.com/tansu-io/tansu), but S3 was all I needed.
 
-A tangent of interest might be [s3-ootb-broker](S3-OOTB-BROKER.md) which is a messaging system and IRC style chat system.
+A tangent of interest might be [s3-ootb-broker](S3_OOTB_BROKER.md) which is a messaging system and IRC style chat system.
 
 ---
 
@@ -302,7 +302,7 @@ aws logs delete-log-group \
   --log-group-name "/aws/lambda/s3-sqs-bridge-source-function"
 ```
 
-Deploys the AWS infrastructure including an App Runner service, an SQS queue, Lambda functions, and a PostgreSQL table.
+Deploys the AWS infrastructure including an App Runner service, an SQS queue, Lambda functions, and a PostgresSQL table.
 ```bash
 
 npx cdk deploy

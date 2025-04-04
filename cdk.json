@@ -1,5 +1,7 @@
 {
   "app": "mvn exec:java -Dexec.mainClass=com.intentïon.S3SqsBridge.S3SqsBridgeApp",
+  "synthStacks": "S3SqsBridgeStack",
+  "deployStacks": "S3SqsBridgeStack",
   "context": {
     "s3WriterArnPrinciple": "arn:aws:iam::541134664601:user/polycode-deploy",
     "s3WriterRoleName": "s3-sqs-bridge-bucket-writer-role",

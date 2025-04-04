@@ -177,10 +177,19 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
           PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
+      - name: stacks
+        id: stacks
+        shell: bash
+        run: |
+          synth=$(jq -r '.deployStacks' cdk.json)
+          deploy=$(jq -r '.deployStacks' cdk.json)
+          echo "deploy=${deploy?}" | tee -a "${GITHUB_OUTPUT?}"
+          echo "synth=${synth?}" | tee -a "${GITHUB_OUTPUT?}"
+
       - name: synth
         id: synth
         shell: bash
-        run: npx cdk synth AgenticLibStack S3SqsBridgeStack --ci true --strict --validation
+        run: npx cdk synth ${{ steps.stacks.outputs.synth }} --ci true --strict --validation
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
@@ -188,7 +197,7 @@ jobs:
       - name: deploy
         id: deploy
         shell: bash
-        run: npx cdk deploy AgenticLibStack --require-approval never --ci true --verbose --strict --validation
+        run: npx cdk deploy ${{ steps.stacks.outputs.deploy }} --require-approval never --ci true --verbose --strict --validation
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
