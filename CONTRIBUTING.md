@@ -27,8 +27,6 @@ S3 SQS Bridge is an open source bridge between a S3 Kafka‑compatible broker an
 
 ## Agentic contribution house choice options (programmatically parsed): START
 
-Workflow schedule: schedule-1
-
 ## Issue House Choice Options
 
 generic activities:
