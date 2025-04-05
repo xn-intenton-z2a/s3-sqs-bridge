@@ -135,7 +135,24 @@ jobs:
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.PERSONAL_ACCESS_TOKEN }}" >> ~/.npmrc
           echo "always-auth=true" >> ~/.npmrc
 
+      - run: npm ci
+
+      - name: mvn
+        id: mvn
+        shell: bash
+        run: |
+          if [ -f pom.xml ]; then
+            pomXmlExists='true'
+          else
+            pomXmlExists='false'
+          fi
+          echo "pomXmlExists=${pomXmlExists?}" | tee -a "${GITHUB_OUTPUT?}"
+
+      - run: cat ~/.m2/settings.xml
+        if: steps.mvn.outputs.pomXmlExists == 'true'
+
       - uses: actions/setup-java@v4
+        if: steps.mvn.outputs.pomXmlExists == 'true'
         with:
           distribution: 'corretto'
           java-version: 21
@@ -145,12 +162,9 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
           PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
-      - run: cat ~/.m2/settings.xml
-
-      - run: npm ci
-
       - name: package
         id: package
+        if: steps.mvn.outputs.pomXmlExists == 'true'
         shell: bash
         run: ./mvnw clean package
         env:
@@ -159,6 +173,7 @@ jobs:
 
       - name: synth
         id: synth
+        if: steps.mvn.outputs.pomXmlExists == 'true'
         shell: bash
         run: npx cdk synth --strict --validation --no-staging --trace
         env:

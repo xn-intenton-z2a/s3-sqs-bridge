@@ -89,7 +89,19 @@ jobs:
 
       - run: npm ci
 
+      - name: mvn
+        id: mvn
+        shell: bash
+        run: |
+          if [ -f pom.xml ]; then
+            pomXmlExists='true'
+          else
+            pomXmlExists='false'
+          fi
+          echo "pomXmlExists=${pomXmlExists?}" | tee -a "${GITHUB_OUTPUT?}"
+
       - uses: actions/setup-java@v4
+        if: steps.mvn.outputs.pomXmlExists == 'true'
         with:
           distribution: 'corretto'
           java-version: 21
@@ -101,6 +113,7 @@ jobs:
 
       - name: package
         id: package
+        if: steps.mvn.outputs.pomXmlExists == 'true'
         shell: bash
         run: ./mvnw clean package
         env:
@@ -109,11 +122,15 @@ jobs:
 
       - name: synth
         id: synth
+        if: steps.mvn.outputs.pomXmlExists == 'true'
         shell: bash
         run: npx cdk synth --strict --validation --no-staging
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+
+    outputs:
+      pomXmlExists: ${{ steps.mvn.outputs.pomXmlExists }}
 
   publish-npm:
     needs:
@@ -121,7 +138,7 @@ jobs:
     permissions:
       contents: write
       packages: write
-    uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-publish-npm.yml@2.13.0'
+    uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-publish-npm.yml@2.14.0'
     with:
       versionIncrement: ${{ inputs.versionIncrement || 'prerelease' }}
       #githubRelease: true
@@ -138,10 +155,11 @@ jobs:
       - npm-test-and-run-main
       - publish-npm
       - mvn-package-cdk-synth
+    if: needs.mvn-package-cdk-synth.outputs.pomXmlExists == 'true'
     permissions:
       contents: write
       packages: write
-    uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-publish-mvn.yml@2.13.0'
+    uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-publish-mvn.yml@2.14.0'
     with:
       versionIncrement: ${{ inputs.versionIncrement || 'prerelease' }}
       releaseVersionOverride: ${{ needs.publish-npm.outputs.releasedVersion }}
