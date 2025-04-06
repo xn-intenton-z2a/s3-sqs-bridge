@@ -89,63 +89,8 @@ export async function listAndSortAllObjectVersions() {
 }
 
 export async function listAllObjectVersionsOldestFirst() {
-  let versions = [];
-  let params = {
-    Bucket: config.BUCKET_NAME,
-    Prefix: config.OBJECT_PREFIX
-  };
-  let response;
-  do {
-    response = await s3.send(new ListObjectVersionsCommand(params));
-    if (response.Versions) {
-      versions.push(...response.Versions);
-      params.KeyMarker = response.NextKeyMarker;
-      params.VersionIdMarker = response.NextVersionIdMarker;
-    } else {
-      logInfo(`No versions found in the response for ${config.BUCKET_NAME}: ${JSON.stringify(response)}`);
-      break;
-    }
-  } while (response.IsTruncated);
-
-  // Group versions by object key.
-  const grouped = versions.reduce((acc, version) => {
-    const key = version.Key;
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(version);
-    return acc;
-  }, {});
-
-  // For each key, sort the array so that versions are in upload order (oldest first)
-  Object.keys(grouped).forEach(key => {
-    grouped[key].sort((a, b) => new Date(a.LastModified) - new Date(b.LastModified));
-  });
-
-  // Now merge the sorted arrays (each group) into a single list ordered by LastModified.
-  // This is a k-way merge.
-  const lists = Object.values(grouped); // each is an array sorted oldest-first
-  const merged = [];
-
-  while (lists.some(list => list.length > 0)) {
-    // Find the list with the smallest (oldest) head element.
-    let minIndex = -1;
-    let minVersion = null;
-    for (let i = 0; i < lists.length; i++) {
-      if (lists[i].length > 0) {
-        const candidate = lists[i][0];
-        if (!minVersion || new Date(candidate.LastModified) < new Date(minVersion.LastModified)) {
-          minVersion = candidate;
-          minIndex = i;
-        }
-      }
-    }
-    // Remove the smallest head element and push it to the merged list.
-    if (minIndex >= 0) {
-      merged.push(lists[minIndex].shift());
-    }
-  }
-  return merged;
+  // Simplified implementation to return versions sorted in ascending order by LastModified.
+  return await listAndSortAllObjectVersions();
 }
 
 export function buildSQSMessageParams(body, sqsQueueUrl) {
