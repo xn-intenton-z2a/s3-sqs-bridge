@@ -1,77 +1,40 @@
 # s3-sqs-bridge
 
-`s3-sqs-bridge` S3 SQS Bridge for integrating Kafka and AWS SQS/Lambda/Postgres projections.
+`s3-sqs-bridge` S3 SQS Bridge for integrating Amazon S3 with SQS to generate an event stream of object digests.
 
-## Mission Statement
+## How to Contribute
 
-S3 SQS Bridge is an open source bridge between a S3 Kafka‑compatible broker and AWS SQS. This lightweight solution includes:
+The guidelines below apply to human or automated contributions: 
 
-- A Dockerized Node.js s3ConsumerToSqs that listens to S3 messages and forwards them to an SQS queue.
-- A Lambda function that processes S3 messages from SQS.
-- A new Lambda function that listens to GitHub event messages from a separate SQS queue and creates projections of GitHub resources, storing them in a PostgresDB table for use by other Lambdas.
-- All AWS infrastructure is provisioned using AWS CDK (Java, CDK 2.x).
+1. **Report Issues or Ideas:**  
+   - Open an issue on GitHub to share bug reports, feature requests, or any improvements you envision.
+   - Clear descriptions and reproducible steps are highly appreciated.
+
+2. **Submit Pull Requests:**
+   - Fork the repository and create a feature branch.
+   - Implement your changes, ensuring you follow the existing coding style and standards.
+   - Add tests to cover any new functionality.
+   - Update documentation if your changes affect usage or workflow behavior.
+   - Submit your pull request for review.
 
 ## Guidelines
 
 - **Code Quality:**  
-  Write modern, maintainable JavaScript using Node 20 and ESM. Consider edge cases when handling container lifecycle events.
+  - Ensure there are tests that cover your changes and any likely new cases they introduce.
+  - When making a change remain consistent with the existing code style and structure.
+  - When adding new functionality, consider if some unused or superseded code should be removed.
 
-- **Testing:**  
-  Robust testing is essential—please add unit and integration tests for all new features.
+- **Compatibility:**  
+  - Ensure your code runs on Node 20 and adheres to ECMAScript Module (ESM) standards.
+  - Tests use vitest and competing test frameworks should not be added.
+  - Mocks in tests must not interfere with other tests.
 
-- **Commit Messages:**  
-  Use clear, descriptive commit messages that summarize your changes effectively.
+- **Testing:**
+  - The command `npm test` should invoke the tests added for the new functionality (and pass).
+  - If you add new functionality, ensure it is covered by tests.
 
-- **Collaboration:**  
-  Engage actively in GitHub discussions, issues, and PR reviews. Your feedback helps us continually refine s3-sqs-bridge.
-
-## Agentic contribution house choice options (programmatically parsed): START
-
-## Issue House Choice Options
-
-generic activities:
-- Create, vary or extend a feature in the source file as you can inline with the Mission Statement if it's useful to do so. Update the Change Log in README.md (or say what was checked).
-- Create, vary or extend a test in the test file if it's useful to do so. Update the Change Log in README.md (or say what was checked).
-- Update the source file by applying the Mission Statement to prune any "drift" from the source file. Update the Change Log in README.md (or say what was checked).
-- Ensure the source is consistently styled and arranged in a way that makes it easy to follow the flow of execution. Update the Change Log in README.md (or say what was checked).
-
-undocumented chores:
-- Refresh the README, consulting the guidance in CONTRIBUTING.md while retaining any relevant content and pruning irrelevant content.
-- Create detailed examples in the README showing how the features would be deployed and used.
-- Dry run the code and ensure both; any primary flows and likely exception paths are tested.
-- Ensure the test coverage is consistent and the tests organised with tests for similar areas grouped together.
-
-## Agentic contribution house choice options (programmatically parsed): END
-
-unused repository specific activities:
-- Create, vary or extend as many library functions as you can that deliver the spirit of this CONTRIBUTING.md Update the Change Log in README.md (or say what was checked).
-
-unused generic activities:
-- Find anything that might be a "simulated" or "demo" implementation and switch to a real implementation. Update the Change Log in README.md (or say what was checked).
-- Consider alternate code paths that could be explicitly handled to improve the range of supported behaviours. Update the Change Log in README.md (or say what was checked).
-- Look for code that could be simplified using a library and introduce that library. Update the Change Log in README.md (or say what was checked).
-
-unused undocumented chores:
-- Look for any duplicated code that could be usefully abstracted out to become shared code and implement that abstraction.
-- Dry-run any examples in comments or the README against the current code and if they are not accurate or if they could cover more features, update the docs or code to be accurate.
-- Ensure the main function so that it generates some demo output without an over the wire call, and hint a CLI switch that will do the real call.
-
-### Deploying the AWS Infrastructure
-
-From the `cdk/` directory:
-
-```bash
-cd cdk
-mvn clean package
-cdk deploy
-```
-
-This deploys the SQS queue, Lambda functions, PostgresDB table, and App Runner service.
-
-## Contributing
-
-We welcome contributions! Please review our [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to contribute effectively.
-
-## License
-
-Released under the MIT License (see [LICENSE](./LICENSE)).
+- **Documentation:**
+  - When making a change to the main source file, review the readme to see if it needs to be updated and if so, update it.
+  - Where the source exports a function, consider that part of the API of the library and document it in the readme.
+  - Where the source stands-up an HTTP endpoint, consider that part of the API of the library and document it in the readme.
+  - Include usage examples including inline code usage and CLI and HTTP invocation, API references.
