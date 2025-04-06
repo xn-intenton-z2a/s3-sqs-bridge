@@ -38,6 +38,7 @@
     "@aws-sdk/client-lambda": "^3.307.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "openai": "^4.90.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
