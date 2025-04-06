@@ -117,9 +117,9 @@ export async function listAllObjectVersionsOldestFirst() {
     return acc;
   }, {});
 
-  // For each key, reverse the array so that versions are in upload order (oldest first)
+  // For each key, sort the array so that versions are in upload order (oldest first)
   Object.keys(grouped).forEach(key => {
-    grouped[key] = grouped[key].reverse();
+    grouped[key].sort((a, b) => new Date(a.LastModified) - new Date(b.LastModified));
   });
 
   // Now merge the sorted arrays (each group) into a single list ordered by LastModified.
