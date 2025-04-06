@@ -1,0 +1,2069 @@
+./MISSION.md
+==== Content of ./MISSION.md ====
+## Mission Statement
+
+S3 SQS Bridge is an open source bridge between a S3 Kafka‑compatible broker and AWS SQS. This lightweight solution includes:
+
+- A Dockerized Node.js s3ConsumerToSqs that listens to S3 messages and forwards them to an SQS queue.
+- A Lambda function that processes S3 messages from SQS.
+- A new Lambda function that listens to GitHub event messages from a separate SQS queue and creates projections of GitHub resources, storing them in a PostgresDB table for use by other Lambdas.
+- All AWS infrastructure is provisioned using AWS CDK (Java, CDK 2.x).
+./SETUP.md
+==== Content of ./SETUP.md ====
+# s3-sqs-bridge (Developer Documentation)
+
+---
+
+## Project Structure
+
+The key components of the project are organized as follows:
+
+```text
+.
+├── Dockerfile
+├── package.json
+├── cdk.json
+├── pom.xml
+├── compose.yml
+├── entrypoint.sh
+├── src/lib/main.js
+├── aws/main/java/com/intention/S3SqsBridge/S3SqsBridgeApp.java
+├── aws/main/java/com/intention/S3SqsBridge/S3SqsBridgeStack.java
+├── aws/test/java/com/intentïon/S3SqsBridge/S3SqsBridgeStackTest.java
+└── tests/unit/main.test.js
+```
+
+Additional files include GitHub workflows (for CI/CD and maintenance scripts) and various helper scripts under the `scripts/` directory.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js v20+](https://nodejs.org/)
+- [AWS CLI](https://aws.amazon.com/cli/) (configured with sufficient permissions)
+- [Java JDK 11+](https://openjdk.java.net/)
+- [Apache Maven](https://maven.apache.org/)
+- [AWS CDK 2.x](https://docs.aws.amazon.com/cdk/v2/guide/home.html) (your account should be CDK bootstrapped)
+- [Docker](https://www.docker.com/get-started)
+- [Docker Compose](https://docs.docker.com/compose/)
+
+---
+
+## Local Development Environment
+
+### Clone the Repository
+
+```bash
+
+git clone https://github.com/your-username/s3-sqs-bridge.git
+cd s3-sqs-bridge
+```
+
+### Install Node.js dependencies and test
+
+```bash
+
+npm install
+npm test
+```
+
+### Build and test the Java Application
+
+```bash
+./mvnw clean package
+```
+
+## Setup for AWS CDK
+
+You'll need to have run `cdk bootstrap` to set up the environment for the CDK. This is a one-time setup per AWS account and region.
+General administrative permissions are required to run this command. (NPM installed the CDK.)
+
+In this example for user `antony-local-user` and `s3-sqs-bridge-github-actions-role` we would add the following
+trust policy so that they can assume the role: `s3-sqs-bridge-deployment-role`:
+```json
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "Statement1",
+			"Effect": "Allow",
+			"Action": ["sts:AssumeRole", "sts:TagSession"],
+			"Resource": ["arn:aws:iam::541134664601:role/s3-sqs-bridge-deployment-role"]
+		}
+	]
+}
+```
+
+The `s3-sqs-bridge-github-actions-role` also needs the following trust entity to allow GitHub Actions to assume the role:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::541134664601:oidc-provider/token.actions.githubusercontent.com"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                },
+                "StringLike": {
+                    "token.actions.githubusercontent.com:sub": "repo:xn-intenton-z2a/s3-sqs-bridge:*"
+                }
+            }
+        }
+    ]
+}
+```
+
+Create the IAM role with the necessary permissions to assume role from your authenticated user:
+```bash
+
+cat <<'EOF' > s3-sqs-bridge-deployment-trust-policy.json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "arn:aws:iam::541134664601:user/antony-local-user",
+          "arn:aws:iam::541134664601:role/s3-sqs-bridge-github-actions-role"
+        ]
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+aws iam create-role \
+  --role-name s3-sqs-bridge-deployment-role \
+  --assume-role-policy-document file://s3-sqs-bridge-deployment-trust-policy.json
+```
+
+Add the necessary permissions to deploy `s3-sqs-bridge`:
+```bash
+
+cat <<'EOF' > s3-sqs-bridge-deployment-permissions-policy.json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:*",
+        "iam:*",
+        "s3:*",
+        "cloudtrail:*",
+        "logs:*",
+        "events:*",
+        "lambda:*",
+        "dynamodb:*",
+        "sqs:*",
+        "sts:AssumeRole"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+aws iam put-role-policy \
+  --role-name s3-sqs-bridge-deployment-role \
+  --policy-name s3-sqs-bridge-deployment-permissions-policy \
+  --policy-document file://s3-sqs-bridge-deployment-permissions-policy.json
+```
+
+Assume the deployment role:
+```bash
+
+ROLE_ARN="arn:aws:iam::541134664601:role/s3-sqs-bridge-deployment-role"
+SESSION_NAME="s3-sqs-bridge-deployment-session-local"
+ASSUME_ROLE_OUTPUT=$(aws sts assume-role --role-arn "$ROLE_ARN" --role-session-name "$SESSION_NAME" --output json)
+if [ $? -ne 0 ]; then
+  echo "Error: Failed to assume role."
+  exit 1
+fi
+export AWS_ACCESS_KEY_ID=$(echo "$ASSUME_ROLE_OUTPUT" | jq -r '.Credentials.AccessKeyId')
+export AWS_SECRET_ACCESS_KEY=$(echo "$ASSUME_ROLE_OUTPUT" | jq -r '.Credentials.SecretAccessKey')
+export AWS_SESSION_TOKEN=$(echo "$ASSUME_ROLE_OUTPUT" | jq -r '.Credentials.SessionToken')
+EXPIRATION=$(echo "$ASSUME_ROLE_OUTPUT" | jq -r '.Credentials.Expiration')
+echo "Assumed role successfully. Credentials valid until: $EXPIRATION"
+```
+Output:
+```log
+Assumed role successfully. Credentials valid until: 2025-03-25T02:27:18+00:00
+```
+
+Check the session:
+```bash
+
+aws sts get-caller-identity
+```
+
+Output:
+```json
+{
+  "UserId": "AROAX37RDWOM7ZHORNHKD:3-sqs-bridge-deployment-session",
+  "Account": "541134664601",
+  "Arn": "arn:aws:sts::541134664601:assumed-role/s3-sqs-bridge-deployment-role/3-sqs-bridge-deployment-session"
+}
+```
+
+Check the permissions of the role:
+```bash
+
+aws iam list-role-policies \
+  --role-name s3-sqs-bridge-deployment-role
+```
+Output (the policy we created above):
+```json
+{
+  "PolicyNames": [
+    "s3-sqs-bridge-deployment-permissions-policy"
+  ]
+}
+```
+
+An example of the GitHub Actions role being assumed in a GitHub Actions Workflow:
+```yaml
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::541134664601:role/s3-sqs-bridge-deployment-role
+          aws-region: eu-west-2
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - run: npm install -g aws-cdk
+      - run: aws s3 ls --region eu-west-2
+```
+
+## Deployment to AWS
+
+See also:
+* local running using [Localstack](LOCALSTACK.md).
+* Debugging notes for the AWS deployment here [DEBUGGING](DEBUGGING.md).
+
+Package the CDK, deploy the CDK stack which rebuilds the Docker image, and deploy the AWS infrastructure:
+```bash
+
+./mvnw clean package
+```
+
+Maven build output:
+```log
+...truncated...
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- maven-jar-plugin:2.4:jar (default-jar) @ s3-sqs-bridge ---
+[INFO] Building jar: /Users/antony/projects/s3-sqs-bridge/target/s3-sqs-bridge-0.0.1.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  13.743 s
+[INFO] Finished at: 2025-03-18T22:19:37Z
+[INFO] ------------------------------------------------------------------------
+Unexpected error in background thread "software.amazon.jsii.JsiiRuntime.ErrorStreamSink": java.lang.NullPointerException: Cannot read field "stderr" because "consoleOutput" is null
+```
+(Yes... the last line, the error "is a bug in the CDK, but it doesn't affect the deployment", according to Copilot.)
+
+Destroy a previous stack and delete related log groups:
+```bash
+
+npx cdk destroy
+```
+(The commands go in separately because the CDK can be interactive.)
+```bash
+
+aws logs delete-log-group \
+  --log-group-name "/aws/s3/s3-sqs-bridge-bucket"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-replay-batch-function"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-replay-function"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-source-function"
+```
+
+Deploys the AWS infrastructure including an App Runner service, an SQS queue, Lambda functions, and a PostgresSQL table.
+```bash
+
+npx cdk deploy
+```
+
+Example output:
+```log
+...truncated...
+S3SqsBridgeStack: success: Published f23b4641b15bfe521c575e572ebe41ca2c4613e3e1ea8a9c8ef816c73832cddf:current_account-current_region
+S3SqsBridgeStack: deploying... [1/1]
+S3SqsBridgeStack: creating CloudFormation changeset...
+
+ ✅  S3SqsBridgeStack
+
+✨  Deployment time: 105.48s
+
+Outputs:
+S3SqsBridgeStack.BucketArn = arn:aws:s3:::s3-sqs-bridge-bucket
+S3SqsBridgeStack.OffsetsTableArn = arn:aws:dynamodb:eu-west-2:541134664601:table/offsets
+S3SqsBridgeStack.OneOffJobLambdaArn = arn:aws:lambda:eu-west-2:541134664601:function:replayBatchLambdaHandler
+S3SqsBridgeStack.ReplayQueueUrl = https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-replay-queue
+...truncated...
+S3SqsBridgeStack.s3BucketName = s3-sqs-bridge-bucket (Source: CDK context.)
+S3SqsBridgeStack.s3ObjectPrefix = events/ (Source: CDK context.)
+S3SqsBridgeStack.s3RetainBucket = false (Source: CDK context.)
+S3SqsBridgeStack.s3UseExistingBucket = false (Source: CDK context.)
+Stack ARN:
+arn:aws:cloudformation:eu-west-2:541134664601:stack/S3SqsBridgeStack/30cf37a0-0504-11f0-b142-06193d47b789
+
+✨  Total time: 118.12s
+
+```
+
+Write to S3 (2 keys, 2 times each, interleaved):
+```bash
+
+aws s3 ls s3-sqs-bridge-bucket/events/
+for value in $(seq 1 2); do
+  for id in $(seq 1 2); do
+    echo "{\"id\": \"${id?}\", \"value\": \"$(printf "%010d" "${value?}")\"}" > "${id?}.json"
+    aws s3 cp "${id?}.json" s3://s3-sqs-bridge-bucket/events/"${id?}.json"
+  done
+done
+aws s3 ls s3-sqs-bridge-bucket/events/
+```
+
+Output:
+```
+upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json    
+upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json   
+...
+upload: ./2.json to s3://s3-sqs-bridge-bucket/events/2.json   
+2025-03-19 23:47:07         31 1.json
+2025-03-19 23:52:12         31 2.json
+```
+
+List the versions of all s3 objects:
+```bash
+
+aws s3api list-object-versions \
+  --bucket s3-sqs-bridge-bucket \
+  --prefix events/ \
+  | jq -r '.Versions[] | "\(.LastModified) \(.Key) \(.VersionId) \(.IsLatest)"' \
+  | head -5 \
+  | tail -r
+```
+
+Output (note grouping by key, requiring a merge by LastModified to get the Put Event order):
+```log
+2025-03-23T02:37:10+00:00 events/2.json NGxS.PCWdSlxMPVIRreb_ra_WsTjc4L5 false
+2025-03-23T02:37:12+00:00 events/2.json 7SDSiqco1dgFGKZmRk8bjSoyi5eD5ZLW true
+2025-03-23T02:37:09+00:00 events/1.json cxY1weJ62JNq4DvqrgfvIWKJEYDQinly false
+2025-03-23T02:37:11+00:00 events/1.json wHEhP8RdXTD8JUsrrUlMfSANzm7ahDlv true
+```
+
+Check the projections table:
+```bash
+
+aws dynamodb scan \
+  --table-name s3-sqs-bridge-projections-table \
+  --output json \
+  | jq --compact-output '.Items[] | with_entries(if (.value | has("S")) then .value = .value.S else . end)' \
+  | tail --lines=5
+```
+
+Output:
+```json lines
+{"id":"events/1.json","value":"{\"id\": \"1\", \"value\": \"0000000002\"}\n"}
+{"id":"events/2.json","value":"{\"id\": \"2\", \"value\": \"0000000002\"}\n"}
+```
+
+Count the attributes on the digest queue:
+```bash
+
+aws sqs get-queue-attributes \
+  --queue-url https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-digest-queue \
+  --attribute-names ApproximateNumberOfMessages
+```
+
+Output:
+```json
+{
+  "Attributes": {
+    "ApproximateNumberOfMessages": "4"
+  }
+}
+```
+./S3_OOTB_BROKER.md
+==== Content of ./S3_OOTB_BROKER.md ====
+# An Amazon S3 Bucket is a Message Broker.
+(And an IRC style is a chat client.)
+
+S3 has some broker like features:
+* Always on (paying only for storage when idle) with 99.99% availability (ref. https://aws.amazon.com/s3/faqs/).
+* Durable storage with 99.999999999% (11 nines) data durability (ref. https://aws.amazon.com/s3/faqs/).
+* High throughput 3,500 PUT requests per second per prefix (ref. https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html).
+* 5GB per single PUT request (ref. https://aws.amazon.com/s3/faqs/).
+* Unlimited prefixes and an unlimited number of objects (ref. https://aws.amazon.com/s3/faqs/).
+* Chronological write order is preserved for objects by key (and by second precision between objects in Standard Buckets).
+* Built in object level data retention lifecycle management.
+* Operation level access control using IAM policies (e.g. readonly consumers of a single prefix are possible).
+
+S3 can feel a bit slow but S3 Express One Zone promises "single digit" millisecond latency, (ref. https://aws.amazon.com/s3/storage-classes/express-one-zone/).
+
+This is an offshoot from another project where I began to set up [tansu io](https://github.com/tansu-io/tansu), a Kakfa replacement with 3S storage, but S3 was all I needed.
+
+---
+
+# Live Demo
+
+## Starting with nothing
+_(The Bucket does not exist.)_
+
+List a non-existent bucket:
+```bash
+
+aws s3 ls s3://your-s3-ootb-broker-bucket
+```
+
+Expected output, if the bucket exists, but you don't have full access chose a different bucket name:
+```log
+An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist
+```
+
+## Create broker instance
+_(Create an S3 Bucket.)_
+
+Create a bucket:
+```bash
+
+aws s3 mb s3://your-s3-ootb-broker-bucket
+```
+
+Turn on versioning:
+```bash
+
+aws s3api put-bucket-versioning --bucket your-s3-ootb-broker-bucket --versioning-configuration Status=Enabled
+```
+
+## Create a topic
+_(Create a prefix in an S3 Bucket.)_
+
+Create a prefix in S3:
+```bash
+
+aws s3api put-object --bucket your-s3-ootb-broker-bucket --key topic/
+```
+
+View the prefix in the bucket:
+```bash
+
+aws s3 ls s3://your-s3-ootb-broker-bucket/topic/ --summarize
+```
+
+Output:
+```log
+2025-03-24 15:45:15          0 
+
+Total Objects: 1
+   Total Size: 0
+```
+
+## Publish messages to a topic
+_(Copy files to the S3 prefix.)_
+
+Copy 2 versions of message with key "id-1.json" to the topic amd 1 version of "id-2.json":
+```bash
+
+echo "{\"id\": \"1\", \"value\": \"001\"}" > id-1.json ; aws s3 cp id-1.json s3://your-s3-ootb-broker-bucket/topic/id-1.json
+echo "{\"id\": \"1\", \"value\": \"002\"}" > id-1.json ; aws s3 cp id-1.json s3://your-s3-ootb-broker-bucket/topic/id-1.json
+echo "{\"id\": \"2\", \"value\": \"001\"}" > id-2.json ; aws s3 cp id-2.json s3://your-s3-ootb-broker-bucket/topic/id-2.json
+```
+
+View the prefix in the bucket:
+```bash
+
+aws s3 ls s3://your-s3-ootb-broker-bucket/topic/ --summarize
+```
+
+Output:
+```log
+2025-03-24 15:45:15          0 
+2025-03-24 15:48:07         28 id-1.json
+2025-03-24 15:48:08         28 id-2.json
+
+Total Objects: 3
+   Total Size: 56
+```
+
+## View the messages by on the topic
+_(List the objects in S3.)_
+
+List the versions of all s3 objects:
+```bash
+
+aws s3api list-object-versions \
+  --bucket your-s3-ootb-broker-bucket \
+  --prefix topic/ \
+  | jq -r '.Versions[] | "\(.LastModified) \(.Key) \(.VersionId) \(.IsLatest)"' \
+  | head -50 \
+  | tail -r > versions.txt
+echo "\nLastModified              Key             VersionId                        IsLatest" ; cat versions.txt
+```
+
+Output:
+```log
+LastModified              Key             VersionId                        IsLatest
+2025-03-24T16:42:08+00:00 topic/id-2.json .a4RW_WNEFeEHQdsczKFAJIWGUiCpWIM true
+2025-03-24T16:42:07+00:00 topic/id-1.json Ae3Y9BaiYKtM_fIRH5.8xl3rzSLPaJVb false
+2025-03-24T16:42:07+00:00 topic/id-1.json RHELrp0M4XaQu8nf4rYdAIIU5Ab6eSXc true
+2025-03-24T16:41:58+00:00 topic/ 679rlVdv8mvoChefTxHTwLm4tNq9X6bR true
+```
+
+## Read the latest state of a message by key
+_(Copy an object to the local filesystem.)_
+
+Copy the latest version of the object "id-1.json" to the local filesystem:
+```bash
+
+aws s3 cp s3://your-s3-ootb-broker-bucket/topic/id-1.json copy-of-id-1.json
+cat copy-of-id-1.json
+```
+
+Output:
+```log
+{"id": "1", "value": "002"}
+```
+
+## Consume all the states of a message by key
+_(Copy all versions of an object to the local filesystem.)_
+
+Copy the all the versions of the object "id-1.json" to the local filesystem:
+```bash
+
+for version in $(aws s3api list-object-versions \
+    --bucket your-s3-ootb-broker-bucket \
+    --prefix topic/id-1.json \
+    --query 'reverse(Versions[].VersionId)' \
+    --output text | tr ' ' '\n'); do 
+      aws s3api get-object \
+        --bucket your-s3-ootb-broker-bucket \
+        --key topic/id-1.json \
+        --version-id "$version" \
+        ./id-tmp.json > /dev/null \
+        && cat ./id-tmp.json \
+        && rm ./id-tmp.json; 
+done
+```
+
+Output:
+```log
+{"id": "1", "value": "002"}
+{"id": "1", "value": "001"}
+```
+
+## Consume and begin polling for new messages
+_(List all versions under the S3 prefix, remember the last item processed, and poll)_
+
+Poll for messages showing new versions as they arrive:
+```bash
+
+last_modified_file="./last_modified.txt"
+if [ ! -f "${last_modified_file?}" ]; then
+  echo "1970-01-01T00:00:00Z" > "${last_modified_file?}"
+fi
+while true; do
+  last_modified=$(cat "$last_modified_file")
+  new_versions=$(aws s3api list-object-versions \
+    --bucket your-s3-ootb-broker-bucket \
+    --prefix topic/ \
+    --query "sort_by(Versions[?LastModified > \`${last_modified?}\`], &LastModified)" \
+    --output json)
+  echo "$new_versions" | jq -c '.[]' | while read -r item; do
+    key=$(echo "${item?}" | jq -r '.Key')
+    version=$(echo "${item?}" | jq -r '.VersionId')
+    last_modified=$(echo "${item?}" | jq -r '.LastModified')
+    aws s3api get-object --bucket your-s3-ootb-broker-bucket \
+      --key "${key?}" \
+      --version-id "${version?}" \
+      ./id-tmp.json > /dev/null && \
+      cat ./id-tmp.json && \
+      rm ./id-tmp.json
+    echo "${last_modified?}" > "${last_modified_file?}"
+  done
+  sleep 1
+done
+```
+
+In another terminal, or another country, write to S3 (2 keys, 2 times each, interleaved):
+```bash
+
+for value in $(seq 3 4); do
+  for id in $(seq 1 2); do
+    echo "{\"id\": \"${id?}\", \"value\": \"$(printf "%03d" "${value?}")\"}" > "id-${id?}.json"
+    aws s3 cp "id-${id?}.json" s3://your-s3-ootb-broker-bucket/topic/"id-${id?}.json"
+  done
+done
+```
+
+Output, first the current state of the topic, then the new messages:
+```log
+{"id": "1", "value": "001"}
+{"id": "1", "value": "002"}
+{"id": "2", "value": "001"}
+{"id": "1", "value": "003"}
+{"id": "2", "value": "003"}
+{"id": "1", "value": "004"}
+{"id": "2", "value": "004"}
+
+```
+
+Crash out of the script with Ctrl-C:
+```log
+^CTraceback (most recent call last):
+  File "/usr/local/bin/aws", line 19, in <module>
+    import awscli.clidriver
+  File "/usr/local/Cellar/awscli/2.24.24/libexec/lib/python3.12/site-packages/awscli/__init__.py", line 20, in <module>
+    import importlib.abc
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 946, in _load_unlocked
+KeyboardInterrupt
+```
+
+## Resume consumption from the previous offset
+_(Read the last offset from a text file)_
+
+Re-run the previous Poll for messages script and see :
+```bash
+(As above.)
+```
+
+In another terminal write to S3 (2 keys, 2 times each, interleaved, using ids 3 and 4):
+```bash
+
+for value in $(seq 3 4); do
+  for id in $(seq 3 4); do
+    echo "{\"id\": \"${id?}\", \"value\": \"$(printf "%03d" "${value?}")\"}" > "id-${id?}.json"
+    aws s3 cp "id-${id?}.json" s3://your-s3-ootb-broker-bucket/topic/"id-${id?}.json"
+  done
+done
+```
+
+Output shows only the new messages:
+```log
+{"id": "3", "value": "003"}
+{"id": "4", "value": "003"}
+{"id": "3", "value": "004"}
+{"id": "4", "value": "004"}
+```
+
+Tail the offset file:
+```bash
+
+tail -f last_modified.txt
+```
+
+Output updates one per polling interval:
+```log
+2025-03-24T18:06:05+00:00
+2025-03-24T18:07:25+00:00
+```
+
+## Build a chat client
+The script below uses the AWS CLI to publish and poll messages from an S3 bucket. It allows multiple users to chat in
+real-time by writing messages to the S3 bucket and reading them back.
+
+Create a chat prefix in S3:
+```bash
+
+aws s3api put-object --bucket your-s3-ootb-broker-bucket --key chat/
+```
+
+Save the script below as `./scripts/s3-chat.sh`, make it executable and run it.
+e.g.
+```bash
+
+S3CHAT_USER='User-Left' ./scripts/s3-chat.sh
+```
+e.g.
+```bash
+
+S3CHAT_USER='User-Right' ./scripts/s3-chat.sh
+```
+The S3 Chat Bash script:
+```bash
+
+echo 'S3 Chat: An interactive chat session using Amazon S3 as a message broker.'
+echo 'Setup:'
+echo '1. Create an S3 bucket (if not already created):  aws s3 mb s3://your-chat-bucket'
+echo '2. Enable versioning on the bucket:               aws s3api put-bucket-versioning --bucket your-chat-bucket --versioning-configuration Status=Enabled'
+echo '3. Create a chat topic (prefix):                  aws s3api put-object --bucket your-chat-bucket --key chat/'
+echo 'Usage:'
+echo '1. Set BUCKET below to your S3 bucket name.'
+echo '2. Optionally set the environment variable S3CHAT_USER to your preferred username (default is the output of whoami).'
+echo '3. Run this script in as many bash terminals as you like.'
+echo '4. Type your message at the prompt and press Enter. All participants will see every published message.'
+echo '5. Type /exit to quit.'
+BUCKET="your-s3-ootb-broker-bucket"
+TOPIC="chat"
+LAST_MODIFIED_FILE="/tmp/s3chat_last_modified_$$.txt"
+if [ ! -f "$LAST_MODIFIED_FILE" ]; then
+    echo "1970-01-01T00:00:00Z" > "$LAST_MODIFIED_FILE"
+fi
+publish_message() {
+    local msg="$1"
+    local user="${S3CHAT_USER:-$(whoami)}"
+    local timestamp
+    timestamp=$(date -Iseconds)
+    local filename="msg-$(date +%s%N).json"
+    echo "{\"user\": \"${user}\", \"message\": \"${msg}\", \"timestamp\": \"${timestamp}\"}" > "$filename"
+    aws s3 cp "$filename" "s3://${BUCKET}/${TOPIC}/${filename}" > /dev/null 2>&1
+    rm "$filename"
+}
+poll_messages() {
+    while true; do
+        last_modified=$(cat "$LAST_MODIFIED_FILE")
+        new_msgs=$(aws s3api list-object-versions --bucket "$BUCKET" --prefix "${TOPIC}/" \
+          --query "sort_by(Versions[?LastModified > \`${last_modified}\`], &LastModified)" --output json)
+        echo "$new_msgs" | jq -c '.[]' | while read -r item; do
+            key=$(echo "$item" | jq -r '.Key')
+            version=$(echo "$item" | jq -r '.VersionId')
+            msg_timestamp=$(echo "$item" | jq -r '.LastModified')
+            aws s3api get-object --bucket "$BUCKET" --key "$key" --version-id "$version" /tmp/s3chat_msg.json > /dev/null 2>&1
+            if [ -s /tmp/s3chat_msg.json ]; then
+                user_field=$(jq -r '.user' /tmp/s3chat_msg.json)
+                message_field=$(jq -r '.message' /tmp/s3chat_msg.json)
+                timestamp_field=$(jq -r '.timestamp' /tmp/s3chat_msg.json)
+                echo -e "\n[${timestamp_field}] ${user_field}: ${message_field}"
+            fi
+            echo "$msg_timestamp" > "$LAST_MODIFIED_FILE"
+            rm -f /tmp/s3chat_msg.json
+        done
+        sleep 1
+    done
+}
+poll_messages &
+POLL_PID=$!
+trap "kill $POLL_PID; exit" SIGINT SIGTERM
+echo "Welcome to S3 Chat! Type your message and press Enter. Type /exit to quit."
+while true; do
+    read -r -p "> " user_input
+    if [ "$user_input" = "/exit" ]; then
+        kill $POLL_PID
+        exit 0
+    fi
+    publish_message "$user_input"
+done
+```
+(The S3 Chat source code is from ChatGPT o30-mini-high, it is above my bash skill level.)
+
+Chat session from User-Left (timestamped messages include messages echoing to self, originating text has no timestamp):
+```log
+Welcome to S3 Chat! Type your message and press Enter. Type /exit to quit.
+> Hello from right
+> 
+[2025-03-24T22:22:12+00:00] User-Right: Hello from right
+
+[2025-03-24T22:22:27+00:00] User-Left: Hello from left
+```
+
+Chat session from User-Right:
+```log
+Welcome to S3 Chat! Type your message and press Enter. Type /exit to quit.
+> 
+[2025-03-24T22:22:12+00:00] User-Right: Hello from right
+Hello from left 
+> 
+[2025-03-24T22:22:27+00:00] User-Left: Hello from left
+```
+
+Open it up to the world:
+Below is a set of AWS CLI commands that will disable the public access blocks and then apply a bucket policy to allow 
+public read and write (anonymous) access. *Be aware:* This makes your bucket publicly writable and readable by anyone on
+the internet and can be a significant security risk.
+```bash
+
+aws s3api put-public-access-block \
+  --bucket s3-public-chat-bucket-32db9bc3-d7e0-4871-85ed-5003e3a963a5 \
+  --public-access-block-configuration '{
+  "BlockPublicAcls": false,
+  "IgnorePublicAcls": false,
+  "BlockPublicPolicy": false,
+  "RestrictPublicBuckets": false
+}'
+aws s3api put-bucket-policy \
+  --bucket s3-public-chat-bucket-32db9bc3-d7e0-4871-85ed-5003e3a963a5 \
+  --policy '{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowPublicReadWrite",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": [
+         "s3:GetObject",
+         "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::s3-public-chat-bucket-32db9bc3-d7e0-4871-85ed-5003e3a963a5/*"
+    }
+  ]
+}'
+```
+
+## Decommission the broker
+
+Delete all versions of all objects then delete the bucket:
+```bash
+
+aws s3api list-object-versions --bucket your-s3-ootb-broker-bucket --output json | \
+  jq -r '.Versions[] | "aws s3api delete-object --bucket your-s3-ootb-broker-bucket --key \(.Key) --version-id \(.VersionId)"' | bash
+aws s3api list-object-versions --bucket your-s3-ootb-broker-bucket --output json | \
+  jq -r '.DeleteMarkers[] | "aws s3api delete-object --bucket your-s3-ootb-broker-bucket --key \(.Key) --version-id \(.VersionId)"' | bash
+aws s3 rb s3://your-s3-ootb-broker-bucket
+```
+
+Final check to list a non-existent bucket again:
+```bash
+
+aws s3 ls s3://your-s3-ootb-broker-bucket
+```
+
+Output:
+```log
+An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist
+```
+
+---
+
+# Users
+
+If following the steps in the (README.md)[README.md] then the following script will assume a role and export the credentials
+
+Assume the deployment role:
+```bash
+
+ROLE_ARN="arn:aws:iam::541134664601:role/s3-sqs-bridge-deployment-role"
+SESSION_NAME="s3-sqs-bridge-deployment-session-local"
+ASSUME_ROLE_OUTPUT=$(aws sts assume-role --role-arn "$ROLE_ARN" --role-session-name "$SESSION_NAME" --output json)
+if [ $? -ne 0 ]; then
+  echo "Error: Failed to assume role."
+  exit 1
+fi
+export AWS_ACCESS_KEY_ID=$(echo "$ASSUME_ROLE_OUTPUT" | jq -r '.Credentials.AccessKeyId')
+export AWS_SECRET_ACCESS_KEY=$(echo "$ASSUME_ROLE_OUTPUT" | jq -r '.Credentials.SecretAccessKey')
+export AWS_SESSION_TOKEN=$(echo "$ASSUME_ROLE_OUTPUT" | jq -r '.Credentials.SessionToken')
+EXPIRATION=$(echo "$ASSUME_ROLE_OUTPUT" | jq -r '.Credentials.Expiration')
+echo "Assumed role successfully. Credentials valid until: $EXPIRATION"
+```
+Output:
+```log
+Assumed role successfully. Credentials valid until: 2025-03-25T02:27:18+00:00
+```
+
+```bash
+
+unset AWS_ACCESS_KEY_ID
+unset AWS_SECRET_ACCESS_KEY
+unset AWS_SESSION_TOKEN
+unset EXPIRATION
+```
+
+
+---
+
+# Portability
+
+Shell scripts have only run on my MacBook Pro with the AWS CLI v2.24.24 and jq v1.7.1. The scripts are not portable to other platforms or versions of the AWS CLI.
+```bash
+
+uname -a
+```
+```log
+Darwin MacBook-Pro.local 24.3.0 Darwin Kernel Version 24.3.0: Thu Jan  2 20:22:00 PST 2025; root:xnu-11215.81.4~3/RELEASE_X86_64 x86_64
+```
+
+---
+
+# License
+
+Distributed under the [MIT License](LICENSE).
+./LOCALSTACK.md
+==== Content of ./LOCALSTACK.md ====
+# s3-sqs-bridge (Versioned Amazon S3 Object Put Event replay capable queuing to SQS)
+
+An alternate version of the Deployment to AWS with localstack and direct execution of JavaScript.
+
+---
+
+## Getting Started Locally
+
+### Clone the Repository
+
+```bash
+
+git clone https://github.com/xn-intenton-z2a/s3-sqs-bridge.git
+cd s3-sqs-bridge
+```
+
+### Install Node.js Dependencies and test
+
+```bash
+
+npm install
+npm test
+```
+
+### Start Local Services
+
+Launch with LocalStack (Simulates AWS S3 and SQS endpoints):
+```bash
+
+docker compose up --detach localstack
+```
+
+Create a bucket:
+```bash
+
+aws --endpoint-url=http://localhost:4566 s3 mb s3://s3-sqs-bridge-bucket-local
+```
+
+Turn on versioning:
+```bash
+
+aws --endpoint-url=http://localhost:4566 s3api put-bucket-versioning --bucket s3-sqs-bridge-bucket-local --versioning-configuration Status=Enabled
+```
+
+Create the replay queue:
+```bash
+
+aws --endpoint-url=http://localhost:4566 sqs create-queue --queue-name s3-sqs-bridge-replay-queue-local
+```
+
+Write to S3:
+```bash
+
+echo "test body" > test-file.txt ; aws --endpoint-url=http://localhost:4566 s3 cp test-file.txt s3://s3-sqs-bridge-bucket-local/events/test-key
+```
+
+Write to S3 (a second time to create 2 versions):
+```bash
+
+echo "test body" > test-file.txt ; aws --endpoint-url=http://localhost:4566 s3 cp test-file.txt s3://s3-sqs-bridge-bucket-local/events/test-key
+```
+
+Check file:
+```bash
+
+aws --endpoint-url=http://localhost:4566 s3 ls s3://s3-sqs-bridge-bucket-local/events/
+```
+
+File as object "test-key":
+```
+2025-03-18 21:22:35         10 test-key
+```
+
+Run replay batch job:
+```bash
+
+BUCKET_NAME='s3-sqs-bridge-bucket-local' \
+OBJECT_PREFIX='events/' \
+REPLAY_QUEUE_URL='http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-replay-queue-local' \
+AWS_ENDPOINT='http://localhost:4566' \
+npm run replay
+```
+
+Replay job processes the object versions and completes:
+```log
+> @xn-intenton-z2a/s3-sqs-bridge@0.1.5 replay
+> node src/lib/main.js --replay
+
+{"level":"info","timestamp":"2025-03-18T21:49:15.892Z","message":"Configuration loaded","config":{"BUCKET_NAME":"s3-sqs-bridge-bucket-local","OBJECT_PREFIX":"events/","REPLAY_QUEUE_URL":"http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-replay-queue-local","AWS_ENDPOINT":"http://localhost:4566"}}
+{"level":"info","timestamp":"2025-03-18T21:49:15.901Z","message":"Starting replay job for bucket s3-sqs-bridge-bucket-local prefix events/"}
+{"level":"info","timestamp":"2025-03-18T22:03:49.912Z","message":"Processing 2 versions..."}
+{"level":"info","timestamp":"2025-03-18T22:03:49.921Z","message":"Sent message to SQS queue http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-replay-queue-local, MessageId: d8757b8a-23fc-4e49-bf1d-729e14b9c940"}
+{"level":"info","timestamp":"2025-03-18T22:03:49.925Z","message":"Sent message to SQS queue http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-replay-queue-local, MessageId: fc7768d2-e6d2-416a-9cb8-70b0e94b5ee3"}
+{"level":"info","timestamp":"2025-03-18T22:03:49.925Z","message":"replay job complete."}
+```
+
+Observe message on the SQS replay queue:
+```bash
+
+aws --endpoint-url=http://localhost:4566 sqs receive-message --queue-url http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-replay-queue-local
+```
+
+Message:
+```json
+{
+    "Messages": [
+        {
+            "MessageId": "02c7ce02-fafb-4974-8498-1ec10fb6b40b",
+            "ReceiptHandle": "AQEBwJ+...",
+            "MD5OfBody": "d41d8cd98f00b204e9800998ecf8427e",
+            "Body": "{\"bucket\":\"s3-sqs-bridge-bucket-local\",\"key\":\"events/test-key\",\"versionId\":\"null\",\"eventTime\":\"2025-03-18T21:22:35.000Z\"}"
+        }
+    ]
+}
+```
+
+Purge the replay queue:
+```bash
+
+aws --endpoint-url=http://localhost:4566 sqs purge-queue --queue-url http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-replay-queue-local
+```
+
+Observe no message on SQS for the replay queue after purging:
+```bash
+
+aws --endpoint-url=http://localhost:4566 sqs receive-message --queue-url http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-replay-queue-local
+```
+
+Create the source queue:
+```bash
+
+aws --endpoint-url=http://localhost:4566 sqs create-queue --queue-name s3-sqs-bridge-source-queue-local
+```
+
+Set up the s3 bucket to send events to the source queue when a Put event occurs:
+```bash
+
+aws --endpoint-url=http://localhost:4566 s3api put-bucket-notification-configuration --bucket s3-sqs-bridge-bucket-local --notification-configuration '{
+  "QueueConfigurations": [
+    {
+      "QueueArn": "arn:aws:sqs:eu-west-2:000000000000:s3-sqs-bridge-source-queue-local",
+      "Events": ["s3:ObjectCreated:*"]
+    }
+  ]
+}'
+```
+
+Purge the source queue (it has a test event on iot after adding the notification):
+```bash
+
+aws --endpoint-url=http://localhost:4566 sqs purge-queue --queue-url http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-source-queue-local
+```
+
+Observe no message on the SQS source queue:
+```bash
+
+aws --endpoint-url=http://localhost:4566 sqs receive-message --queue-url http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-source-queue-local
+```
+
+Write to S3 (a third time to create 3 versions):
+```bash
+
+echo "test body" > test-file.txt ; aws --endpoint-url=http://localhost:4566 s3 cp test-file.txt s3://s3-sqs-bridge-bucket-local/events/test-key
+```
+
+Observe put message on the SQS source queue:
+```bash
+
+aws --endpoint-url=http://localhost:4566 sqs receive-message --queue-url http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-source-queue-local
+```
+
+Message on source queue:
+```json
+{
+    "Messages": [
+        {
+            "MessageId": "6d7f452a-ec4f-4ef9-baeb-d89d342dea25",
+            "ReceiptHandle": "MTZiZjlhMzktZTk3OS00MjY3LWE0NzEtZGIxMDg3NGU5NzdhIGFybjphd3M6c3FzOmV1LXdlc3QtMjowMDAwMDAwMDAwMDA6czMtc3FzLWJyaWRnZS1zb3VyY2UtcXVldWUtbG9jYWwgNmQ3ZjQ1MmEtZWM0Zi00ZWY5LWJhZWItZDg5ZDM0MmRlYTI1IDE3NDIzMzU4NjUuMzEyNjgzNg==",
+            "MD5OfBody": "c10bcfbbd6da23f4067cb532672846b4",
+            "Body": "{\"Records\": [{\"eventVersion\": \"2.1\", \"eventSource\": \"aws:s3\", \"awsRegion\": \"eu-west-2\", \"eventTime\": \"2025-03-18T22:10:16.674Z\", \"eventName\": \"ObjectCreated:Put\", \"userIdentity\": {\"principalId\": \"AIDAJDPLRKLG7UEXAMPLE\"}, \"requestParameters\": {\"sourceIPAddress\": \"127.0.0.1\"}, \"responseElements\": {\"x-amz-request-id\": \"94e7eca4\", \"x-amz-id-2\": \"eftixk72aD6Ap51TnqcoF8eFidJG9Z/2\"}, \"s3\": {\"s3SchemaVersion\": \"1.0\", \"configurationId\": \"1618c5e0\", \"bucket\": {\"name\": \"s3-sqs-bridge-bucket-local\", \"ownerIdentity\": {\"principalId\": \"A3NL1KOZZKExample\"}, \"arn\": \"arn:aws:s3:::s3-sqs-bridge-bucket-local\"}, \"object\": {\"key\": \"events/test-key\", \"sequencer\": \"0055AED6DCD90281E5\", \"versionId\": \"AZWrSJQOESwdiUqy8Kodd1LOSwtYKixv\", \"eTag\": \"824da868c63f3ae1e7e5253a38c688b0\", \"size\": 10}}}]}"
+        }
+    ]
+}
+```
+
+Launch the replay in a Container (the same Docker file is used for ECS):
+```bash
+
+docker compose up --detach replay
+```
+
+docker compose logs replay
+```bash
+
+docker compose logs replay
+```
+
+Check the Docker logs for 3 messages on the SQS replay queue:
+```log
+s3-sqs-bridge  | 
+s3-sqs-bridge  | > @xn-intenton-z2a/s3-sqs-bridge@0.1.5 replay
+s3-sqs-bridge  | > node src/lib/main.js --replay
+s3-sqs-bridge  | 
+s3-sqs-bridge  | {"level":"info","timestamp":"2025-03-19T00:34:40.375Z","message":"Configuration loaded","config":{"BUCKET_NAME":"s3-sqs-bridge-bucket-local","OBJECT_PREFIX":"events/","REPLAY_QUEUE_URL":"http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-replay-queue-local","AWS_ENDPOINT":"http://localstack:4566"}}
+s3-sqs-bridge  | {"level":"info","timestamp":"2025-03-19T00:34:40.389Z","message":"Starting replay job for bucket s3-sqs-bridge-bucket-local prefix events/"}
+s3-sqs-bridge  | {"level":"info","timestamp":"2025-03-19T00:34:40.455Z","message":"Processing 3 versions..."}
+s3-sqs-bridge  | {"level":"info","timestamp":"2025-03-19T00:34:40.463Z","message":"Sent message to SQS queue http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-replay-queue-local, MessageId: 0fc7e37b-fdaf-4024-99ab-15bde5925eed"}
+s3-sqs-bridge  | {"level":"info","timestamp":"2025-03-19T00:34:40.468Z","message":"Sent message to SQS queue http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-replay-queue-local, MessageId: f9eb65d8-0afa-4a37-a16b-a437f1f75a24"}
+s3-sqs-bridge  | {"level":"info","timestamp":"2025-03-19T00:34:40.471Z","message":"Sent message to SQS queue http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-replay-queue-local, MessageId: 87be69da-0dc1-4cfc-8dd2-645e00d6ee6d"}
+s3-sqs-bridge  | {"level":"info","timestamp":"2025-03-19T00:34:40.471Z","message":"replay job complete."}
+s3-sqs-bridge  | npm notice 
+s3-sqs-bridge  | npm notice New major version of npm available! 9.8.1 -> 11.2.0
+s3-sqs-bridge  | npm notice Changelog: <https://github.com/npm/cli/releases/tag/v11.2.0>
+s3-sqs-bridge  | npm notice Run `npm install -g npm@11.2.0` to update!
+s3-sqs-bridge  | npm notice 
+```
+
+Create the DynamoDB tables
+
+For reply offset tracking:
+```bash
+
+aws dynamodb create-table \
+  --table-name s3-sqs-bridge-offsets-table-local \
+  --attribute-definitions AttributeName=id,AttributeType=S \
+  --key-schema AttributeName=id,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST \
+  --endpoint-url http://localhost:4566
+```  
+
+For projections:
+```bash
+aws dynamodb create-table \
+  --table-name s3-sqs-bridge-projections-table-local \
+  --attribute-definitions AttributeName=id,AttributeType=S \
+  --key-schema AttributeName=id,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST \
+  --endpoint-url http://localhost:4566
+```
+
+List the tables:
+```bash
+
+aws dynamodb list-tables \
+  --endpoint-url http://localhost:4566
+```
+
+Output:
+```json
+{
+    "TableNames": [
+        "s3-sqs-bridge-offsets-table-local",
+        "s3-sqs-bridge-projections-table-local"
+    ]
+}
+```
+
+Run replay projection job:
+```bash
+
+BUCKET_NAME='s3-sqs-bridge-bucket-local' \
+OBJECT_PREFIX='events/' \
+OFFSETS_TABLE_NAME=s3-sqs-bridge-offsets-table-local \
+PROJECTIONS_TABLE_NAME=s3-sqs-bridge-projections-table-local \
+AWS_ENDPOINT='http://localhost:4566' \
+npm run replay-projection
+```
+
+---
+
+### Handy Commands
+
+Handy cleanup, Docker:
+```bash
+
+docker system prune --all --force --volumes
+```
+
+Handy cleanup, Node:
+```bash
+
+rm -rf node_modules ; rm -rf package-lock.json ; npm install
+```
+
+Run the Docker container with a shell instead of the default entrypoint:
+```bash
+
+docker build -t s3-sqs-bridge .
+docker run -it \
+  --env BUCKET_NAME='s3-sqs-bridge-bucket-local' \
+  --env OBJECT_PREFIX='events/' \
+  --env REPLAY_QUEUE_URL='http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/s3-sqs-bridge-replay-queue-local' \
+  --env AWS_ENDPOINT='http://localhost:4566' \
+  --entrypoint /bin/bash \
+  s3-sqs-bridge:latest
+```
+
+---
+
+## License
+
+Distributed under the [MIT License](LICENSE).
+
+---
+./README.md
+==== Content of ./README.md ====
+# s3-sqs-bridge (Versioned Amazon S3 Object Put Event replay capable queuing to SQS)
+
+This repository deploys an AWS CloudFormation Stack to create a replay capable event queue. The solution used AWS SQS
+for message delivery and AWS Lambda for real-time processing with AWS DynamoDB for durable offset tracking. Storage
+is an S3 bucket with object versioning enabled and a Put event can be processed in read-time or replayed in their
+original order.
+
+`s3-sqs-bridge` is built to run in both AWS and local environments (via Docker Compose with MinIO).
+
+This is an offshoot from another project where I began to set up [tansu io](https://github.com/tansu-io/tansu), but S3 was all I needed.
+
+A tangent of interest might be [s3-ootb-broker](S3_OOTB_BROKER.md) which is a messaging system and IRC style chat system.
+
+For instructions on how to set up the project, see the [Setup](SETUP.md) document.
+
+---
+
+## Key Features
+
+- **Storage:** Uses an AWS S3 bucket with versioning enabled to persist events.
+- **Event replay:** A replay job replays S3 object versions in chronological order.
+- **Real-Time Processing:** Forwards S3 events to an SQS queue.
+- **Low Idle Cost:** Designed to run on Fargate Spot with zero desired instances until needed.
+
+---
+
+## License
+
+Distributed under the [MIT License](LICENSE).
+
+---
+./CONTRIBUTING.md
+==== Content of ./CONTRIBUTING.md ====
+# s3-sqs-bridge
+
+`s3-sqs-bridge` S3 SQS Bridge for integrating Amazon S3 with SQS to generate an event stream of object digests.
+
+## How to Contribute
+
+The guidelines below apply to human or automated contributions: 
+
+1. **Report Issues or Ideas:**  
+   - Open an issue on GitHub to share bug reports, feature requests, or any improvements you envision.
+   - Clear descriptions and reproducible steps are highly appreciated.
+
+2. **Submit Pull Requests:**
+   - Fork the repository and create a feature branch.
+   - Implement your changes, ensuring you follow the existing coding style and standards.
+   - Add tests to cover any new functionality.
+   - Update documentation if your changes affect usage or workflow behavior.
+   - Submit your pull request for review.
+
+## Guidelines
+
+- **Code Quality:**  
+  - Ensure there are tests that cover your changes and any likely new cases they introduce.
+  - When making a change remain consistent with the existing code style and structure.
+  - When adding new functionality, consider if some unused or superseded code should be removed.
+
+- **Compatibility:**  
+  - Ensure your code runs on Node 20 and adheres to ECMAScript Module (ESM) standards.
+  - Tests use vitest and competing test frameworks should not be added.
+  - Mocks in tests must not interfere with other tests.
+
+- **Testing:**
+  - The command `npm test` should invoke the tests added for the new functionality (and pass).
+  - If you add new functionality, ensure it is covered by tests.
+
+- **Documentation:**
+  - When making a change to the main source file, review the readme to see if it needs to be updated and if so, update it.
+  - Where the source exports a function, consider that part of the API of the library and document it in the readme.
+  - Where the source stands-up an HTTP endpoint, consider that part of the API of the library and document it in the readme.
+  - Include usage examples including inline code usage and CLI and HTTP invocation, API references.
+
+- **README:**
+  - The README should begin with something inspired by the mission statement, and describing the current state of the repository (rather than the journey)
+  - The README should include a link to MISSION.md, CONTRIBUTING.md, SETUP.md, and LICENSE.
+  - The README should include a link to the intentïon `agentic-lib` GitHub Repository which is https://github.com/xn-intenton-z2a/agentic-lib.
+./DEBUGGING.md
+==== Content of ./DEBUGGING.md ====
+# s3-sqs-bridge (Debugging on AWS)
+
+An expanded version of the Deployment to AWS with additional utility commands and debugging steps.
+
+---
+
+## Deployment to AWS
+
+### Clone the Repository
+
+```bash
+
+git clone https://github.com/your-username/s3-sqs-bridge.git
+cd s3-sqs-bridge
+```
+
+### Install Node.js Dependencies and test
+
+```bash
+
+npm install
+npm test
+```
+
+Package the CDK, deploy the CDK stack which rebuilds the Docker image, and deploy the AWS infrastructure:
+```bash
+
+./mvnw clean package
+```
+
+Maven build output:
+```log
+...truncated...
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- maven-jar-plugin:2.4:jar (default-jar) @ s3-sqs-bridge ---
+[INFO] Building jar: /Users/antony/projects/s3-sqs-bridge/target/s3-sqs-bridge-0.0.1.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  13.743 s
+[INFO] Finished at: 2025-03-18T22:19:37Z
+[INFO] ------------------------------------------------------------------------
+Unexpected error in background thread "software.amazon.jsii.JsiiRuntime.ErrorStreamSink": java.lang.NullPointerException: Cannot read field "stderr" because "consoleOutput" is null
+```
+(Yes... the last line, the error "is a bug in the CDK, but it doesn't affect the deployment", according to Copilot.)
+
+Destroy a previous stack and delete related log groups:
+```bash
+
+npx cdk 
+```
+(The commands go in separately because the CDK can be interactive.)
+```bash
+
+aws logs delete-log-group \
+  --log-group-name "/aws/s3/s3-sqs-bridge-bucket"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-replay-batch-function"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-replay-function"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-source-function"
+```
+
+Deploys the AWS infrastructure including an App Runner service, an SQS queue, Lambda functions, and a PostgreSQL table.
+```bash
+
+npx cdk deploy
+```
+
+Example output:
+```log
+...truncated...
+S3SqsBridgeStack: success: Published f23b4641b15bfe521c575e572ebe41ca2c4613e3e1ea8a9c8ef816c73832cddf:current_account-current_region
+S3SqsBridgeStack: deploying... [1/1]
+S3SqsBridgeStack: creating CloudFormation changeset...
+
+ ✅  S3SqsBridgeStack
+
+✨  Deployment time: 105.48s
+
+Outputs:
+S3SqsBridgeStack.BucketArn = arn:aws:s3:::s3-sqs-bridge-bucket
+S3SqsBridgeStack.OffsetsTableArn = arn:aws:dynamodb:eu-west-2:541134664601:table/offsets
+S3SqsBridgeStack.OneOffJobLambdaArn = arn:aws:lambda:eu-west-2:541134664601:function:replayBatchLambdaHandler
+S3SqsBridgeStack.ReplayQueueUrl = https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-replay-queue
+...truncated...
+S3SqsBridgeStack.s3BucketName = s3-sqs-bridge-bucket (Source: CDK context.)
+S3SqsBridgeStack.s3ObjectPrefix = events/ (Source: CDK context.)
+S3SqsBridgeStack.s3RetainBucket = false (Source: CDK context.)
+S3SqsBridgeStack.s3UseExistingBucket = false (Source: CDK context.)
+Stack ARN:
+arn:aws:cloudformation:eu-west-2:541134664601:stack/S3SqsBridgeStack/30cf37a0-0504-11f0-b142-06193d47b789
+
+✨  Total time: 118.12s
+
+```
+
+Write to S3 (2 keys, 2 times each, interleaved):
+```bash
+
+aws s3 ls s3-sqs-bridge-bucket/events/
+for value in $(seq 1 2); do
+  for id in $(seq 1 2); do
+    echo "{\"id\": \"${id?}\", \"value\": \"$(printf "%010d" "${value?}")\"}" > "${id?}.json"
+    aws s3 cp "${id?}.json" s3://s3-sqs-bridge-bucket/events/"${id?}.json"
+  done
+done
+aws s3 ls s3-sqs-bridge-bucket/events/
+```
+
+Output:
+```
+upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json    
+upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json   
+...
+upload: ./2.json to s3://s3-sqs-bridge-bucket/events/2.json   
+2025-03-19 23:47:07         31 1.json
+2025-03-19 23:52:12         31 2.json
+```
+
+List the versions of all s3 objects:
+```bash
+
+aws s3api list-object-versions \
+  --bucket s3-sqs-bridge-bucket \
+  --prefix events/ \
+  | jq -r '.Versions[] | "\(.LastModified) \(.Key) \(.VersionId) \(.IsLatest)"' \
+  | head -5 \
+  | tail -r
+```
+
+Output (note grouping by key, requiring a merge by LastModified to get the Put Event order):
+```log
+2025-03-23T02:37:10+00:00 events/2.json NGxS.PCWdSlxMPVIRreb_ra_WsTjc4L5 false
+2025-03-23T02:37:12+00:00 events/2.json 7SDSiqco1dgFGKZmRk8bjSoyi5eD5ZLW true
+2025-03-23T02:37:09+00:00 events/1.json cxY1weJ62JNq4DvqrgfvIWKJEYDQinly false
+2025-03-23T02:37:11+00:00 events/1.json wHEhP8RdXTD8JUsrrUlMfSANzm7ahDlv true
+```
+
+Check the projections table:
+```bash
+
+aws dynamodb scan \
+  --table-name s3-sqs-bridge-projections-table \
+  --output json \
+  | jq --compact-output '.Items[] | with_entries(if (.value | has("S")) then .value = .value.S else . end)' \
+  | tail --lines=5
+```
+
+Output:
+```json lines
+{"id":"events/1.json","value":"{\"id\": \"1\", \"value\": \"0000000002\"}\n"}
+{"id":"events/2.json","value":"{\"id\": \"2\", \"value\": \"0000000002\"}\n"}
+```
+
+Count the attributes on the digest queue:
+```bash
+
+aws sqs get-queue-attributes \
+  --queue-url https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-digest-queue \
+  --attribute-names ApproximateNumberOfMessages
+```
+
+Output:
+```json
+{
+  "Attributes": {
+    "ApproximateNumberOfMessages": "4"
+  }
+}
+```
+
+---
+
+## Debugging
+
+List the versions of one s3 object:
+```bash
+
+aws s3api list-object-versions \
+  --bucket s3-sqs-bridge-bucket \
+  --prefix events/1.json \
+  | jq -r '.Versions[] | "\(.LastModified) \(.VersionId)"' \
+  | head -5 \
+  | tail -r
+```
+      
+output:
+```log
+2025-03-20T19:41:00+00:00 2noSga6Gzo8Tgv_LRN6KhDyfxItokdhV
+2025-03-20T19:41:01+00:00 IVvCthHy3USr7htaRW_Px12gLmDUMDci
+2025-03-20T19:41:01+00:00 YI1qVe4r1jlQJU7K7.KUrQhuXa_N7Gzc
+2025-03-20T19:41:02+00:00 alzPWnOMUMOmpM5St8EvnDAZ4jR3L5WM
+2025-03-20T19:41:03+00:00 krC5yOc7ESrGCo2KQn.V_5FuT6WK7m_U
+```
+
+Examine a couple of the versions (copy in the versions returned above):
+```bash
+
+aws s3api get-object --bucket s3-sqs-bridge-bucket --key events/1.json --version-id "2noSga6Gzo8Tgv_LRN6KhDyfxItokdhV" latest-minus-004.1.json
+aws s3api get-object --bucket s3-sqs-bridge-bucket --key events/1.json --version-id "IVvCthHy3USr7htaRW_Px12gLmDUMDci" latest-minus-003.1.json
+aws s3api get-object --bucket s3-sqs-bridge-bucket --key events/1.json --version-id "YI1qVe4r1jlQJU7K7.KUrQhuXa_N7Gzc" latest-minus-002.1.json
+aws s3api get-object --bucket s3-sqs-bridge-bucket --key events/1.json --version-id "alzPWnOMUMOmpM5St8EvnDAZ4jR3L5WM" latest-minus-001.1.json
+aws s3api get-object --bucket s3-sqs-bridge-bucket --key events/1.json --version-id "krC5yOc7ESrGCo2KQn.V_5FuT6WK7m_U" latest-minus-000.1.json
+```
+
+Check the S3 versions return order against the file contents:
+```bash
+
+find . -maxdepth 1 -name "latest-minus-*.1.json" -exec sh -c 'for f do printf "%s: " "$f"; cat "$f"; done' _ {} + | sort -r
+```
+
+Output in the correct order:
+```log
+./latest-minus-004.1.json: {"id": "1", "value": "0000000001"}
+./latest-minus-003.1.json: {"id": "1", "value": "0000000002"}
+./latest-minus-002.1.json: {"id": "1", "value": "0000000003"}
+./latest-minus-001.1.json: {"id": "1", "value": "0000000004"}
+./latest-minus-000.1.json: {"id": "1", "value": "0000000005"}
+```
+
+Check the latest version matches the latest file:
+```bash
+
+aws s3api get-object --bucket s3-sqs-bridge-bucket --key events/1.json --version-id "krC5yOc7ESrGCo2KQn.V_5FuT6WK7m_U" latest.1.json
+cat latest-minus-000.1.json
+cat latest.1.json
+diff latest.1.json latest-minus-000.1.json
+```
+
+Empty the S3 bucket of events and versions:
+```bash
+
+aws s3api delete-objects \
+  --bucket s3-sqs-bridge-bucket \
+  --delete file://<(aws s3api list-object-versions --bucket s3-sqs-bridge-bucket --prefix events/ --query "{Objects: [Versions,DeleteMarkers][][] | [].{Key: Key,VersionId: VersionId}}" --output json)
+```
+
+Write to S3 (2 keys, 2 times each, interleaved):
+```bash
+
+aws s3 ls s3-sqs-bridge-bucket/events/
+for value in $(seq 1 2); do
+  for id in $(seq 1 2); do
+    echo "{\"id\": \"${id?}\", \"value\": \"$(printf "%010d" "${value?}")\"}" > "${id?}.json"
+    aws s3 cp "${id?}.json" s3://s3-sqs-bridge-bucket/events/"${id?}.json"
+  done
+done
+aws s3 ls s3-sqs-bridge-bucket/events/
+```
+
+output:
+```log
+upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json       
+upload: ./2.json to s3://s3-sqs-bridge-bucket/events/2.json      
+upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json       
+upload: ./2.json to s3://s3-sqs-bridge-bucket/events/2.json       
+~/projects/s3-sqs-bridge % aws s3 ls s3-sqs-bridge-bucket/events/
+2025-03-23 02:37:11         35 1.json
+2025-03-23 02:37:12         35 2.json
+```
+
+List the versions of all s3 objects:
+```bash
+
+aws s3api list-object-versions \
+  --bucket s3-sqs-bridge-bucket \
+  --prefix events/ \
+  | jq -r '.Versions[] | "\(.LastModified) \(.Key) \(.VersionId) \(.IsLatest)"' \
+  | head -5 \
+  | tail -r
+```
+
+Output (note grouping by key, requiring a merge by LastModified to get the Put Event order):
+```log
+2025-03-23T02:37:10+00:00 events/2.json NGxS.PCWdSlxMPVIRreb_ra_WsTjc4L5 false
+2025-03-23T02:37:12+00:00 events/2.json 7SDSiqco1dgFGKZmRk8bjSoyi5eD5ZLW true
+2025-03-23T02:37:09+00:00 events/1.json cxY1weJ62JNq4DvqrgfvIWKJEYDQinly false
+2025-03-23T02:37:11+00:00 events/1.json wHEhP8RdXTD8JUsrrUlMfSANzm7ahDlv true
+```
+
+Count the attributes on the replay queue:
+```bash
+
+aws sqs get-queue-attributes \
+  --queue-url https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-replay-queue \
+  --attribute-names ApproximateNumberOfMessages
+```
+
+Output:
+```json
+{
+    "Attributes": {
+        "ApproximateNumberOfMessages": "0"
+    }
+}
+```
+
+Stop the replay queue from triggering the replay lambda then send a batch of messages:
+```bash
+
+aws lambda update-event-source-mapping \
+  --uuid $(aws lambda list-event-source-mappings --function-name s3-sqs-bridge-replay-function | jq '.EventSourceMappings[0].UUID' --raw-output) \
+  --no-enabled
+```
+
+Send and event to run the replayBatch Lambda function:
+```bash
+
+aws lambda invoke --function-name s3-sqs-bridge-replay-batch-function \
+  --payload '{}' response.json \
+  ; cat response.json
+```
+
+Output:
+```json lines
+{
+    "StatusCode": 200,
+    "ExecutedVersion": "$LATEST"
+}
+{
+    "handler": "src/lib/main.replayBatchLambdaHandler",
+    "versions": 243,
+    "eventsReplayed": 243,
+    "lastOffsetProcessed": "2025-03-20T00:07:59.000Z"
+}
+```
+
+Count the attributes on the replay queue after then replay lob has finished:
+```bash
+
+aws sqs get-queue-attributes \
+  --queue-url https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-replay-queue \
+  --attribute-names ApproximateNumberOfMessages
+```
+
+Output:
+```json
+{
+    "Attributes": {
+        "ApproximateNumberOfMessages": "243"
+    }
+}
+```
+
+Start the replay queue and let it drain:
+```bash
+
+aws lambda update-event-source-mapping \
+  --uuid $(aws lambda list-event-source-mappings --function-name s3-sqs-bridge-replay-function | jq '.EventSourceMappings[0].UUID' --raw-output) \
+  --enabled
+```
+
+Count the attributes on the replay while the replay lambda is running:
+```bash
+
+aws sqs get-queue-attributes \
+  --queue-url https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-replay-queue \
+  --attribute-names ApproximateNumberOfMessages
+```
+
+Output:
+```json lines
+{
+  "Attributes": {
+    "ApproximateNumberOfMessages": "233"
+  }
+}
+{
+  "Attributes": {
+    "ApproximateNumberOfMessages": "0"
+  }
+}
+```
+
+Check the projections table:
+```bash
+
+aws dynamodb scan \
+  --table-name s3-sqs-bridge-projections-table \
+  --output json \
+  | jq --compact-output '.Items[] | with_entries(if (.value | has("S")) then .value = .value.S else . end)' \
+  | tail --lines=5
+```
+
+Output:
+```json lines
+{"id":"events/1.json"}
+{"id":"events/1.json"}
+{"id":"events/2.json"}
+{"id":"events/1.json"}
+{"id":"events/2.json"}
+```
+
+Count the attributes on the digest queue:
+```bash
+
+aws sqs get-queue-attributes \
+  --queue-url https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-digest-queue \
+  --attribute-names ApproximateNumberOfMessages
+```
+
+Output (there should be double the digest messages from the replay plus the source):
+```json
+{
+  "Attributes": {
+    "ApproximateNumberOfMessages": "486"
+  }
+}
+```
+
+Run replay projection job:
+```bash
+
+BUCKET_NAME='s3-sqs-bridge-bucket' \
+OBJECT_PREFIX='events/' \
+OFFSETS_TABLE_NAME=s3-sqs-bridge-offsets-table \
+PROJECTIONS_TABLE_NAME=s3-sqs-bridge-projections-table \
+npm run replay-projection
+```
+
+### Handy Commands
+
+Handy cleanup, Docker:
+```bash
+
+docker system prune --all --force --volumes
+```
+
+Handy cleanup, CDK:
+```bash
+
+rm -rf cdk.out
+```
+
+Handy cleanup, Node:
+```bash
+
+rm -rf node_modules ; rm -rf package-lock.json ; npm install
+```
+
+Example S3 Put event `s3-put-test-key.json`:
+```json
+{
+  "Records": [
+    {
+      "eventVersion": "2.0",
+      "eventSource": "aws:s3",
+      "awsRegion": "eu-west-2",
+      "eventTime": "2025-03-19T20:54:43.516Z",
+      "eventName": "ObjectCreated:Put",
+      "s3": {
+        "s3SchemaVersion": "1.0",
+        "bucket": {
+          "name": "s3-sqs-bridge-bucket",
+          "arn": "arn:aws:s3:::s3-sqs-bridge-bucket"
+        },
+        "object": {
+          "key": "assets/test-key.json",
+          "sequencer": "0A1B2C3D4E5F678901"
+        }
+      }
+    }
+  ]
+}
+```
+
+Write with as many processes as possible for 1s to s3:
+```bash
+
+count=0; end=$(($(date +%s) + 1)); \
+while [ $(date +%s) -lt $end ]; do \
+  uuid=$(uuidgen); \
+  echo "{\"id\":\"$uuid\"}" > "$uuid.json"; \
+  aws s3 cp "$uuid.json" s3://s3-sqs-bridge-bucket/"$uuid.json" >/dev/null 2>&1 & \
+  count=$((count+1)); \
+done; \
+wait; \
+echo "Processes created: $count"; \
+aws s3 ls s3://s3-sqs-bridge-bucket/ | tail -n 5
+```
+
+Delete log groups:
+```bash
+
+aws logs delete-log-group \
+  --log-group-name "/aws/s3/s3-sqs-bridge-bucket"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-replay-batch-function"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-replay-function"
+aws logs delete-log-group \
+  --log-group-name "/aws/lambda/s3-sqs-bridge-source-function"
+```
+
+Handy cleanup, CDK:
+```bash
+
+rm -rf cdk.out
+```
+
+---
+
+## License
+
+Distributed under the [MIT License](LICENSE).
+
+---
+./package.json
+==== Content of ./package.json ====
+{
+  "name": "@xn-intenton-z2a/s3-sqs-bridge",
+  "version": "0.23.1-0",
+  "description": "S3 SQS Bridge for integrating Kafka, AWS SQS, Lambda, and Postgres projections.",
+  "type": "module",
+  "main": "src/lib/main.js",
+  "scripts": {
+    "build": "echo 'Nothing to build'",
+    "formatting": "prettier --check .",
+    "formatting-fix": "prettier --write .",
+    "linting": "eslint .",
+    "linting-json": "eslint --format=@microsoft/eslint-formatter-sarif .",
+    "linting-fix": "eslint --fix .",
+    "update-to-minor": "npx ncu --upgrade --enginesNode --target minor --verbose --install always",
+    "update-to-greatest": "npx ncu --upgrade --enginesNode --target greatest --verbose --install always --reject 'alpha'",
+    "test": "vitest",
+    "test:unit": "vitest --coverage",
+    "start": "node src/lib/main.js",
+    "diagnostics": "node src/lib/main.js",
+    "healthcheck": "node src/lib/main.js --healthcheck",
+    "replay": "node src/lib/main.js --replay",
+    "source-projection": "node src/lib/main.js --source-projection",
+    "replay-projection": "node src/lib/main.js --replay-projection"
+  },
+  "keywords": [
+    "kafka",
+    "sqs",
+    "lambda",
+    "postgres",
+    "aws"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.307.0",
+    "@aws-sdk/client-s3": "^3.307.0",
+    "@aws-sdk/client-sqs": "^3.782.0",
+    "@aws-sdk/client-lambda": "^3.307.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "openai": "^4.90.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@microsoft/eslint-formatter-sarif": "^3.1.0",
+    "@vitest/coverage-v8": "^3.1.1",
+    "aws-cdk": "^2.1005.0",
+    "esbuild": "^0.25.2",
+    "eslint": "^9.22.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-prettier": "^5.2.5",
+    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-security": "^3.0.1",
+    "eslint-plugin-sonarjs": "^3.0.2",
+    "markdown-it": "^14.1.0",
+    "markdown-it-github": "^0.5.0",
+    "npm-check-updates": "^17.1.15",
+    "prettier": "^3.5.2",
+    "vitest": "^3.0.7"
+  },
+  "overrides": {
+    "rimraf": "^4.0.0",
+    "glob": "^9.3.0",
+    "@humanwhocodes/config-array": "^0.13.0",
+    "@humanwhocodes/object-schema": "^2.0.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "package.json"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
+}
+./vitest.config.js
+==== Content of ./vitest.config.js ====
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  resolve: {
+    alias: {
+      "@dist": "/dist",
+      "@src": "/src",
+      "@tests": "/tests",
+    },
+  },
+  test: {
+    environment: "node",
+    include: ["tests/unit/*.test.js"],
+    coverage: {
+      provider: "v8",
+      reportsDirectory: "./coverage",
+      reporter: ["text", "json", "html"],
+      include: ["src/**/*.js"],
+      exclude: ["**/dist/**", "**/entrypoint/**", "**/tests/**", "**/node_modules/**", "src/index.js", "**/exports/**"],
+      threshold: {
+        statements: 85,
+        branches: 80,
+        functions: 75,
+        lines: 85,
+        perFile: {
+          statements: 70,
+          branches: 60,
+          functions: 40,
+          lines: 70,
+        },
+      },
+    },
+  },
+});
+./jsconfig.json
+==== Content of ./jsconfig.json ====
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "// Also make path changes in vitest.config.js": "",
+    "paths": {
+      "@dist/*": ["dist/*"],
+      "@src/*": ["src/*"],
+      "@tests/*": ["tests/*"]
+    }
+  }
+}
+./eslint.config.js
+==== Content of ./eslint.config.js ====
+import js from "@eslint/js";
+import google from "eslint-config-google";
+import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
+import globals from "globals";
+import promise from "eslint-plugin-promise";
+import security from "eslint-plugin-security";
+import sonarjs from "eslint-plugin-sonarjs";
+import react from "eslint-plugin-react";
+import importPlugin from "eslint-plugin-import";
+
+const modifiedGoogleConfig = { ...google, rules: { ...google.rules } };
+delete modifiedGoogleConfig.rules["valid-jsdoc"];
+delete modifiedGoogleConfig.rules["require-jsdoc"];
+
+/** @type {import('eslint').Linter.FlatConfig[]} */
+export default [
+  js.configs.recommended,
+  modifiedGoogleConfig,
+  eslintPluginPrettierRecommended,
+  {
+    plugins: {
+      promise,
+      security,
+      sonarjs,
+      react,
+      import: importPlugin,
+    },
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: "module",
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      "prettier/prettier": "error",
+      ...promise.configs.recommended.rules,
+      ...sonarjs.configs.recommended.rules,
+      "sonarjs/os-command": "off",
+
+      // Formatting and organisation
+      "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "no-extra-semi": 2,
+      "object-curly-newline": ["error", { consistent: true }],
+      "array-element-newline": ["error", "consistent", { multiline: true, minItems: 10 }],
+      "import/newline-after-import": ["error", { count: 1 }],
+      "camelcase": "off",
+
+      // ESM import rules
+      "import/no-amd": "error",
+      "import/no-commonjs": "error",
+      "import/no-import-module-exports": "error",
+      "import/no-cycle": "error",
+      "import/no-dynamic-require": "error",
+      "import/no-self-import": "off",
+      "import/no-unresolved": "off",
+      "import/no-useless-path-segments": "error",
+      "import/no-duplicates": "error",
+      "sonarjs/fixme-tag": "warn",
+    },
+  },
+  {
+    files: ["**/*.js"],
+    ignores: ["**/tests/**/*.js", "**/*.test.js", "eslint.config.js"],
+    rules: {
+      ...security.configs.recommended.rules,
+      "security/detect-non-literal-fs-filename": "off",
+      "security/detect-non-literal-regexp": "off",
+      "security/detect-object-injection": "off",
+    },
+  },
+  {
+    settings: {
+      react: {
+        version: "18",
+      },
+    },
+  },
+  {
+    ignores: ["build/", "coverage/", "dist/", "exports/", "node_modules/", "eslint.config.js"],
+  },
+];
+./.prettierrc
+==== Content of ./.prettierrc ====
+{
+  "singleQuote": false,
+  "trailingComma": "all",
+  "printWidth": 120,
+  "tabWidth": 2,
+  "useTabs": false,
+  "quoteProps": "consistent",
+  "overrides": [
+    {
+      "files": ".prettierrc",
+      "options": { "parser": "json" }
+    }
+  ]
+}
+./LICENSE
+==== Content of ./LICENSE ====
+MIT License
+
+Copyright (c) 2025 intentïon
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+./.prettierrc
+==== Content of ./.prettierrc ====
+{
+  "singleQuote": false,
+  "trailingComma": "all",
+  "printWidth": 120,
+  "tabWidth": 2,
+  "useTabs": false,
+  "quoteProps": "consistent",
+  "overrides": [
+    {
+      "files": ".prettierrc",
+      "options": { "parser": "json" }
+    }
+  ]
+}

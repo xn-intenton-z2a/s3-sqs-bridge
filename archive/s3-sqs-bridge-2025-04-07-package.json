@@ -1,0 +1,79 @@
+{
+  "name": "@xn-intenton-z2a/s3-sqs-bridge",
+  "version": "0.23.1-0",
+  "description": "S3 SQS Bridge for integrating Kafka, AWS SQS, Lambda, and Postgres projections.",
+  "type": "module",
+  "main": "src/lib/main.js",
+  "scripts": {
+    "build": "echo 'Nothing to build'",
+    "formatting": "prettier --check .",
+    "formatting-fix": "prettier --write .",
+    "linting": "eslint .",
+    "linting-json": "eslint --format=@microsoft/eslint-formatter-sarif .",
+    "linting-fix": "eslint --fix .",
+    "update-to-minor": "npx ncu --upgrade --enginesNode --target minor --verbose --install always",
+    "update-to-greatest": "npx ncu --upgrade --enginesNode --target greatest --verbose --install always --reject 'alpha'",
+    "test": "vitest",
+    "test:unit": "vitest --coverage",
+    "start": "node src/lib/main.js",
+    "diagnostics": "node src/lib/main.js",
+    "healthcheck": "node src/lib/main.js --healthcheck",
+    "replay": "node src/lib/main.js --replay",
+    "source-projection": "node src/lib/main.js --source-projection",
+    "replay-projection": "node src/lib/main.js --replay-projection"
+  },
+  "keywords": [
+    "kafka",
+    "sqs",
+    "lambda",
+    "postgres",
+    "aws"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.307.0",
+    "@aws-sdk/client-s3": "^3.307.0",
+    "@aws-sdk/client-sqs": "^3.782.0",
+    "@aws-sdk/client-lambda": "^3.307.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "openai": "^4.90.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@microsoft/eslint-formatter-sarif": "^3.1.0",
+    "@vitest/coverage-v8": "^3.1.1",
+    "aws-cdk": "^2.1005.0",
+    "esbuild": "^0.25.2",
+    "eslint": "^9.22.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-prettier": "^5.2.5",
+    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-security": "^3.0.1",
+    "eslint-plugin-sonarjs": "^3.0.2",
+    "markdown-it": "^14.1.0",
+    "markdown-it-github": "^0.5.0",
+    "npm-check-updates": "^17.1.15",
+    "prettier": "^3.5.2",
+    "vitest": "^3.0.7"
+  },
+  "overrides": {
+    "rimraf": "^4.0.0",
+    "glob": "^9.3.0",
+    "@humanwhocodes/config-array": "^0.13.0",
+    "@humanwhocodes/object-schema": "^2.0.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "package.json"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
+}

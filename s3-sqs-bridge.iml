@@ -4,6 +4,7 @@
     <content url="file://$MODULE_DIR$" dumb="true">
       <excludeFolder url="file://$MODULE_DIR$/cdk.out" />
       <excludeFolder url="file://$MODULE_DIR$/exports" />
+      <excludeFolder url="file://$MODULE_DIR$/archive" />
     </content>
   </component>
 </module>

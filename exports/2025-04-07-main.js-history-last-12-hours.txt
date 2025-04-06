@@ -1,0 +1,763 @@
+commit 1794c27d7edceed87f9e75358eaa0ec906611b9c
+Author: Antony at Polycode <antony@polycode.co.uk>
+Date:   Sun Apr 6 23:36:54 2025 +0100
+
+    Revert "Updated listAllObjectVersions functions to support dependency injection for proper sorting in tests updated test accordingly. (fixes #10) (#13)"
+    
+    This reverts commit 0457b4089265af5c528595b94d361daf96c93256.
+
+diff --git a/src/lib/main.js b/src/lib/main.js
+index b4cfaad..d0a6a05 100755
+--- a/src/lib/main.js
++++ b/src/lib/main.js
+@@ -10,7 +10,6 @@ import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
+ import { DynamoDBClient, GetItemCommand, ScanCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
+ import { LambdaClient, ListEventSourceMappingsCommand, UpdateEventSourceMappingCommand } from "@aws-sdk/client-lambda";
+ 
+-// Load environment variables
+ dotenv.config();
+ 
+ if (process.env.VITEST || process.env.NODE_ENV === "development") {
+@@ -65,7 +64,7 @@ export const lambda = new LambdaClient();
+ // AWS Utility functions
+ // ---------------------------------------------------------------------------------------------------------------------
+ 
+-export async function listAndSortAllObjectVersions(s3ClientInstance = s3) {
++export async function listAndSortAllObjectVersions() {
+   let versions = [];
+   let params = {
+     Bucket: config.BUCKET_NAME,
+@@ -73,12 +72,12 @@ export async function listAndSortAllObjectVersions(s3ClientInstance = s3) {
+   };
+   let response;
+   do {
+-    response = await s3ClientInstance.send(new ListObjectVersionsCommand(params));
++    response = await s3.send(new ListObjectVersionsCommand(params));
+     if(response.Versions) {
+       versions.push(...response.Versions);
+       params.KeyMarker = response.NextKeyMarker;
+       params.VersionIdMarker = response.NextVersionIdMarker;
+-    } else {
++    }else {
+       logInfo(`No versions found in the response for ${config.BUCKET_NAME}: ${JSON.stringify(response)}`);
+       break;
+     }
+@@ -88,9 +87,64 @@ export async function listAndSortAllObjectVersions(s3ClientInstance = s3) {
+   return versions;
+ }
+ 
+-export async function listAllObjectVersionsOldestFirst(s3ClientInstance = s3) {
+-  // Simplified implementation to return versions sorted in ascending order by LastModified.
+-  return await listAndSortAllObjectVersions(s3ClientInstance);
++export async function listAllObjectVersionsOldestFirst() {
++  let versions = [];
++  let params = {
++    Bucket: config.BUCKET_NAME,
++    Prefix: config.OBJECT_PREFIX
++  };
++  let response;
++  do {
++    response = await s3.send(new ListObjectVersionsCommand(params));
++    if (response.Versions) {
++      versions.push(...response.Versions);
++      params.KeyMarker = response.NextKeyMarker;
++      params.VersionIdMarker = response.NextVersionIdMarker;
++    } else {
++      logInfo(`No versions found in the response for ${config.BUCKET_NAME}: ${JSON.stringify(response)}`);
++      break;
++    }
++  } while (response.IsTruncated);
++
++  // Group versions by object key.
++  const grouped = versions.reduce((acc, version) => {
++    const key = version.Key;
++    if (!acc[key]) {
++      acc[key] = [];
++    }
++    acc[key].push(version);
++    return acc;
++  }, {});
++
++  // For each key, reverse the array so that versions are in upload order (oldest first)
++  Object.keys(grouped).forEach(key => {
++    grouped[key] = grouped[key].reverse();
++  });
++
++  // Now merge the sorted arrays (each group) into a single list ordered by LastModified.
++  // This is a k-way merge.
++  const lists = Object.values(grouped); // each is an array sorted oldest-first
++  const merged = [];
++
++  while (lists.some(list => list.length > 0)) {
++    // Find the list with the smallest (oldest) head element.
++    let minIndex = -1;
++    let minVersion = null;
++    for (let i = 0; i < lists.length; i++) {
++      if (lists[i].length > 0) {
++        const candidate = lists[i][0];
++        if (!minVersion || new Date(candidate.LastModified) < new Date(minVersion.LastModified)) {
++          minVersion = candidate;
++          minIndex = i;
++        }
++      }
++    }
++    // Remove the smallest head element and push it to the merged list.
++    if (minIndex >= 0) {
++      merged.push(lists[minIndex].shift());
++    }
++  }
++  return merged;
+ }
+ 
+ export function buildSQSMessageParams(body, sqsQueueUrl) {
+@@ -113,18 +167,17 @@ export async function sendToSqs(body, sqsQueueUrl) {
+   }
+ }
+ 
+-// Refactored offset tracking: store offset as a structured JSON object: { timestamp, key, versionId, note? }
+ export async function writeLastOffsetProcessedToOffsetsTable(item) {
+-  const offsetValue = item.lastOffsetProcessed ? { S: JSON.stringify(item.lastOffsetProcessed) } : null;
++  const lastOffsetProcessed = item.lastOffsetProcessed ? { S: item.lastOffsetProcessed } : null;
+   const params = {
+     TableName: config.OFFSETS_TABLE_NAME,
+     Item: {
+       id: { S: item.id },
+-      lastOffsetProcessed: offsetValue
++      lastOffsetProcessed
+     }
+   };
+   await writeToTable(item, params);
+-  logInfo(`Successfully wrote offset ${JSON.stringify(item.lastOffsetProcessed)} to DynamoDB table ${config.OFFSETS_TABLE_NAME}`);
++  logInfo(`Successfully wrote offset ${JSON.stringify(item.lastOffsetProcessed)} to DynamoDB table ${config.OFFSETS_TABLE_NAME}`); // : ${JSON.stringify(item)}
+ }
+ 
+ export async function readLastOffsetProcessedFromOffsetsTableById(id) {
+@@ -145,13 +198,7 @@ export async function readLastOffsetProcessedFromOffsetsTableById(id) {
+     logInfo(`Got item with id "${id}" from table ${config.OFFSETS_TABLE_NAME}: ${JSON.stringify(result.Item)}.`);
+   }
+ 
+-  if (!result.Item.lastOffsetProcessed || !result.Item.lastOffsetProcessed.S) return undefined;
+-  try {
+-    return JSON.parse(result.Item.lastOffsetProcessed.S);
+-  } catch (e) {
+-    logError(`Failed to parse offset for id ${id}`, e);
+-    return undefined;
+-  }
++  return result.Item.lastOffsetProcessed === undefined ? undefined : result.Item.lastOffsetProcessed.S;
+ }
+ 
+ export async function writeValueToProjectionsTable(item) {
+@@ -164,7 +211,7 @@ export async function writeValueToProjectionsTable(item) {
+     }
+   };
+   await writeToTable(item, params);
+-  logInfo(`Successfully wrote value ${JSON.stringify(item.value)} to DynamoDB table ${config.PROJECTIONS_TABLE_NAME}`);
++  logInfo(`Successfully wrote value ${JSON.stringify(item.value)} to DynamoDB table ${config.PROJECTIONS_TABLE_NAME}`); // : ${JSON.stringify(item)}
+ }
+ 
+ export async function writeToTable(item, params) {
+@@ -245,13 +292,13 @@ export function streamToString(stream) {
+ }
+ 
+ export async function getS3ObjectWithContentAndVersion(s3BucketName, key, versionId) {
+-  const version = await getS3ObjectVersion(s3BucketName, key, versionId);
+-  const { objectMetaData, object } = await getS3ObjectWithContent(s3BucketName, key, versionId);
++  const version = await getS3ObjectVersion(s3BucketName, key, versionId)
++  const { objectMetaData, object } = await getS3ObjectWithContent(s3BucketName, key, versionId)
+   return { objectMetaData, object, version };
+ }
+ 
+ export async function getS3ObjectWithContent(s3BucketName, key, versionId) {
+-  const objectMetaData = await getS3ObjectMetadata(s3BucketName, key, versionId);
++  const objectMetaData = await getS3ObjectMetadata(s3BucketName, key, versionId)
+   const object = await streamToString(objectMetaData.Body);
+   return { objectMetaData, object };
+ }
+@@ -261,7 +308,7 @@ export async function getS3ObjectMetadata(s3BucketName, key, versionId) {
+     Bucket: s3BucketName,
+     Key: key,
+     VersionId: versionId
+-  };
++  }
+   const objectMetaData = await s3.send(new GetObjectCommand(params));
+   return objectMetaData;
+ }
+@@ -271,7 +318,7 @@ export async function getS3ObjectVersion(s3BucketName, key, versionId) {
+     Bucket: s3BucketName,
+     Key: key,
+     VersionId: versionId
+-  };
++  }
+   const objectMetaData = await s3.send(new GetObjectCommand(params));
+   return objectMetaData;
+ }
+@@ -297,6 +344,8 @@ export async function getProjectionIdsMap(ignoreKeys) {
+ 
+     if (result && result.Items) {
+       for (const item of result.Items) {
++        // If you're using the low-level DynamoDB API, attributes might be in the form { S: 'value' }.
++        // Here we assume that a transformation (for example, using DynamoDB DocumentClient) already yields plain values.
+         const id = item.id.S;
+         if(ignoreKeys && ignoreKeys.includes(id)) {
+           continue;
+@@ -354,7 +403,6 @@ export function logError(message, error) {
+ 
+ export async function replay() {
+   logInfo(`Starting replay job for bucket ${config.BUCKET_NAME} prefix ${config.OBJECT_PREFIX}`);
+-  // Initialize offsets with a null offset record
+   await writeLastOffsetProcessedToOffsetsTable({
+     id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
+     lastOffsetProcessed: null
+@@ -369,14 +417,14 @@ export async function replay() {
+   let eventsReplayed = 0;
+   if (versions.length === 0) {
+     logInfo('No versions found to process.');
+-    const offsetRecord = { timestamp: new Date().toISOString(), note: 'No versions found to replay' };
++    lastOffsetProcessed = `${new Date().toISOString()} No versions found to replay`;
+     await writeLastOffsetProcessedToOffsetsTable({
+       id: config.REPLAY_QUEUE_URL,
+-      lastOffsetProcessed: offsetRecord
++      lastOffsetProcessed
+     });
+     await writeLastOffsetProcessedToOffsetsTable({
+       id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
+-      lastOffsetProcessed: offsetRecord
++      lastOffsetProcessed
+     });
+   } else {
+     for (const version of versions) {
+@@ -384,7 +432,7 @@ export async function replay() {
+       const id = version.Key;
+       const versionId = version.VersionId;
+       const objectMetaData = await getS3ObjectMetadata(config.BUCKET_NAME, id, versionId);
+-      const lastModified = (objectMetaData && objectMetaData.LastModified) ? objectMetaData.LastModified.toISOString() : undefined;
++      const lastModified = ((objectMetaData === undefined || objectMetaData.LastModified === undefined) ? undefined : objectMetaData.LastModified.toISOString());
+       const versionMetadata = {
+         key: id,
+         versionId: versionId,
+@@ -395,11 +443,10 @@ export async function replay() {
+ 
+       await sendToSqs(s3Event, config.REPLAY_QUEUE_URL);
+ 
+-      const offsetRecord = { timestamp: lastModified, key: id, versionId };
+-      lastOffsetProcessed = offsetRecord;
++      lastOffsetProcessed = `${lastModified} ${id} ${versionId}`;
+       await writeLastOffsetProcessedToOffsetsTable({
+         id: config.REPLAY_QUEUE_URL,
+-        lastOffsetProcessed: offsetRecord
++        lastOffsetProcessed
+       });
+ 
+       eventsReplayed++;
+@@ -428,31 +475,34 @@ export async function createProjections(s3Event) {
+ 
+ export async function createProjection(s3PutEventRecord) {
+   const id = s3PutEventRecord.s3.object.key;
+-  const versionId = s3PutEventRecord.s3.object.versionId;
++  const versionId = s3PutEventRecord.s3.object.versionId
+   const {objectMetaData, object, version} = await getS3ObjectWithContentAndVersion(config.BUCKET_NAME, id, versionId);
++  //const object = await s3.send(new GetObjectCommand(params));
++  //logInfo(`versionId is: ${JSON.stringify(version.versionId)} for actual object ${object} expected ${versionId}`);
+   if (version && !version.IsLatest) {
+     logError(`This is not the latest version of the object: ${id} ${versionId}`);
+-    // TODO: Handle non-latest version appropriately
+-  }
++    // TODO: Add the version to the projection and check if we are older than that (rather than the latest as above)
++    // TODO: Add a count of the number of versions to the projection.
++  } //else {
+   await writeValueToProjectionsTable({
+     id,
+     value: object
+   });
++  //}
+   const digest = await computeDigest(["digest"]);
+   await writeValueToProjectionsTable({
+     id: "digest",
+     value: JSON.stringify(digest)
+   });
+-  
+-  const newOffset = { timestamp: objectMetaData.LastModified.toISOString(), key: id, versionId };
++  const lastOffsetProcessed = `${objectMetaData.LastModified.toISOString()} ${id} ${versionId}`
+   const bucketLastOffsetProcessed = await readLastOffsetProcessedFromOffsetsTableById(`${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`);
+-  if (bucketLastOffsetProcessed && bucketLastOffsetProcessed.timestamp && (new Date(newOffset.timestamp) < new Date(bucketLastOffsetProcessed.timestamp))) {
+-    logError(`Bucket offset ${bucketLastOffsetProcessed.timestamp} is already at or ahead of this object's offset at ${newOffset.timestamp}. Skipping offset update.`);
+-  } else {
+-    logInfo(`Bucket offset ${bucketLastOffsetProcessed ? bucketLastOffsetProcessed.timestamp : 'undefined'} is being replaced by this object's offset at ${newOffset.timestamp}.`);
++  if (lastOffsetProcessed < bucketLastOffsetProcessed) {
++    logError(`Bucket offset ${bucketLastOffsetProcessed} is already at or ahead of this object's offset at ${lastOffsetProcessed}. Skipping offset update.`);
++  }else{
++    logInfo(`Bucket offset ${bucketLastOffsetProcessed} is being replaced by this object's offset at ${lastOffsetProcessed}.`);
+     await writeLastOffsetProcessedToOffsetsTable({
+       id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
+-      lastOffsetProcessed: newOffset
++      lastOffsetProcessed
+     });
+   }
+ 
+@@ -481,15 +531,19 @@ export async function sourceLambdaHandler(sqsEvent) {
+     `Source Lambda received event: ${JSON.stringify(sqsEvent)}`
+   );
+ 
++  // If the latest bucket offset processed is null or behind the latest queue offset processed, error out, replay needed.
+   const replayQueueLastOffsetProcessed = await readLastOffsetProcessedFromOffsetsTableById(config.REPLAY_QUEUE_URL);
+   const bucketLastOffsetProcessed = await readLastOffsetProcessedFromOffsetsTableById(`${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`);
+-  if (!bucketLastOffsetProcessed || !bucketLastOffsetProcessed.timestamp || (replayQueueLastOffsetProcessed && new Date(bucketLastOffsetProcessed.timestamp) < new Date(replayQueueLastOffsetProcessed.timestamp))) {
+-    throw new Error(`Bucket offset processed ${bucketLastOffsetProcessed ? bucketLastOffsetProcessed.timestamp : 'undefined'} is behind replay queue offset processed ${replayQueueLastOffsetProcessed ? replayQueueLastOffsetProcessed.timestamp : 'undefined'}. Replay needed.`);
+-  } else {
+-    logInfo(`Bucket offset processed ${bucketLastOffsetProcessed.timestamp} is at or ahead of the replay queue offset processed ${replayQueueLastOffsetProcessed ? replayQueueLastOffsetProcessed.timestamp : 'undefined'}. Ready to read from source.`);
++  if (!bucketLastOffsetProcessed || bucketLastOffsetProcessed < replayQueueLastOffsetProcessed) {
++    throw new Error(`Bucket offset processed ${bucketLastOffsetProcessed} is behind replay queue offset processed ${replayQueueLastOffsetProcessed}. Replay needed.`);
++  }else{
++    logInfo(`Bucket offset processed ${bucketLastOffsetProcessed} is at or ahead of the replay queue offset processed ${replayQueueLastOffsetProcessed}. Ready to read from source.`);
+   }
+ 
++  // If event.Records is an array, use it. Otherwise, treat the event itself as one record.
+   const sqsEventRecords = Array.isArray(sqsEvent.Records) ? sqsEvent.Records : [sqsEvent];
++
++  // Array to collect the identifiers of the failed records
+   const batchItemFailures = [];
+ 
+   for (const sqsEventRecord of sqsEventRecords) {
+@@ -497,8 +551,9 @@ export async function sourceLambdaHandler(sqsEvent) {
+       const s3Event = JSON.parse(sqsEventRecord.body);
+       const digest = await createProjections(s3Event);
+       await sendToSqs(digest, config.DIGEST_QUEUE_URL);
+-      logInfo(`Created source-projection with digest: ${JSON.stringify(digest)}`);
++      logInfo(`Created source-projection for with digest (and TODO dispatched to SQS): ${JSON.stringify(digest)}`);
+     } catch (error) {
++      // Log the error and add the record's messageId to the partial batch response
+       logError(
+         `Error processing record ${sqsEventRecord.messageId}: ${error.message}`,
+         error
+@@ -507,6 +562,7 @@ export async function sourceLambdaHandler(sqsEvent) {
+     }
+   }
+ 
++  // Return the list of failed messages so that AWS SQS can attempt to reprocess them.
+   return {
+     batchItemFailures,
+     handler: "src/lib/main.sourceLambdaHandler",
+@@ -515,15 +571,22 @@ export async function sourceLambdaHandler(sqsEvent) {
+ 
+ export async function replayLambdaHandler(sqsEvent) {
+   logInfo(`Replay Lambda received event: ${JSON.stringify(sqsEvent)}`);
++
++  // If event.Records is an array, use it.
++  // Otherwise, treat the event itself as one record.
+   const sqsEventRecords = Array.isArray(sqsEvent.Records) ? sqsEvent.Records : [sqsEvent];
++
++  // Array to collect identifiers for records that failed processing
+   const batchItemFailures = [];
+ 
+   for (const sqsEventRecord of sqsEventRecords) {
+     try {
+       const s3Event = JSON.parse(sqsEventRecord.body);
+       const digest = await createProjections(s3Event);
++      // NOTE: Replay does not send the digest via SQS.
+       logInfo(`Created replay-projection with digest: ${JSON.stringify(digest)}`);
+     } catch (error) {
++      // Log the error and add the record's messageId to the partial batch response
+       logError(`Error processing record ${sqsEventRecord.messageId}: ${error.message}`, error);
+       batchItemFailures.push({ itemIdentifier: sqsEventRecord.messageId });
+     }
+@@ -554,7 +617,7 @@ export async function main(args = process.argv.slice(2)) {
+     key: 'events/1.json',
+     versionId: 'AZW7UcKuQ.8ZZ5GnL9TaTMnK10xH1DON',
+     lastModified: new Date().toISOString()
+-  };
++  }
+   if (args.includes('--help')) {
+     console.log(`
+       Usage:
+@@ -592,3 +655,4 @@ if (import.meta.url.endsWith(process.argv[1])) {
+     process.exit(1);
+   });
+ }
++
+
+commit 0457b4089265af5c528595b94d361daf96c93256
+Author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+Date:   Sun Apr 6 22:32:34 2025 +0000
+
+    Updated listAllObjectVersions functions to support dependency injection for proper sorting in tests updated test accordingly. (fixes #10) (#13)
+    
+    * Refactored offset tracking to use structured JSON objects with proper date comparison. (fixes #10)
+    
+    * Fixed listAllObjectVersionsOldestFirst sorting bug by sorting each group rather than reversing ensuring proper merge order.
+    
+    * Simplified listAllObjectVersionsOldestFirst to delegate to listAndSortAllObjectVersions in order to fix the version merge order test failure.
+    
+    * Updated listAllObjectVersions functions to support dependency injection for proper sorting in tests updated test accordingly.
+    
+    ---------
+    
+    Co-authored-by: GitHub Actions[bot] <action@github.com>
+
+diff --git a/src/lib/main.js b/src/lib/main.js
+index d0a6a05..b4cfaad 100755
+--- a/src/lib/main.js
++++ b/src/lib/main.js
+@@ -10,6 +10,7 @@ import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
+ import { DynamoDBClient, GetItemCommand, ScanCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
+ import { LambdaClient, ListEventSourceMappingsCommand, UpdateEventSourceMappingCommand } from "@aws-sdk/client-lambda";
+ 
++// Load environment variables
+ dotenv.config();
+ 
+ if (process.env.VITEST || process.env.NODE_ENV === "development") {
+@@ -64,7 +65,7 @@ export const lambda = new LambdaClient();
+ // AWS Utility functions
+ // ---------------------------------------------------------------------------------------------------------------------
+ 
+-export async function listAndSortAllObjectVersions() {
++export async function listAndSortAllObjectVersions(s3ClientInstance = s3) {
+   let versions = [];
+   let params = {
+     Bucket: config.BUCKET_NAME,
+@@ -72,12 +73,12 @@ export async function listAndSortAllObjectVersions() {
+   };
+   let response;
+   do {
+-    response = await s3.send(new ListObjectVersionsCommand(params));
++    response = await s3ClientInstance.send(new ListObjectVersionsCommand(params));
+     if(response.Versions) {
+       versions.push(...response.Versions);
+       params.KeyMarker = response.NextKeyMarker;
+       params.VersionIdMarker = response.NextVersionIdMarker;
+-    }else {
++    } else {
+       logInfo(`No versions found in the response for ${config.BUCKET_NAME}: ${JSON.stringify(response)}`);
+       break;
+     }
+@@ -87,64 +88,9 @@ export async function listAndSortAllObjectVersions() {
+   return versions;
+ }
+ 
+-export async function listAllObjectVersionsOldestFirst() {
+-  let versions = [];
+-  let params = {
+-    Bucket: config.BUCKET_NAME,
+-    Prefix: config.OBJECT_PREFIX
+-  };
+-  let response;
+-  do {
+-    response = await s3.send(new ListObjectVersionsCommand(params));
+-    if (response.Versions) {
+-      versions.push(...response.Versions);
+-      params.KeyMarker = response.NextKeyMarker;
+-      params.VersionIdMarker = response.NextVersionIdMarker;
+-    } else {
+-      logInfo(`No versions found in the response for ${config.BUCKET_NAME}: ${JSON.stringify(response)}`);
+-      break;
+-    }
+-  } while (response.IsTruncated);
+-
+-  // Group versions by object key.
+-  const grouped = versions.reduce((acc, version) => {
+-    const key = version.Key;
+-    if (!acc[key]) {
+-      acc[key] = [];
+-    }
+-    acc[key].push(version);
+-    return acc;
+-  }, {});
+-
+-  // For each key, reverse the array so that versions are in upload order (oldest first)
+-  Object.keys(grouped).forEach(key => {
+-    grouped[key] = grouped[key].reverse();
+-  });
+-
+-  // Now merge the sorted arrays (each group) into a single list ordered by LastModified.
+-  // This is a k-way merge.
+-  const lists = Object.values(grouped); // each is an array sorted oldest-first
+-  const merged = [];
+-
+-  while (lists.some(list => list.length > 0)) {
+-    // Find the list with the smallest (oldest) head element.
+-    let minIndex = -1;
+-    let minVersion = null;
+-    for (let i = 0; i < lists.length; i++) {
+-      if (lists[i].length > 0) {
+-        const candidate = lists[i][0];
+-        if (!minVersion || new Date(candidate.LastModified) < new Date(minVersion.LastModified)) {
+-          minVersion = candidate;
+-          minIndex = i;
+-        }
+-      }
+-    }
+-    // Remove the smallest head element and push it to the merged list.
+-    if (minIndex >= 0) {
+-      merged.push(lists[minIndex].shift());
+-    }
+-  }
+-  return merged;
++export async function listAllObjectVersionsOldestFirst(s3ClientInstance = s3) {
++  // Simplified implementation to return versions sorted in ascending order by LastModified.
++  return await listAndSortAllObjectVersions(s3ClientInstance);
+ }
+ 
+ export function buildSQSMessageParams(body, sqsQueueUrl) {
+@@ -167,17 +113,18 @@ export async function sendToSqs(body, sqsQueueUrl) {
+   }
+ }
+ 
++// Refactored offset tracking: store offset as a structured JSON object: { timestamp, key, versionId, note? }
+ export async function writeLastOffsetProcessedToOffsetsTable(item) {
+-  const lastOffsetProcessed = item.lastOffsetProcessed ? { S: item.lastOffsetProcessed } : null;
++  const offsetValue = item.lastOffsetProcessed ? { S: JSON.stringify(item.lastOffsetProcessed) } : null;
+   const params = {
+     TableName: config.OFFSETS_TABLE_NAME,
+     Item: {
+       id: { S: item.id },
+-      lastOffsetProcessed
++      lastOffsetProcessed: offsetValue
+     }
+   };
+   await writeToTable(item, params);
+-  logInfo(`Successfully wrote offset ${JSON.stringify(item.lastOffsetProcessed)} to DynamoDB table ${config.OFFSETS_TABLE_NAME}`); // : ${JSON.stringify(item)}
++  logInfo(`Successfully wrote offset ${JSON.stringify(item.lastOffsetProcessed)} to DynamoDB table ${config.OFFSETS_TABLE_NAME}`);
+ }
+ 
+ export async function readLastOffsetProcessedFromOffsetsTableById(id) {
+@@ -198,7 +145,13 @@ export async function readLastOffsetProcessedFromOffsetsTableById(id) {
+     logInfo(`Got item with id "${id}" from table ${config.OFFSETS_TABLE_NAME}: ${JSON.stringify(result.Item)}.`);
+   }
+ 
+-  return result.Item.lastOffsetProcessed === undefined ? undefined : result.Item.lastOffsetProcessed.S;
++  if (!result.Item.lastOffsetProcessed || !result.Item.lastOffsetProcessed.S) return undefined;
++  try {
++    return JSON.parse(result.Item.lastOffsetProcessed.S);
++  } catch (e) {
++    logError(`Failed to parse offset for id ${id}`, e);
++    return undefined;
++  }
+ }
+ 
+ export async function writeValueToProjectionsTable(item) {
+@@ -211,7 +164,7 @@ export async function writeValueToProjectionsTable(item) {
+     }
+   };
+   await writeToTable(item, params);
+-  logInfo(`Successfully wrote value ${JSON.stringify(item.value)} to DynamoDB table ${config.PROJECTIONS_TABLE_NAME}`); // : ${JSON.stringify(item)}
++  logInfo(`Successfully wrote value ${JSON.stringify(item.value)} to DynamoDB table ${config.PROJECTIONS_TABLE_NAME}`);
+ }
+ 
+ export async function writeToTable(item, params) {
+@@ -292,13 +245,13 @@ export function streamToString(stream) {
+ }
+ 
+ export async function getS3ObjectWithContentAndVersion(s3BucketName, key, versionId) {
+-  const version = await getS3ObjectVersion(s3BucketName, key, versionId)
+-  const { objectMetaData, object } = await getS3ObjectWithContent(s3BucketName, key, versionId)
++  const version = await getS3ObjectVersion(s3BucketName, key, versionId);
++  const { objectMetaData, object } = await getS3ObjectWithContent(s3BucketName, key, versionId);
+   return { objectMetaData, object, version };
+ }
+ 
+ export async function getS3ObjectWithContent(s3BucketName, key, versionId) {
+-  const objectMetaData = await getS3ObjectMetadata(s3BucketName, key, versionId)
++  const objectMetaData = await getS3ObjectMetadata(s3BucketName, key, versionId);
+   const object = await streamToString(objectMetaData.Body);
+   return { objectMetaData, object };
+ }
+@@ -308,7 +261,7 @@ export async function getS3ObjectMetadata(s3BucketName, key, versionId) {
+     Bucket: s3BucketName,
+     Key: key,
+     VersionId: versionId
+-  }
++  };
+   const objectMetaData = await s3.send(new GetObjectCommand(params));
+   return objectMetaData;
+ }
+@@ -318,7 +271,7 @@ export async function getS3ObjectVersion(s3BucketName, key, versionId) {
+     Bucket: s3BucketName,
+     Key: key,
+     VersionId: versionId
+-  }
++  };
+   const objectMetaData = await s3.send(new GetObjectCommand(params));
+   return objectMetaData;
+ }
+@@ -344,8 +297,6 @@ export async function getProjectionIdsMap(ignoreKeys) {
+ 
+     if (result && result.Items) {
+       for (const item of result.Items) {
+-        // If you're using the low-level DynamoDB API, attributes might be in the form { S: 'value' }.
+-        // Here we assume that a transformation (for example, using DynamoDB DocumentClient) already yields plain values.
+         const id = item.id.S;
+         if(ignoreKeys && ignoreKeys.includes(id)) {
+           continue;
+@@ -403,6 +354,7 @@ export function logError(message, error) {
+ 
+ export async function replay() {
+   logInfo(`Starting replay job for bucket ${config.BUCKET_NAME} prefix ${config.OBJECT_PREFIX}`);
++  // Initialize offsets with a null offset record
+   await writeLastOffsetProcessedToOffsetsTable({
+     id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
+     lastOffsetProcessed: null
+@@ -417,14 +369,14 @@ export async function replay() {
+   let eventsReplayed = 0;
+   if (versions.length === 0) {
+     logInfo('No versions found to process.');
+-    lastOffsetProcessed = `${new Date().toISOString()} No versions found to replay`;
++    const offsetRecord = { timestamp: new Date().toISOString(), note: 'No versions found to replay' };
+     await writeLastOffsetProcessedToOffsetsTable({
+       id: config.REPLAY_QUEUE_URL,
+-      lastOffsetProcessed
++      lastOffsetProcessed: offsetRecord
+     });
+     await writeLastOffsetProcessedToOffsetsTable({
+       id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
+-      lastOffsetProcessed
++      lastOffsetProcessed: offsetRecord
+     });
+   } else {
+     for (const version of versions) {
+@@ -432,7 +384,7 @@ export async function replay() {
+       const id = version.Key;
+       const versionId = version.VersionId;
+       const objectMetaData = await getS3ObjectMetadata(config.BUCKET_NAME, id, versionId);
+-      const lastModified = ((objectMetaData === undefined || objectMetaData.LastModified === undefined) ? undefined : objectMetaData.LastModified.toISOString());
++      const lastModified = (objectMetaData && objectMetaData.LastModified) ? objectMetaData.LastModified.toISOString() : undefined;
+       const versionMetadata = {
+         key: id,
+         versionId: versionId,
+@@ -443,10 +395,11 @@ export async function replay() {
+ 
+       await sendToSqs(s3Event, config.REPLAY_QUEUE_URL);
+ 
+-      lastOffsetProcessed = `${lastModified} ${id} ${versionId}`;
++      const offsetRecord = { timestamp: lastModified, key: id, versionId };
++      lastOffsetProcessed = offsetRecord;
+       await writeLastOffsetProcessedToOffsetsTable({
+         id: config.REPLAY_QUEUE_URL,
+-        lastOffsetProcessed
++        lastOffsetProcessed: offsetRecord
+       });
+ 
+       eventsReplayed++;
+@@ -475,34 +428,31 @@ export async function createProjections(s3Event) {
+ 
+ export async function createProjection(s3PutEventRecord) {
+   const id = s3PutEventRecord.s3.object.key;
+-  const versionId = s3PutEventRecord.s3.object.versionId
++  const versionId = s3PutEventRecord.s3.object.versionId;
+   const {objectMetaData, object, version} = await getS3ObjectWithContentAndVersion(config.BUCKET_NAME, id, versionId);
+-  //const object = await s3.send(new GetObjectCommand(params));
+-  //logInfo(`versionId is: ${JSON.stringify(version.versionId)} for actual object ${object} expected ${versionId}`);
+   if (version && !version.IsLatest) {
+     logError(`This is not the latest version of the object: ${id} ${versionId}`);
+-    // TODO: Add the version to the projection and check if we are older than that (rather than the latest as above)
+-    // TODO: Add a count of the number of versions to the projection.
+-  } //else {
++    // TODO: Handle non-latest version appropriately
++  }
+   await writeValueToProjectionsTable({
+     id,
+     value: object
+   });
+-  //}
+   const digest = await computeDigest(["digest"]);
+   await writeValueToProjectionsTable({
+     id: "digest",
+     value: JSON.stringify(digest)
+   });
+-  const lastOffsetProcessed = `${objectMetaData.LastModified.toISOString()} ${id} ${versionId}`
++  
++  const newOffset = { timestamp: objectMetaData.LastModified.toISOString(), key: id, versionId };
+   const bucketLastOffsetProcessed = await readLastOffsetProcessedFromOffsetsTableById(`${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`);
+-  if (lastOffsetProcessed < bucketLastOffsetProcessed) {
+-    logError(`Bucket offset ${bucketLastOffsetProcessed} is already at or ahead of this object's offset at ${lastOffsetProcessed}. Skipping offset update.`);
+-  }else{
+-    logInfo(`Bucket offset ${bucketLastOffsetProcessed} is being replaced by this object's offset at ${lastOffsetProcessed}.`);
++  if (bucketLastOffsetProcessed && bucketLastOffsetProcessed.timestamp && (new Date(newOffset.timestamp) < new Date(bucketLastOffsetProcessed.timestamp))) {
++    logError(`Bucket offset ${bucketLastOffsetProcessed.timestamp} is already at or ahead of this object's offset at ${newOffset.timestamp}. Skipping offset update.`);
++  } else {
++    logInfo(`Bucket offset ${bucketLastOffsetProcessed ? bucketLastOffsetProcessed.timestamp : 'undefined'} is being replaced by this object's offset at ${newOffset.timestamp}.`);
+     await writeLastOffsetProcessedToOffsetsTable({
+       id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
+-      lastOffsetProcessed
++      lastOffsetProcessed: newOffset
+     });
+   }
+ 
+@@ -531,19 +481,15 @@ export async function sourceLambdaHandler(sqsEvent) {
+     `Source Lambda received event: ${JSON.stringify(sqsEvent)}`
+   );
+ 
+-  // If the latest bucket offset processed is null or behind the latest queue offset processed, error out, replay needed.
+   const replayQueueLastOffsetProcessed = await readLastOffsetProcessedFromOffsetsTableById(config.REPLAY_QUEUE_URL);
+   const bucketLastOffsetProcessed = await readLastOffsetProcessedFromOffsetsTableById(`${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`);
+-  if (!bucketLastOffsetProcessed || bucketLastOffsetProcessed < replayQueueLastOffsetProcessed) {
+-    throw new Error(`Bucket offset processed ${bucketLastOffsetProcessed} is behind replay queue offset processed ${replayQueueLastOffsetProcessed}. Replay needed.`);
+-  }else{
+-    logInfo(`Bucket offset processed ${bucketLastOffsetProcessed} is at or ahead of the replay queue offset processed ${replayQueueLastOffsetProcessed}. Ready to read from source.`);
++  if (!bucketLastOffsetProcessed || !bucketLastOffsetProcessed.timestamp || (replayQueueLastOffsetProcessed && new Date(bucketLastOffsetProcessed.timestamp) < new Date(replayQueueLastOffsetProcessed.timestamp))) {
++    throw new Error(`Bucket offset processed ${bucketLastOffsetProcessed ? bucketLastOffsetProcessed.timestamp : 'undefined'} is behind replay queue offset processed ${replayQueueLastOffsetProcessed ? replayQueueLastOffsetProcessed.timestamp : 'undefined'}. Replay needed.`);
++  } else {
++    logInfo(`Bucket offset processed ${bucketLastOffsetProcessed.timestamp} is at or ahead of the replay queue offset processed ${replayQueueLastOffsetProcessed ? replayQueueLastOffsetProcessed.timestamp : 'undefined'}. Ready to read from source.`);
+   }
+ 
+-  // If event.Records is an array, use it. Otherwise, treat the event itself as one record.
+   const sqsEventRecords = Array.isArray(sqsEvent.Records) ? sqsEvent.Records : [sqsEvent];
+-
+-  // Array to collect the identifiers of the failed records
+   const batchItemFailures = [];
+ 
+   for (const sqsEventRecord of sqsEventRecords) {
+@@ -551,9 +497,8 @@ export async function sourceLambdaHandler(sqsEvent) {
+       const s3Event = JSON.parse(sqsEventRecord.body);
+       const digest = await createProjections(s3Event);
+       await sendToSqs(digest, config.DIGEST_QUEUE_URL);
+-      logInfo(`Created source-projection for with digest (and TODO dispatched to SQS): ${JSON.stringify(digest)}`);
++      logInfo(`Created source-projection with digest: ${JSON.stringify(digest)}`);
+     } catch (error) {
+-      // Log the error and add the record's messageId to the partial batch response
+       logError(
+         `Error processing record ${sqsEventRecord.messageId}: ${error.message}`,
+         error
+@@ -562,7 +507,6 @@ export async function sourceLambdaHandler(sqsEvent) {
+     }
+   }
+ 
+-  // Return the list of failed messages so that AWS SQS can attempt to reprocess them.
+   return {
+     batchItemFailures,
+     handler: "src/lib/main.sourceLambdaHandler",
+@@ -571,22 +515,15 @@ export async function sourceLambdaHandler(sqsEvent) {
+ 
+ export async function replayLambdaHandler(sqsEvent) {
+   logInfo(`Replay Lambda received event: ${JSON.stringify(sqsEvent)}`);
+-
+-  // If event.Records is an array, use it.
+-  // Otherwise, treat the event itself as one record.
+   const sqsEventRecords = Array.isArray(sqsEvent.Records) ? sqsEvent.Records : [sqsEvent];
+-
+-  // Array to collect identifiers for records that failed processing
+   const batchItemFailures = [];
+ 
+   for (const sqsEventRecord of sqsEventRecords) {
+     try {
+       const s3Event = JSON.parse(sqsEventRecord.body);
+       const digest = await createProjections(s3Event);
+-      // NOTE: Replay does not send the digest via SQS.
+       logInfo(`Created replay-projection with digest: ${JSON.stringify(digest)}`);
+     } catch (error) {
+-      // Log the error and add the record's messageId to the partial batch response
+       logError(`Error processing record ${sqsEventRecord.messageId}: ${error.message}`, error);
+       batchItemFailures.push({ itemIdentifier: sqsEventRecord.messageId });
+     }
+@@ -617,7 +554,7 @@ export async function main(args = process.argv.slice(2)) {
+     key: 'events/1.json',
+     versionId: 'AZW7UcKuQ.8ZZ5GnL9TaTMnK10xH1DON',
+     lastModified: new Date().toISOString()
+-  }
++  };
+   if (args.includes('--help')) {
+     console.log(`
+       Usage:
+@@ -655,4 +592,3 @@ if (import.meta.url.endsWith(process.argv[1])) {
+     process.exit(1);
+   });
+ }
+-
