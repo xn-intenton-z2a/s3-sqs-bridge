@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>agentic-lib</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; background-color: #f9f9f9; color: #333; }
+    header { padding-bottom: 1em; border-bottom: 2px solid #ccc; margin-bottom: 1em; }
+    h1 { font-size: 2em; }
+    section { margin-bottom: 1.5em; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 0.5em 0; }
+    .label { font-weight: bold; }
+    footer { margin-top: 2em; font-size: 0.9em; color: #777; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>agentic-lib</h1>
+    <p><a href="https://github.com/xn-intenton-z2a/agentic-lib">repository</a> - <a href="https://xn-intenton-z2a.github.io/agentic-lib/latest.html">latest stats</a> - <a href="https://xn-intenton-z2a.github.io/agentic-lib/all.html">all stats</a></p>
+  </header>
+  <section>
+    <h1 class="md-github"><a class="md-github__anchor" name="s3-sqs-bridge-versioned-amazon-s3-object-put-event-replay-capable-queuing-to-sqs" href="#s3-sqs-bridge-versioned-amazon-s3-object-put-event-replay-capable-queuing-to-sqs"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>s3-sqs-bridge (Versioned Amazon S3 Object Put Event replay capable queuing to SQS)</h1>
+<p class="md-github">This repository deploys an AWS CloudFormation Stack to create a replay capable event queue. The solution used AWS SQS
+for message delivery and AWS Lambda for real-time processing with AWS DynamoDB for durable offset tracking. Storage
+is an S3 bucket with object versioning enabled and a Put event can be processed in read-time or replayed in their
+original order.</p>
+<p class="md-github"><code class="md-github">s3-sqs-bridge</code> is built to run in both AWS and local environments (via Docker Compose with MinIO).</p>
+<p class="md-github">This is an offshoot from another project where I began to set up <a href="https://github.com/tansu-io/tansu" class="md-github">tansu io</a>, but S3 was all I needed.</p>
+<p class="md-github">A tangent of interest might be <a href="S3_OOTB_BROKER.md" class="md-github">s3-ootb-broker</a> which is a messaging system and IRC style chat system.</p>
+<hr class="md-github">
+<h2 class="md-github"><a class="md-github__anchor" name="key-features" href="#key-features"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Key Features</h2>
+<ul class="md-github">
+<li class="md-github"><strong class="md-github">Storage:</strong> Uses an AWS S3 bucket with versioning enabled to persist events.</li>
+<li class="md-github"><strong class="md-github">Event replay:</strong> A replay job replays S3 object versions in chronological order.</li>
+<li class="md-github"><strong class="md-github">Real-Time Processing:</strong> Forwards S3 events to an SQS queue.</li>
+<li class="md-github"><strong class="md-github">Low Idle Cost:</strong> Designed to run on Fargate Spot with zero desired instances until needed.</li>
+</ul>
+<hr class="md-github">
+<h2 class="md-github"><a class="md-github__anchor" name="project-structure" href="#project-structure"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Project Structure</h2>
+<p class="md-github">The key components of the project are organized as follows:</p>
+<pre class="md-github"><code class="md-github language-text">.
+├── Dockerfile
+├── package.json
+├── cdk.json
+├── pom.xml
+├── compose.yml
+├── entrypoint.sh
+├── src/lib/main.js
+├── aws/main/java/com/intention/S3SqsBridge/S3SqsBridgeApp.java
+├── aws/main/java/com/intention/S3SqsBridge/S3SqsBridgeStack.java
+├── aws/test/java/com/intentïon/S3SqsBridge/S3SqsBridgeStackTest.java
+└── tests/unit/main.test.js
+</code></pre>
+<p class="md-github">Additional files include GitHub workflows (for CI/CD and maintenance scripts) and various helper scripts under the <code class="md-github">scripts/</code> directory.</p>
+<hr class="md-github">
+<h2 class="md-github"><a class="md-github__anchor" name="getting-started" href="#getting-started"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Getting Started</h2>
+<h3 class="md-github"><a class="md-github__anchor" name="prerequisites" href="#prerequisites"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Prerequisites</h3>
+<ul class="md-github">
+<li class="md-github"><a href="https://nodejs.org/" class="md-github">Node.js v20+</a></li>
+<li class="md-github"><a href="https://aws.amazon.com/cli/" class="md-github">AWS CLI</a> (configured with sufficient permissions)</li>
+<li class="md-github"><a href="https://openjdk.java.net/" class="md-github">Java JDK 11+</a></li>
+<li class="md-github"><a href="https://maven.apache.org/" class="md-github">Apache Maven</a></li>
+<li class="md-github"><a href="https://docs.aws.amazon.com/cdk/v2/guide/home.html" class="md-github">AWS CDK 2.x</a> (your account should be CDK bootstrapped)</li>
+<li class="md-github"><a href="https://www.docker.com/get-started" class="md-github">Docker</a></li>
+<li class="md-github"><a href="https://docs.docker.com/compose/" class="md-github">Docker Compose</a></li>
+</ul>
+<hr class="md-github">
+<h2 class="md-github"><a class="md-github__anchor" name="local-development-environment" href="#local-development-environment"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Local Development Environment</h2>
+<h3 class="md-github"><a class="md-github__anchor" name="clone-the-repository" href="#clone-the-repository"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Clone the Repository</h3>
+<pre class="md-github"><code class="md-github language-bash">
+git clone https://github.com/your-username/s3-sqs-bridge.git
+cd s3-sqs-bridge
+</code></pre>
+<h3 class="md-github"><a class="md-github__anchor" name="install-nodejs-dependencies-and-test" href="#install-nodejs-dependencies-and-test"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Install Node.js dependencies and test</h3>
+<pre class="md-github"><code class="md-github language-bash">
+npm install
+npm test
+</code></pre>
+<h3 class="md-github"><a class="md-github__anchor" name="build-and-test-the-java-application" href="#build-and-test-the-java-application"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Build and test the Java Application</h3>
+<pre class="md-github"><code class="md-github language-bash">./mvnw clean package
+</code></pre>
+<h2 class="md-github"><a class="md-github__anchor" name="setup-for-aws-cdk" href="#setup-for-aws-cdk"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Setup for AWS CDK</h2>
+<p class="md-github">You'll need to have run <code class="md-github">cdk bootstrap</code> to set up the environment for the CDK. This is a one-time setup per AWS account and region.
+General administrative permissions are required to run this command. (NPM installed the CDK.)</p>
+<p class="md-github">In this example for user <code class="md-github">antony-local-user</code> and <code class="md-github">s3-sqs-bridge-github-actions-role</code> we would add the following
+trust policy so that they can assume the role: <code class="md-github">s3-sqs-bridge-deployment-role</code>:</p>
+<pre class="md-github"><code class="md-github language-json">{
+	&quot;Version&quot;: &quot;2012-10-17&quot;,
+	&quot;Statement&quot;: [
+		{
+			&quot;Sid&quot;: &quot;Statement1&quot;,
+			&quot;Effect&quot;: &quot;Allow&quot;,
+			&quot;Action&quot;: [&quot;sts:AssumeRole&quot;, &quot;sts:TagSession&quot;],
+			&quot;Resource&quot;: [&quot;arn:aws:iam::541134664601:role/s3-sqs-bridge-deployment-role&quot;]
+		}
+	]
+}
+</code></pre>
+<p class="md-github">The <code class="md-github">s3-sqs-bridge-github-actions-role</code> also needs the following trust entity to allow GitHub Actions to assume the role:</p>
+<pre class="md-github"><code class="md-github language-json">{
+    &quot;Version&quot;: &quot;2012-10-17&quot;,
+    &quot;Statement&quot;: [
+        {
+            &quot;Effect&quot;: &quot;Allow&quot;,
+            &quot;Principal&quot;: {
+                &quot;Federated&quot;: &quot;arn:aws:iam::541134664601:oidc-provider/token.actions.githubusercontent.com&quot;
+            },
+            &quot;Action&quot;: &quot;sts:AssumeRoleWithWebIdentity&quot;,
+            &quot;Condition&quot;: {
+                &quot;StringEquals&quot;: {
+                    &quot;token.actions.githubusercontent.com:aud&quot;: &quot;sts.amazonaws.com&quot;
+                },
+                &quot;StringLike&quot;: {
+                    &quot;token.actions.githubusercontent.com:sub&quot;: &quot;repo:xn-intenton-z2a/s3-sqs-bridge:*&quot;
+                }
+            }
+        }
+    ]
+}
+</code></pre>
+<p class="md-github">Create the IAM role with the necessary permissions to assume role from your authenticated user:</p>
+<pre class="md-github"><code class="md-github language-bash">
+cat &lt;&lt;'EOF' &gt; s3-sqs-bridge-deployment-trust-policy.json
+{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Principal&quot;: {
+        &quot;AWS&quot;: [
+          &quot;arn:aws:iam::541134664601:user/antony-local-user&quot;,
+          &quot;arn:aws:iam::541134664601:role/s3-sqs-bridge-github-actions-role&quot;
+        ]
+      },
+      &quot;Action&quot;: &quot;sts:AssumeRole&quot;
+    }
+  ]
+}
+EOF
+aws iam create-role \
+  --role-name s3-sqs-bridge-deployment-role \
+  --assume-role-policy-document file://s3-sqs-bridge-deployment-trust-policy.json
+</code></pre>
+<p class="md-github">Add the necessary permissions to deploy <code class="md-github">s3-sqs-bridge</code>:</p>
+<pre class="md-github"><code class="md-github language-bash">
+cat &lt;&lt;'EOF' &gt; s3-sqs-bridge-deployment-permissions-policy.json
+{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Action&quot;: [
+        &quot;cloudformation:*&quot;,
+        &quot;iam:*&quot;,
+        &quot;s3:*&quot;,
+        &quot;cloudtrail:*&quot;,
+        &quot;logs:*&quot;,
+        &quot;events:*&quot;,
+        &quot;lambda:*&quot;,
+        &quot;dynamodb:*&quot;,
+        &quot;sqs:*&quot;,
+        &quot;sts:AssumeRole&quot;
+      ],
+      &quot;Resource&quot;: &quot;*&quot;
+    }
+  ]
+}
+EOF
+aws iam put-role-policy \
+  --role-name s3-sqs-bridge-deployment-role \
+  --policy-name s3-sqs-bridge-deployment-permissions-policy \
+  --policy-document file://s3-sqs-bridge-deployment-permissions-policy.json
+</code></pre>
+<p class="md-github">Assume the deployment role:</p>
+<pre class="md-github"><code class="md-github language-bash">
+ROLE_ARN=&quot;arn:aws:iam::541134664601:role/s3-sqs-bridge-deployment-role&quot;
+SESSION_NAME=&quot;s3-sqs-bridge-deployment-session-local&quot;
+ASSUME_ROLE_OUTPUT=$(aws sts assume-role --role-arn &quot;$ROLE_ARN&quot; --role-session-name &quot;$SESSION_NAME&quot; --output json)
+if [ $? -ne 0 ]; then
+  echo &quot;Error: Failed to assume role.&quot;
+  exit 1
+fi
+export AWS_ACCESS_KEY_ID=$(echo &quot;$ASSUME_ROLE_OUTPUT&quot; | jq -r '.Credentials.AccessKeyId')
+export AWS_SECRET_ACCESS_KEY=$(echo &quot;$ASSUME_ROLE_OUTPUT&quot; | jq -r '.Credentials.SecretAccessKey')
+export AWS_SESSION_TOKEN=$(echo &quot;$ASSUME_ROLE_OUTPUT&quot; | jq -r '.Credentials.SessionToken')
+EXPIRATION=$(echo &quot;$ASSUME_ROLE_OUTPUT&quot; | jq -r '.Credentials.Expiration')
+echo &quot;Assumed role successfully. Credentials valid until: $EXPIRATION&quot;
+</code></pre>
+<p class="md-github">Output:</p>
+<pre class="md-github"><code class="md-github language-log">Assumed role successfully. Credentials valid until: 2025-03-25T02:27:18+00:00
+</code></pre>
+<p class="md-github">Check the session:</p>
+<pre class="md-github"><code class="md-github language-bash">
+aws sts get-caller-identity
+</code></pre>
+<p class="md-github">Output:</p>
+<pre class="md-github"><code class="md-github language-json">{
+  &quot;UserId&quot;: &quot;AROAX37RDWOM7ZHORNHKD:3-sqs-bridge-deployment-session&quot;,
+  &quot;Account&quot;: &quot;541134664601&quot;,
+  &quot;Arn&quot;: &quot;arn:aws:sts::541134664601:assumed-role/s3-sqs-bridge-deployment-role/3-sqs-bridge-deployment-session&quot;
+}
+</code></pre>
+<p class="md-github">Check the permissions of the role:</p>
+<pre class="md-github"><code class="md-github language-bash">
+aws iam list-role-policies \
+  --role-name s3-sqs-bridge-deployment-role
+</code></pre>
+<p class="md-github">Output (the policy we created above):</p>
+<pre class="md-github"><code class="md-github language-json">{
+  &quot;PolicyNames&quot;: [
+    &quot;s3-sqs-bridge-deployment-permissions-policy&quot;
+  ]
+}
+</code></pre>
+<p class="md-github">An example of the GitHub Actions role being assumed in a GitHub Actions Workflow:</p>
+<pre class="md-github"><code class="md-github language-yaml">      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::541134664601:role/s3-sqs-bridge-deployment-role
+          aws-region: eu-west-2
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - run: npm install -g aws-cdk
+      - run: aws s3 ls --region eu-west-2
+</code></pre>
+<h2 class="md-github"><a class="md-github__anchor" name="deployment-to-aws" href="#deployment-to-aws"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Deployment to AWS</h2>
+<p class="md-github">See also:</p>
+<ul class="md-github">
+<li class="md-github">local running using <a href="LOCALSTACK.md" class="md-github">Localstack</a>.</li>
+<li class="md-github">Debugging notes for the AWS deployment here <a href="DEBUGGING.md" class="md-github">DEBUGGING</a>.</li>
+</ul>
+<p class="md-github">Package the CDK, deploy the CDK stack which rebuilds the Docker image, and deploy the AWS infrastructure:</p>
+<pre class="md-github"><code class="md-github language-bash">
+./mvnw clean package
+</code></pre>
+<p class="md-github">Maven build output:</p>
+<pre class="md-github"><code class="md-github language-log">...truncated...
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- maven-jar-plugin:2.4:jar (default-jar) @ s3-sqs-bridge ---
+[INFO] Building jar: /Users/antony/projects/s3-sqs-bridge/target/s3-sqs-bridge-0.0.1.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  13.743 s
+[INFO] Finished at: 2025-03-18T22:19:37Z
+[INFO] ------------------------------------------------------------------------
+Unexpected error in background thread &quot;software.amazon.jsii.JsiiRuntime.ErrorStreamSink&quot;: java.lang.NullPointerException: Cannot read field &quot;stderr&quot; because &quot;consoleOutput&quot; is null
+</code></pre>
+<p class="md-github">(Yes... the last line, the error &quot;is a bug in the CDK, but it doesn't affect the deployment&quot;, according to Copilot.)</p>
+<p class="md-github">Destroy a previous stack and delete related log groups:</p>
+<pre class="md-github"><code class="md-github language-bash">
+npx cdk destroy
+</code></pre>
+<p class="md-github">(The commands go in separately because the CDK can be interactive.)</p>
+<pre class="md-github"><code class="md-github language-bash">
+aws logs delete-log-group \
+  --log-group-name &quot;/aws/s3/s3-sqs-bridge-bucket&quot;
+aws logs delete-log-group \
+  --log-group-name &quot;/aws/lambda/s3-sqs-bridge-replay-batch-function&quot;
+aws logs delete-log-group \
+  --log-group-name &quot;/aws/lambda/s3-sqs-bridge-replay-function&quot;
+aws logs delete-log-group \
+  --log-group-name &quot;/aws/lambda/s3-sqs-bridge-source-function&quot;
+</code></pre>
+<p class="md-github">Deploys the AWS infrastructure including an App Runner service, an SQS queue, Lambda functions, and a PostgresSQL table.</p>
+<pre class="md-github"><code class="md-github language-bash">
+npx cdk deploy
+</code></pre>
+<p class="md-github">Example output:</p>
+<pre class="md-github"><code class="md-github language-log">...truncated...
+S3SqsBridgeStack: success: Published f23b4641b15bfe521c575e572ebe41ca2c4613e3e1ea8a9c8ef816c73832cddf:current_account-current_region
+S3SqsBridgeStack: deploying... [1/1]
+S3SqsBridgeStack: creating CloudFormation changeset...
+
+ ✅  S3SqsBridgeStack
+
+✨  Deployment time: 105.48s
+
+Outputs:
+S3SqsBridgeStack.BucketArn = arn:aws:s3:::s3-sqs-bridge-bucket
+S3SqsBridgeStack.OffsetsTableArn = arn:aws:dynamodb:eu-west-2:541134664601:table/offsets
+S3SqsBridgeStack.OneOffJobLambdaArn = arn:aws:lambda:eu-west-2:541134664601:function:replayBatchLambdaHandler
+S3SqsBridgeStack.ReplayQueueUrl = https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-replay-queue
+...truncated...
+S3SqsBridgeStack.s3BucketName = s3-sqs-bridge-bucket (Source: CDK context.)
+S3SqsBridgeStack.s3ObjectPrefix = events/ (Source: CDK context.)
+S3SqsBridgeStack.s3RetainBucket = false (Source: CDK context.)
+S3SqsBridgeStack.s3UseExistingBucket = false (Source: CDK context.)
+Stack ARN:
+arn:aws:cloudformation:eu-west-2:541134664601:stack/S3SqsBridgeStack/30cf37a0-0504-11f0-b142-06193d47b789
+
+✨  Total time: 118.12s
+
+</code></pre>
+<p class="md-github">Write to S3 (2 keys, 2 times each, interleaved):</p>
+<pre class="md-github"><code class="md-github language-bash">
+aws s3 ls s3-sqs-bridge-bucket/events/
+for value in $(seq 1 2); do
+  for id in $(seq 1 2); do
+    echo &quot;{\&quot;id\&quot;: \&quot;${id?}\&quot;, \&quot;value\&quot;: \&quot;$(printf &quot;%010d&quot; &quot;${value?}&quot;)\&quot;}&quot; &gt; &quot;${id?}.json&quot;
+    aws s3 cp &quot;${id?}.json&quot; s3://s3-sqs-bridge-bucket/events/&quot;${id?}.json&quot;
+  done
+done
+aws s3 ls s3-sqs-bridge-bucket/events/
+</code></pre>
+<p class="md-github">Output:</p>
+<pre class="md-github"><code class="md-github">upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json    
+upload: ./1.json to s3://s3-sqs-bridge-bucket/events/1.json   
+...
+upload: ./2.json to s3://s3-sqs-bridge-bucket/events/2.json   
+2025-03-19 23:47:07         31 1.json
+2025-03-19 23:52:12         31 2.json
+</code></pre>
+<p class="md-github">List the versions of all s3 objects:</p>
+<pre class="md-github"><code class="md-github language-bash">
+aws s3api list-object-versions \
+  --bucket s3-sqs-bridge-bucket \
+  --prefix events/ \
+  | jq -r '.Versions[] | &quot;\(.LastModified) \(.Key) \(.VersionId) \(.IsLatest)&quot;' \
+  | head -5 \
+  | tail -r
+</code></pre>
+<p class="md-github">Output (note grouping by key, requiring a merge by LastModified to get the Put Event order):</p>
+<pre class="md-github"><code class="md-github language-log">2025-03-23T02:37:10+00:00 events/2.json NGxS.PCWdSlxMPVIRreb_ra_WsTjc4L5 false
+2025-03-23T02:37:12+00:00 events/2.json 7SDSiqco1dgFGKZmRk8bjSoyi5eD5ZLW true
+2025-03-23T02:37:09+00:00 events/1.json cxY1weJ62JNq4DvqrgfvIWKJEYDQinly false
+2025-03-23T02:37:11+00:00 events/1.json wHEhP8RdXTD8JUsrrUlMfSANzm7ahDlv true
+</code></pre>
+<p class="md-github">Check the projections table:</p>
+<pre class="md-github"><code class="md-github language-bash">
+aws dynamodb scan \
+  --table-name s3-sqs-bridge-projections-table \
+  --output json \
+  | jq --compact-output '.Items[] | with_entries(if (.value | has(&quot;S&quot;)) then .value = .value.S else . end)' \
+  | tail --lines=5
+</code></pre>
+<p class="md-github">Output:</p>
+<pre class="md-github"><code class="md-github language-json">{&quot;id&quot;:&quot;events/1.json&quot;,&quot;value&quot;:&quot;{\&quot;id\&quot;: \&quot;1\&quot;, \&quot;value\&quot;: \&quot;0000000002\&quot;}\n&quot;}
+{&quot;id&quot;:&quot;events/2.json&quot;,&quot;value&quot;:&quot;{\&quot;id\&quot;: \&quot;2\&quot;, \&quot;value\&quot;: \&quot;0000000002\&quot;}\n&quot;}
+</code></pre>
+<p class="md-github">Count the attributes on the digest queue:</p>
+<pre class="md-github"><code class="md-github language-bash">
+aws sqs get-queue-attributes \
+  --queue-url https://sqs.eu-west-2.amazonaws.com/541134664601/s3-sqs-bridge-digest-queue \
+  --attribute-names ApproximateNumberOfMessages
+</code></pre>
+<p class="md-github">Output:</p>
+<pre class="md-github"><code class="md-github language-json">{
+  &quot;Attributes&quot;: {
+    &quot;ApproximateNumberOfMessages&quot;: &quot;4&quot;
+  }
+}
+</code></pre>
+<hr class="md-github">
+<h2 class="md-github"><a class="md-github__anchor" name="contributing" href="#contributing"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Contributing</h2>
+<p class="md-github">We welcome contributions from the community. Please review the <a href="CONTRIBUTING.md" class="md-github">CONTRIBUTING.md</a> file for guidelines on:</p>
+<ul class="md-github">
+<li class="md-github">JavaScript using Node 20 with ESM</li>
+</ul>
+<hr class="md-github">
+<h2 class="md-github"><a class="md-github__anchor" name="license" href="#license"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>License</h2>
+<p class="md-github">Distributed under the <a href="LICENSE" class="md-github">MIT License</a>.</p>
+<hr class="md-github">
+
+  </section>
+  <footer>
+    <p>Generated on 2025-04-06T22:03:28.750Z</p>
+  </footer>
+</body>
+</html>
