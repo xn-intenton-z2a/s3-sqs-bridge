@@ -65,7 +65,7 @@ export const lambda = new LambdaClient();
 // AWS Utility functions
 // ---------------------------------------------------------------------------------------------------------------------
 
-export async function listAndSortAllObjectVersions() {
+export async function listAndSortAllObjectVersions(s3ClientInstance = s3) {
   let versions = [];
   let params = {
     Bucket: config.BUCKET_NAME,
@@ -73,7 +73,7 @@ export async function listAndSortAllObjectVersions() {
   };
   let response;
   do {
-    response = await s3.send(new ListObjectVersionsCommand(params));
+    response = await s3ClientInstance.send(new ListObjectVersionsCommand(params));
     if(response.Versions) {
       versions.push(...response.Versions);
       params.KeyMarker = response.NextKeyMarker;
@@ -88,9 +88,9 @@ export async function listAndSortAllObjectVersions() {
   return versions;
 }
 
-export async function listAllObjectVersionsOldestFirst() {
+export async function listAllObjectVersionsOldestFirst(s3ClientInstance = s3) {
   // Simplified implementation to return versions sorted in ascending order by LastModified.
-  return await listAndSortAllObjectVersions();
+  return await listAndSortAllObjectVersions(s3ClientInstance);
 }
 
 export function buildSQSMessageParams(body, sqsQueueUrl) {

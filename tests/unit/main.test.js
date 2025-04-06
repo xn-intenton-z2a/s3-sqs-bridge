@@ -68,6 +68,7 @@ vi.mock('@aws-sdk/client-dynamodb', () => {
 });
 
 // --- Tests Start Here ---
+
 describe('S3 SQS Bridge Main.js Tests', () => {
   beforeEach(() => {
     process.env.BUCKET_NAME = 'test-bucket';
@@ -129,9 +130,10 @@ describe('S3 SQS Bridge Main.js Tests', () => {
         { Key: 'events/2.json', VersionId: 'v3', LastModified: '2025-03-17T10:02:00Z' },
         { Key: 'events/2.json', VersionId: 'v4', LastModified: '2025-03-17T10:06:00Z' },
       ];
-      const s3Client = new (require('@aws-sdk/client-s3').S3Client)();
+      const { S3Client } = require('@aws-sdk/client-s3');
+      const s3Client = new S3Client();
       s3Client.send = vi.fn(async () => ({ Versions: mockVersions, IsTruncated: false }));
-      const merged = await listAllObjectVersionsOldestFirst();
+      const merged = await listAllObjectVersionsOldestFirst(s3Client);
       expect(merged[0].VersionId).toEqual('v1');
       expect(merged[1].VersionId).toEqual('v3');
       expect(merged[2].VersionId).toEqual('v2');
