@@ -23,30 +23,60 @@
   </header>
   <section>
     <h1 class="md-github"><a class="md-github__anchor" name="s3-sqs-bridge-versioned-amazon-s3-object-put-event-replay-capable-queuing-to-sqs" href="#s3-sqs-bridge-versioned-amazon-s3-object-put-event-replay-capable-queuing-to-sqs"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>s3-sqs-bridge (Versioned Amazon S3 Object Put Event replay capable queuing to SQS)</h1>
-<p class="md-github">This repository deploys an AWS CloudFormation Stack to create a replay capable event queue. The solution used AWS SQS
-for message delivery and AWS Lambda for real-time processing with AWS DynamoDB for durable offset tracking. Storage
-is an S3 bucket with object versioning enabled and a Put event can be processed in read-time or replayed in their
-original order.</p>
-<p class="md-github"><code class="md-github">s3-sqs-bridge</code> is built to run in both AWS and local environments (via Docker Compose with MinIO).</p>
-<p class="md-github">This is an offshoot from another project where I began to set up <a href="https://github.com/tansu-io/tansu" class="md-github">tansu io</a>, but S3 was all I needed.</p>
-<p class="md-github">A tangent of interest might be <a href="S3_OOTB_BROKER.md" class="md-github">s3-ootb-broker</a> which is a messaging system and IRC style chat system.</p>
-<p class="md-github">For instructions on how to set up the project, see the <a href="SETUP.md" class="md-github">Setup</a> document.</p>
-<hr class="md-github">
+<p class="md-github">S3 SQS Bridge integrates Amazon S3 with AWS SQS to provide versioned event replay and real-time processing using Lambda and DynamoDB for durable offset tracking. This tool supports both AWS and local deployments (with Docker Compose and MinIO).</p>
+<p class="md-github">This repository includes:</p>
+<ul class="md-github">
+<li class="md-github">AWS CloudFormation/CDK stacks for setting up necessary AWS infrastructure.</li>
+<li class="md-github">A Node.js Lambda function that processes S3 events forwarded to SQS.</li>
+<li class="md-github">A comprehensive CLI for replaying events, processing source projections, and performing health checks.</li>
+</ul>
+<p class="md-github">For the full mission statement, see <a href="MISSION.md" class="md-github">MISSION.md</a>. For contribution guidelines, please refer to <a href="CONTRIBUTING.md" class="md-github">CONTRIBUTING.md</a>. Setup instructions are provided in [SETUP.md] and licensing details in [LICENSE].</p>
+<p class="md-github">Additionally, check out the intentïon agentic-lib on GitHub: <a href="https://github.com/xn-intenton-z2a/agentic-lib" class="md-github">agentic-lib</a>.</p>
 <h2 class="md-github"><a class="md-github__anchor" name="key-features" href="#key-features"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Key Features</h2>
 <ul class="md-github">
-<li class="md-github"><strong class="md-github">Storage:</strong> Uses an AWS S3 bucket with versioning enabled to persist events.</li>
-<li class="md-github"><strong class="md-github">Event replay:</strong> A replay job replays S3 object versions in chronological order.</li>
-<li class="md-github"><strong class="md-github">Real-Time Processing:</strong> Forwards S3 events to an SQS queue.</li>
-<li class="md-github"><strong class="md-github">Low Idle Cost:</strong> Designed to run on Fargate Spot with zero desired instances until needed.</li>
+<li class="md-github"><strong class="md-github">Robust Defaults:</strong> The configuration automatically applies sensible default values for all environment variables (even in production), reducing the risk of misconfigurations.</li>
+<li class="md-github"><strong class="md-github">Event Replay:</strong> Replay S3 object versions in chronological order to rebuild state.</li>
+<li class="md-github"><strong class="md-github">Real-Time Processing:</strong> Forwards S3 events to an SQS queue for immediate processing.</li>
+<li class="md-github"><strong class="md-github">High Availability:</strong> Optimized for low cost and high scalability on AWS Fargate Spot.</li>
 </ul>
-<hr class="md-github">
+<h2 class="md-github"><a class="md-github__anchor" name="configuration" href="#configuration"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Configuration</h2>
+<p class="md-github">The application uses environment variables to configure AWS S3, SQS, and DynamoDB parameters. If these variables are not explicitly set, the following defaults are used:</p>
+<ul class="md-github">
+<li class="md-github">BUCKET_NAME: <code class="md-github">s3-sqs-bridge-bucket-test</code></li>
+<li class="md-github">OBJECT_PREFIX: <code class="md-github">events/</code></li>
+<li class="md-github">REPLAY_QUEUE_URL: <code class="md-github">http://test/000000000000/s3-sqs-bridge-replay-queue-test</code></li>
+<li class="md-github">DIGEST_QUEUE_URL: <code class="md-github">http://test/000000000000/s3-sqs-bridge-digest-queue-test</code></li>
+<li class="md-github">OFFSETS_TABLE_NAME: <code class="md-github">s3-sqs-bridge-offsets-table-test</code></li>
+<li class="md-github">PROJECTIONS_TABLE_NAME: <code class="md-github">s3-sqs-bridge-projections-table-test</code></li>
+<li class="md-github">SOURCE_LAMBDA_FUNCTION_NAME: <code class="md-github">s3-sqs-bridge-source-lambda-test</code></li>
+<li class="md-github">AWS_ENDPOINT: <code class="md-github">http://test</code></li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="usage" href="#usage"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Usage</h2>
+<h3 class="md-github"><a class="md-github__anchor" name="cli-options" href="#cli-options"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>CLI Options</h3>
+<ul class="md-github">
+<li class="md-github"><code class="md-github">--help</code>: Show usage instructions.</li>
+<li class="md-github"><code class="md-github">--source-projection</code>: Run the Lambda handler for processing source S3 events.</li>
+<li class="md-github"><code class="md-github">--replay-projection</code>: Run the Lambda handler for replayed events.</li>
+<li class="md-github"><code class="md-github">--replay</code>: Replay all object versions from S3 in order.</li>
+<li class="md-github"><code class="md-github">--healthcheck</code>: Start an HTTP health check server on port 8080.</li>
+</ul>
+<h3 class="md-github"><a class="md-github__anchor" name="running-locally" href="#running-locally"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Running Locally</h3>
+<p class="md-github">Use the following npm scripts:</p>
+<ul class="md-github">
+<li class="md-github"><code class="md-github">npm start</code> to run the main CLI.</li>
+<li class="md-github"><code class="md-github">npm run healthcheck</code> to start the health check server.</li>
+<li class="md-github"><code class="md-github">npm run replay</code> to replay S3 events.</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="testing" href="#testing"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Testing</h2>
+<p class="md-github">The project uses Vitest for unit testing. Run the tests with:</p>
+<pre class="md-github"><code class="md-github">npm test
+</code></pre>
 <h2 class="md-github"><a class="md-github__anchor" name="license" href="#license"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>License</h2>
-<p class="md-github">Distributed under the <a href="LICENSE" class="md-github">MIT License</a>.</p>
-<hr class="md-github">
+<p class="md-github">Distributed under the MIT License. See <a href="LICENSE" class="md-github">LICENSE</a> for details.</p>
 
   </section>
   <footer>
-    <p>Generated on 2025-04-07T02:31:52.167Z</p>
+    <p>Generated on 2025-04-07T04:04:55.618Z</p>
   </footer>
 </body>
 </html>
