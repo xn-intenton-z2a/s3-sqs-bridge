@@ -6,19 +6,19 @@
   "prDetails": [
     {
       "title": "Bump eslint-plugin-prettier from 5.2.5 to 5.2.6",
-      "ageMinutes": 257
+      "ageMinutes": 376
     },
     {
       "title": "Bump express from 4.21.2 to 5.1.0",
-      "ageMinutes": 261
+      "ageMinutes": 381
     },
     {
       "title": "Bump eslint from 9.23.0 to 9.24.0",
-      "ageMinutes": 262
+      "ageMinutes": 381
     }
   ],
-  "diffMinutes": 86,
-  "diffMinutesMain": 87,
+  "diffMinutes": 119,
+  "diffMinutesMain": 206,
   "commitsLastHour": 0,
   "commitsLastDay": 15,
   "lastFiveCommitMessages": [
@@ -48,20 +48,20 @@
     "details": [
       {
         "branch": "dependabot/npm_and_yarn/eslint-9.24.0",
-        "minutesSinceLastCommit": 262
+        "minutesSinceLastCommit": 381
       },
       {
         "branch": "dependabot/npm_and_yarn/eslint-plugin-prettier-5.2.6",
-        "minutesSinceLastCommit": 257
+        "minutesSinceLastCommit": 376
       },
       {
         "branch": "dependabot/npm_and_yarn/express-5.1.0",
-        "minutesSinceLastCommit": 86
+        "minutesSinceLastCommit": 205
       }
     ]
   },
-  "averagePRAge": 260,
+  "averagePRAge": 379,
   "testStatus": "PASS",
   "testsLastPassedMinutes": 15,
-  "generatedAt": "2025-04-07T18:04:58.971Z"
+  "generatedAt": "2025-04-07T20:04:15.100Z"
 }
