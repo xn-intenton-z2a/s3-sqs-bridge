@@ -189,13 +189,13 @@ export async function readLastOffsetProcessedFromOffsetsTableById(id) {
   logInfo(`Getting item with id "${id}" from table ${config.OFFSETS_TABLE_NAME}.`);
   const result = await dynamodb.send(new GetItemCommand(params));
 
-  if (!result.Item) {
-    throw new Error(`Item with id "${id}" not found in table ${config.OFFSETS_TABLE_NAME}.`);
+  if (!result || !result.Item) {
+    logInfo(`No item found with id "${id}" in table ${config.OFFSETS_TABLE_NAME}.`);
+    return undefined;
   } else {
     logInfo(`Got item with id "${id}" from table ${config.OFFSETS_TABLE_NAME}: ${JSON.stringify(result.Item)}.`);
+    return result.Item.lastOffsetProcessed === undefined ? undefined : result.Item.lastOffsetProcessed.S;
   }
-
-  return result.Item.lastOffsetProcessed === undefined ? undefined : result.Item.lastOffsetProcessed.S;
 }
 
 export async function writeValueToProjectionsTable(item) {
@@ -275,6 +275,11 @@ export function createSQSEventFromS3Event(s3Event) {
 
 export function streamToString(stream) {
   return new Promise(function(resolve, reject) {
+    if (!stream || typeof stream.on !== 'function') {
+      // If stream is not valid, resolve with empty string
+      resolve("");
+      return;
+    }
     const chunks = [];
     stream.on("data", function(chunk) {
       chunks.push(chunk);
@@ -372,7 +377,7 @@ export async function enableDisableEventSourceMapping(functionName, enable) {
       Enabled: enable,
     });
     const updateResponse = await lambda.send(updateMappingCommand);
-    logInfo("Event source mapping disabled:", updateResponse);
+    logInfo(`Event source mapping ${enable ? 'enabled' : 'disabled'}: ${JSON.stringify(updateResponse)}`);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
