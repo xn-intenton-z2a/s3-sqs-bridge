@@ -1,35 +1,35 @@
 {
-  "openIssues": 6,
+  "openIssues": 4,
   "issuesClosedLastHour": 0,
-  "issuesClosedLastDay": 7,
-  "openPRs": 5,
+  "issuesClosedLastDay": 9,
+  "openPRs": 3,
   "prDetails": [
     {
       "title": "Bump eslint-plugin-prettier from 5.2.5 to 5.2.6",
-      "ageMinutes": 137
+      "ageMinutes": 257
     },
     {
       "title": "Bump express from 4.21.2 to 5.1.0",
-      "ageMinutes": 141
+      "ageMinutes": 261
     },
     {
       "title": "Bump eslint from 9.23.0 to 9.24.0",
-      "ageMinutes": 141
-    },
-    {
-      "title": "Bump @aws-sdk/client-lambda from 3.774.0 to 3.782.0",
-      "ageMinutes": 141
-    },
-    {
-      "title": "Bump openai from 4.91.1 to 4.92.0",
-      "ageMinutes": 144
+      "ageMinutes": 262
     }
   ],
-  "diffMinutes": 119,
-  "diffMinutesMain": 217,
+  "diffMinutes": 86,
+  "diffMinutesMain": 87,
   "commitsLastHour": 0,
-  "commitsLastDay": 13,
+  "commitsLastDay": 15,
   "lastFiveCommitMessages": [
+    {
+      "time": "16:37",
+      "message": "Bump @aws-sdk/client-lambda from 3.774.0 to 3.782.0 (#18)\n\nBumps..."
+    },
+    {
+      "time": "16:26",
+      "message": "Bump openai from 4.91.1 to 4.92.0 (#17)\n\nBumps [openai](https://..."
+    },
     {
       "time": "12:26",
       "message": "Fixed stream handling and safe-check in readLastOffsetProcessedF..."
@@ -41,43 +41,27 @@
     {
       "time": "02:14",
       "message": "Update from agentic-lib"
-    },
-    {
-      "time": "01:52",
-      "message": "Update from agentic-lib"
-    },
-    {
-      "time": "01:43",
-      "message": "Update from agentic-lib"
     }
   ],
   "branches": {
-    "count": 5,
+    "count": 3,
     "details": [
       {
-        "branch": "dependabot/npm_and_yarn/aws-sdk/client-lambda-3.782.0",
-        "minutesSinceLastCommit": 141
-      },
-      {
         "branch": "dependabot/npm_and_yarn/eslint-9.24.0",
-        "minutesSinceLastCommit": 141
+        "minutesSinceLastCommit": 262
       },
       {
         "branch": "dependabot/npm_and_yarn/eslint-plugin-prettier-5.2.6",
-        "minutesSinceLastCommit": 137
+        "minutesSinceLastCommit": 257
       },
       {
         "branch": "dependabot/npm_and_yarn/express-5.1.0",
-        "minutesSinceLastCommit": 141
-      },
-      {
-        "branch": "dependabot/npm_and_yarn/openai-4.92.0",
-        "minutesSinceLastCommit": 144
+        "minutesSinceLastCommit": 86
       }
     ]
   },
-  "averagePRAge": 140,
+  "averagePRAge": 260,
   "testStatus": "PASS",
   "testsLastPassedMinutes": 15,
-  "generatedAt": "2025-04-07T16:04:23.752Z"
+  "generatedAt": "2025-04-07T18:04:58.971Z"
 }
