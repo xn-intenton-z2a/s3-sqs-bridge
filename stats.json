@@ -1,19 +1,39 @@
 {
-  "openIssues": 3,
+  "openIssues": 6,
   "issuesClosedLastHour": 0,
-  "issuesClosedLastDay": 5,
-  "openPRs": 1,
+  "issuesClosedLastDay": 7,
+  "openPRs": 5,
   "prDetails": [
     {
-      "title": "Fixed stream handling and safe-check in readLastOffsetProcessedFromOffsetsTableById to resolve test failures regarding undefined stream and proper error messaging for replay. (fixes #11)",
-      "ageMinutes": 1
+      "title": "Bump eslint-plugin-prettier from 5.2.5 to 5.2.6",
+      "ageMinutes": 16
+    },
+    {
+      "title": "Bump express from 4.21.2 to 5.1.0",
+      "ageMinutes": 21
+    },
+    {
+      "title": "Bump eslint from 9.23.0 to 9.24.0",
+      "ageMinutes": 21
+    },
+    {
+      "title": "Bump @aws-sdk/client-lambda from 3.774.0 to 3.782.0",
+      "ageMinutes": 21
+    },
+    {
+      "title": "Bump openai from 4.91.1 to 4.92.0",
+      "ageMinutes": 24
     }
   ],
-  "diffMinutes": 1,
-  "diffMinutesMain": 554,
+  "diffMinutes": 16,
+  "diffMinutesMain": 97,
   "commitsLastHour": 0,
-  "commitsLastDay": 12,
+  "commitsLastDay": 13,
   "lastFiveCommitMessages": [
+    {
+      "time": "12:26",
+      "message": "Fixed stream handling and safe-check in readLastOffsetProcessedF..."
+    },
     {
       "time": "02:51",
       "message": "Updated test for listAllObjectVersionsOldestFirst to override th..."
@@ -29,23 +49,35 @@
     {
       "time": "01:43",
       "message": "Update from agentic-lib"
-    },
-    {
-      "time": "01:36",
-      "message": "Update from agentic-lib"
     }
   ],
   "branches": {
-    "count": 1,
+    "count": 5,
     "details": [
       {
-        "branch": "agentic-lib-issue-11",
-        "minutesSinceLastCommit": 1
+        "branch": "dependabot/npm_and_yarn/aws-sdk/client-lambda-3.782.0",
+        "minutesSinceLastCommit": 21
+      },
+      {
+        "branch": "dependabot/npm_and_yarn/eslint-9.24.0",
+        "minutesSinceLastCommit": 21
+      },
+      {
+        "branch": "dependabot/npm_and_yarn/eslint-plugin-prettier-5.2.6",
+        "minutesSinceLastCommit": 16
+      },
+      {
+        "branch": "dependabot/npm_and_yarn/express-5.1.0",
+        "minutesSinceLastCommit": 21
+      },
+      {
+        "branch": "dependabot/npm_and_yarn/openai-4.92.0",
+        "minutesSinceLastCommit": 24
       }
     ]
   },
-  "averagePRAge": 1,
+  "averagePRAge": 20,
   "testStatus": "PASS",
   "testsLastPassedMinutes": 15,
-  "generatedAt": "2025-04-07T12:06:07.590Z"
+  "generatedAt": "2025-04-07T14:04:15.506Z"
 }
