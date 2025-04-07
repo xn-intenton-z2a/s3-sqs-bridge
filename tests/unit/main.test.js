@@ -19,7 +19,7 @@ import {
   readLastOffsetProcessedFromOffsetsTableById,
   s3,
   dynamodb
-} from '@src/lib/main.js';
+} from '../../src/lib/main.js';
 
 // --- Mock AWS SDK Clients ---
 
@@ -300,7 +300,8 @@ describe('Edge Case Handling', () => {
 
   it('sourceLambdaHandler throws error when bucket offset is behind replay queue offset', async () => {
     // Setup mocks for readLastOffsetProcessedFromOffsetsTableById to simulate offset mismatch
-    const readSpy = vi.spyOn(require('@src/lib/main.js'), 'readLastOffsetProcessedFromOffsetsTableById');
+    const mainModule = await import('../../src/lib/main.js');
+    const readSpy = vi.spyOn(mainModule, 'readLastOffsetProcessedFromOffsetsTableById');
     // First call returns replay queue offset, second returns bucket offset
     readSpy.mockImplementation((id) => {
       if (id === process.env.REPLAY_QUEUE_URL) {
@@ -320,8 +321,9 @@ describe('Edge Case Handling', () => {
 
   it('replayLambdaHandler returns batchItemFailures when processing errors occur', async () => {
     // Force createProjections to throw an error for each record
-    const originalCreateProjections = createProjections;
-    vi.spyOn(require('@src/lib/main.js'), 'createProjections').mockImplementation(() => {
+    const mainModule = await import('../../src/lib/main.js');
+    const originalCreateProjections = mainModule.createProjections;
+    vi.spyOn(mainModule, 'createProjections').mockImplementation(() => {
       throw new Error('Test error');
     });
 
@@ -336,6 +338,6 @@ describe('Edge Case Handling', () => {
     expect(result.batchItemFailures).toEqual([{ itemIdentifier: 'msg1' }]);
 
     // Restore original implementation
-    vi.spyOn(require('@src/lib/main.js'), 'createProjections').mockRestore();
+    vi.spyOn(mainModule, 'createProjections').mockRestore();
   });
 });
