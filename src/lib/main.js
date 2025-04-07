@@ -189,7 +189,7 @@ export async function readLastOffsetProcessedFromOffsetsTableById(id) {
   logInfo(`Getting item with id "${id}" from table ${config.OFFSETS_TABLE_NAME}.`);
   const result = await dynamodb.send(new GetItemCommand(params));
 
-  if (!result.Item) {
+  if (!result || !result.Item) {
     logInfo(`No item found with id "${id}" in table ${config.OFFSETS_TABLE_NAME}.`);
     return undefined;
   } else {
@@ -275,6 +275,11 @@ export function createSQSEventFromS3Event(s3Event) {
 
 export function streamToString(stream) {
   return new Promise(function(resolve, reject) {
+    if (!stream || typeof stream.on !== 'function') {
+      // If stream is not valid, resolve with empty string
+      resolve("");
+      return;
+    }
     const chunks = [];
     stream.on("data", function(chunk) {
       chunks.push(chunk);
