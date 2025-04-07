@@ -190,12 +190,12 @@ export async function readLastOffsetProcessedFromOffsetsTableById(id) {
   const result = await dynamodb.send(new GetItemCommand(params));
 
   if (!result.Item) {
-    throw new Error(`Item with id "${id}" not found in table ${config.OFFSETS_TABLE_NAME}.`);
+    logInfo(`No item found with id "${id}" in table ${config.OFFSETS_TABLE_NAME}.`);
+    return undefined;
   } else {
     logInfo(`Got item with id "${id}" from table ${config.OFFSETS_TABLE_NAME}: ${JSON.stringify(result.Item)}.`);
+    return result.Item.lastOffsetProcessed === undefined ? undefined : result.Item.lastOffsetProcessed.S;
   }
-
-  return result.Item.lastOffsetProcessed === undefined ? undefined : result.Item.lastOffsetProcessed.S;
 }
 
 export async function writeValueToProjectionsTable(item) {

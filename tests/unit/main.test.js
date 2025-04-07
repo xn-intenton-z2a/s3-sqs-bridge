@@ -36,6 +36,14 @@ vi.mock('@aws-sdk/client-s3', () => {
             IsTruncated: false,
           };
         }
+        if (command.constructor.name === 'GetObjectCommand') {
+          return {
+            Body: {
+              on: (event, callback) => { if (event === 'end') callback(); }
+            },
+            LastModified: new Date('2025-03-17T12:00:00Z')
+          };
+        }
         return {};
       });
     },
