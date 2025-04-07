@@ -16,7 +16,8 @@ import {
   replay,
   replayBatchLambdaHandler,
   replayLambdaHandler,
-  readLastOffsetProcessedFromOffsetsTableById
+  readLastOffsetProcessedFromOffsetsTableById,
+  s3
 } from '@src/lib/main.js';
 
 // --- Mock AWS SDK Clients ---
@@ -127,8 +128,8 @@ describe('S3 SQS Bridge Main.js Tests', () => {
         { Key: 'events/2.json', VersionId: 'v3', LastModified: '2025-03-17T10:02:00Z' },
         { Key: 'events/2.json', VersionId: 'v4', LastModified: '2025-03-17T10:06:00Z' },
       ];
-      const s3Client = new (require('@aws-sdk/client-s3').S3Client)();
-      s3Client.send = vi.fn(async (command) => {
+      // Override the global s3.send method to use our mockVersions
+      s3.send = vi.fn(async (command) => {
         return { Versions: mockVersions, IsTruncated: false };
       });
       const merged = await listAllObjectVersionsOldestFirst();
