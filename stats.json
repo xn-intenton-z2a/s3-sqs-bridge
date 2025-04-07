@@ -1,11 +1,16 @@
 {
-  "openIssues": 2,
+  "openIssues": 3,
   "issuesClosedLastHour": 0,
   "issuesClosedLastDay": 5,
-  "openPRs": 0,
-  "prDetails": [],
-  "diffMinutes": 119,
-  "diffMinutesMain": 432,
+  "openPRs": 1,
+  "prDetails": [
+    {
+      "title": "Fixed stream handling and safe-check in readLastOffsetProcessedFromOffsetsTableById to resolve test failures regarding undefined stream and proper error messaging for replay. (fixes #11)",
+      "ageMinutes": 1
+    }
+  ],
+  "diffMinutes": 1,
+  "diffMinutesMain": 554,
   "commitsLastHour": 0,
   "commitsLastDay": 12,
   "lastFiveCommitMessages": [
@@ -35,12 +40,12 @@
     "details": [
       {
         "branch": "agentic-lib-issue-11",
-        "minutesSinceLastCommit": 120
+        "minutesSinceLastCommit": 1
       }
     ]
   },
-  "averagePRAge": 0,
+  "averagePRAge": 1,
   "testStatus": "PASS",
   "testsLastPassedMinutes": 15,
-  "generatedAt": "2025-04-07T10:04:34.346Z"
+  "generatedAt": "2025-04-07T12:06:07.590Z"
 }
