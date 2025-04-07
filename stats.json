@@ -6,27 +6,27 @@
   "prDetails": [
     {
       "title": "Bump eslint-plugin-prettier from 5.2.5 to 5.2.6",
-      "ageMinutes": 16
+      "ageMinutes": 137
     },
     {
       "title": "Bump express from 4.21.2 to 5.1.0",
-      "ageMinutes": 21
+      "ageMinutes": 141
     },
     {
       "title": "Bump eslint from 9.23.0 to 9.24.0",
-      "ageMinutes": 21
+      "ageMinutes": 141
     },
     {
       "title": "Bump @aws-sdk/client-lambda from 3.774.0 to 3.782.0",
-      "ageMinutes": 21
+      "ageMinutes": 141
     },
     {
       "title": "Bump openai from 4.91.1 to 4.92.0",
-      "ageMinutes": 24
+      "ageMinutes": 144
     }
   ],
-  "diffMinutes": 16,
-  "diffMinutesMain": 97,
+  "diffMinutes": 119,
+  "diffMinutesMain": 217,
   "commitsLastHour": 0,
   "commitsLastDay": 13,
   "lastFiveCommitMessages": [
@@ -56,28 +56,28 @@
     "details": [
       {
         "branch": "dependabot/npm_and_yarn/aws-sdk/client-lambda-3.782.0",
-        "minutesSinceLastCommit": 21
+        "minutesSinceLastCommit": 141
       },
       {
         "branch": "dependabot/npm_and_yarn/eslint-9.24.0",
-        "minutesSinceLastCommit": 21
+        "minutesSinceLastCommit": 141
       },
       {
         "branch": "dependabot/npm_and_yarn/eslint-plugin-prettier-5.2.6",
-        "minutesSinceLastCommit": 16
+        "minutesSinceLastCommit": 137
       },
       {
         "branch": "dependabot/npm_and_yarn/express-5.1.0",
-        "minutesSinceLastCommit": 21
+        "minutesSinceLastCommit": 141
       },
       {
         "branch": "dependabot/npm_and_yarn/openai-4.92.0",
-        "minutesSinceLastCommit": 24
+        "minutesSinceLastCommit": 144
       }
     ]
   },
-  "averagePRAge": 20,
+  "averagePRAge": 140,
   "testStatus": "PASS",
   "testsLastPassedMinutes": 15,
-  "generatedAt": "2025-04-07T14:04:15.506Z"
+  "generatedAt": "2025-04-07T16:04:23.752Z"
 }
