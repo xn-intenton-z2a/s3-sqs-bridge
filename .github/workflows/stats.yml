@@ -43,7 +43,7 @@ jobs:
         id: engine
         shell: bash
         run: |
-          engine=$(grep '^[[:space:]]*- cron:.*#' .github/workflows/stats.yml | sed 's/^[[:space:]]*- cron:.*# //g')
+          engine=$(grep '^schedule:' .github/schedule.yml | awk '{print $2}')
           echo "engine=${engine}"
           echo "engine=${engine}" >> $GITHUB_OUTPUT
 

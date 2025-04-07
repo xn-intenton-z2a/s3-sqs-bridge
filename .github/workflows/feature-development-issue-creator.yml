@@ -1,0 +1,100 @@
+# .github/workflows/feature-development-issue-creator.yml
+#
+# This file is part of the example suite for `agentic-lib` see: https://github.com/xn-intenton-z2a/agentic-lib
+# This file is licensed under the MIT License. For details, see LICENSE-MIT
+
+name: Create Feature Development Issue
+concurrency: create-feature-development-issue
+run-name: "Create Feature Development Issue"
+
+on:
+  workflow_dispatch:
+    inputs:
+      featureName:
+        description: 'name of the feature to create an issue for (if "house choice", a currently random feature will be selected). e.g. "WEBSITE"'
+        required: false
+        type: string
+        default: 'house choice'
+  schedule:
+    - cron: '0 4 * * *' # schedule-1
+    #- cron: '0 */2 * * *' # schedule-2
+    #- cron: '*/15 * * * *' # schedule-3
+
+jobs:
+
+  # If the prompt is "house choice", a random feature will be selected from the feature library otherwise the supplied feature name will be used.
+  select-feature:
+    runs-on: ubuntu-latest
+    outputs:
+      prompt: ${{ steps.extract.outputs.prompt }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Select feature from ./features
+        id: select
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            let featureName = '${{ inputs.featureName }}';
+            if (featureName === 'house choice') {
+              const promptsDir = './features';
+              // Get all items in the directory
+              const items = fs.readdirSync(promptsDir);
+              // Filter only the files (exclude directories)
+              const files = items.filter(item => {
+                const filePath = path.join(promptsDir, item);
+                return fs.lstatSync(filePath).isFile();
+              });
+            
+              if (files.length === 0) {
+                core.setFailed('No prompt files found in the prompts directory.');
+              } else {
+                // Select a random file
+                const randomFile = files[Math.floor(Math.random() * files.length)];
+                featureName = randomFile.replace('.md', '');
+              }
+            }
+              
+            core.setOutput('featureName', featureName);
+            core.info(`featureName: ${featureName}`);
+
+  generate-feature-development-issue:
+    needs:
+      - select-feature
+    permissions:
+      contents: write
+      issues: write
+      id-token: write
+    uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-completion-generate-feature-development-issue.yml@3.0.0'
+    with:
+      featureName: ${{ needs.select-prompt.outputs.featureName }}
+      featuresDir: './features'
+      target: ${{ inputs.target || 'src/lib/main.js' }}
+      testFile: ${{ inputs.testFile || 'tests/unit/main.test.js' }}
+      readmeFile: 'README.md'
+      missionFile: 'MISSION.md'
+      contributingFile: 'CONTRIBUTING.md'
+      dependenciesFile: 'package.json'
+      buildScript: 'npm run build'
+      testScript: 'npm test'
+      mainScript: ${{ vars.MAIN_SCRIPT || 'npm run start' }}
+      model: ${{ vars.CHATGPT_API_MODEL || 'o3-mini' }}
+      npmAuthOrganisation: '@xn-intenton-z2a'
+    secrets:
+      CHATGPT_API_SECRET_KEY: ${{ secrets.CHATGPT_API_SECRET_KEY }}
+      PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+
+  create-issue:
+    needs:
+      - select-feature
+      - generate-feature-development-issue
+    permissions:
+      issues: write
+      id-token: write
+    uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-github-create-issue.yml@3.0.0'
+    with:
+      issueTitle: ${{ needs.generate-feature-development-issue.outputs.issueTitle }}
+      issueBody: ${{ needs.generate-feature-development-issue.outputs.issueDescription }}
