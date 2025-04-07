@@ -372,7 +372,7 @@ export async function enableDisableEventSourceMapping(functionName, enable) {
       Enabled: enable,
     });
     const updateResponse = await lambda.send(updateMappingCommand);
-    logInfo("Event source mapping disabled:", updateResponse);
+    logInfo(`Event source mapping ${enable ? 'enabled' : 'disabled'}: ${JSON.stringify(updateResponse)}`);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

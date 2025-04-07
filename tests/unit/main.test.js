@@ -17,7 +17,8 @@ import {
   replayBatchLambdaHandler,
   replayLambdaHandler,
   readLastOffsetProcessedFromOffsetsTableById,
-  s3
+  s3,
+  dynamodb
 } from '@src/lib/main.js';
 
 // --- Mock AWS SDK Clients ---
@@ -255,5 +256,86 @@ describe('Additional Unit Tests for main.js', () => {
       };
       await expect(createProjections(invalidEvent)).rejects.toThrow('Unsupported event name');
     });
+  });
+});
+
+// ---- New Edge Case Handling Tests ----
+
+describe('Edge Case Handling', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('getProjectionIdsMap handles pagination correctly', async () => {
+    // Simulate DynamoDB Scan responses with pagination
+    let callCount = 0;
+    const fakeSend = vi.fn(async (command) => {
+      callCount++;
+      if (callCount === 1) {
+        return {
+          Items: [
+            { id: { S: '1' } },
+            { id: { S: '2' } }
+          ],
+          LastEvaluatedKey: { id: { S: '2' } }
+        };
+      } else {
+        return {
+          Items: [
+            { id: { S: '3' } }
+          ]
+          // No LastEvaluatedKey
+        };
+      }
+    });
+    vi.spyOn(dynamodb, 'send').mockImplementation(fakeSend);
+    const result = await getProjectionIdsMap();
+    expect(result).toEqual({
+      '1': { id: '1' },
+      '2': { id: '2' },
+      '3': { id: '3' }
+    });
+    expect(fakeSend).toHaveBeenCalledTimes(2);
+  });
+
+  it('sourceLambdaHandler throws error when bucket offset is behind replay queue offset', async () => {
+    // Setup mocks for readLastOffsetProcessedFromOffsetsTableById to simulate offset mismatch
+    const readSpy = vi.spyOn(require('@src/lib/main.js'), 'readLastOffsetProcessedFromOffsetsTableById');
+    // First call returns replay queue offset, second returns bucket offset
+    readSpy.mockImplementation((id) => {
+      if (id === process.env.REPLAY_QUEUE_URL) {
+        return Promise.resolve('2025-04-07T02:53:24.000Z');
+      } else {
+        return Promise.resolve('2025-04-07T02:53:23.500Z');
+      }
+    });
+
+    const sqsEvent = {
+      Records: [
+        { body: JSON.stringify(createS3EventFromVersion({ key: 'events/test.json', versionId: 'v123', lastModified: '2025-03-17T12:00:00Z' })), messageId: 'msg1' }
+      ]
+    };
+    await expect(sourceLambdaHandler(sqsEvent)).rejects.toThrow('Replay needed');
+  });
+
+  it('replayLambdaHandler returns batchItemFailures when processing errors occur', async () => {
+    // Force createProjections to throw an error for each record
+    const originalCreateProjections = createProjections;
+    vi.spyOn(require('@src/lib/main.js'), 'createProjections').mockImplementation(() => {
+      throw new Error('Test error');
+    });
+
+    const sqsEvent = {
+      Records: [
+        { body: JSON.stringify({ Records: [{ eventName: 'ObjectCreated:Put', s3: { object: { key: 'test.json', versionId: 'v1' } } }] }), messageId: 'msg1' }
+      ]
+    };
+
+    const result = await replayLambdaHandler(sqsEvent);
+    expect(result).toHaveProperty('handler', 'src/lib/main.replayLambdaHandler');
+    expect(result.batchItemFailures).toEqual([{ itemIdentifier: 'msg1' }]);
+
+    // Restore original implementation
+    vi.spyOn(require('@src/lib/main.js'), 'createProjections').mockRestore();
   });
 });

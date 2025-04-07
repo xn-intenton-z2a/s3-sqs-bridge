@@ -52,7 +52,9 @@ Use the following npm scripts:
 
 ## Testing
 
-The project uses Vitest for unit testing. Run the tests with:
+The project uses Vitest for unit testing. In addition to the standard tests, edge case scenarios covering DynamoDB pagination, offset mismatches, and error handling in Lambda handlers are also tested.
+
+Run the tests with:
 
 ```
 npm test
