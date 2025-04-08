@@ -22,13 +22,7 @@
     "source-projection": "node src/lib/main.js --source-projection",
     "replay-projection": "node src/lib/main.js --replay-projection"
   },
-  "keywords": [
-    "kafka",
-    "sqs",
-    "lambda",
-    "postgres",
-    "aws"
-  ],
+  "keywords": ["kafka", "sqs", "lambda", "postgres", "aws"],
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
@@ -70,9 +64,7 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "files": [
-    "package.json"
-  ],
+  "files": ["package.json"],
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   }
