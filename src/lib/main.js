@@ -5,6 +5,7 @@
 import pkg from 'pg';
 const { Client } = pkg;
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
@@ -78,7 +79,7 @@ export async function githubEventProjectionHandler(event) {
 }
 
 // If this module is executed directly, run a dummy event for local testing
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const dummyEvent = { Records: [] };
   githubEventProjectionHandler(dummyEvent)
     .then((result) => logInfo(`Execution result: ${JSON.stringify(result)}`))
