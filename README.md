@@ -25,12 +25,12 @@ The application uses environment variables to configure AWS S3, SQS, and DynamoD
 
 - BUCKET_NAME: `s3-sqs-bridge-bucket-test`
 - OBJECT_PREFIX: `events/`
-- REPLAY_QUEUE_URL: `http://test/000000000000/s3-sqs-bridge-replay-queue-test`
-- DIGEST_QUEUE_URL: `http://test/000000000000/s3-sqs-bridge-digest-queue-test`
+- REPLAY_QUEUE_URL: `https://test/000000000000/s3-sqs-bridge-replay-queue-test`
+- DIGEST_QUEUE_URL: `https://test/000000000000/s3-sqs-bridge-digest-queue-test`
 - OFFSETS_TABLE_NAME: `s3-sqs-bridge-offsets-table-test`
 - PROJECTIONS_TABLE_NAME: `s3-sqs-bridge-projections-table-test`
 - SOURCE_LAMBDA_FUNCTION_NAME: `s3-sqs-bridge-source-lambda-test`
-- AWS_ENDPOINT: `http://test`
+- AWS_ENDPOINT: `https://test`
 
 ## Usage
 
@@ -63,3 +63,4 @@ npm test
 ## License
 
 Distributed under the MIT License. See [LICENSE](LICENSE) for details.
+
