@@ -1,19 +1,18 @@
 {
-  "openIssues": 4,
+  "openIssues": 2,
   "issuesClosedLastHour": 0,
   "issuesClosedLastDay": 9,
-  "openPRs": 1,
-  "prDetails": [
-    {
-      "title": "Updated ES module check by replacing require.main with a fileURLToPath based check to fix the build and execution issue in Node ES modules. (fixes #25)",
-      "ageMinutes": 1
-    }
-  ],
-  "diffMinutes": 1,
-  "diffMinutesMain": 698,
+  "openPRs": 0,
+  "prDetails": [],
+  "diffMinutes": 98,
+  "diffMinutesMain": 98,
   "commitsLastHour": 0,
-  "commitsLastDay": 13,
+  "commitsLastDay": 12,
   "lastFiveCommitMessages": [
+    {
+      "time": "16:25",
+      "message": "Updated ES module check by replacing require.main with a fileURL..."
+    },
     {
       "time": "04:26",
       "message": "Refactored main.js to use https for endpoints reduced duplicate ..."
@@ -29,23 +28,14 @@
     {
       "time": "22:36",
       "message": "Maintain HEALTHCHECK"
-    },
-    {
-      "time": "22:34",
-      "message": "Maintain METRICS"
     }
   ],
   "branches": {
-    "count": 1,
-    "details": [
-      {
-        "branch": "agentic-lib-issue-25",
-        "minutesSinceLastCommit": 1
-      }
-    ]
+    "count": 0,
+    "details": []
   },
-  "averagePRAge": 1,
+  "averagePRAge": 0,
   "testStatus": "PASS",
   "testsLastPassedMinutes": 15,
-  "generatedAt": "2025-04-08T16:04:40.039Z"
+  "generatedAt": "2025-04-08T18:04:26.693Z"
 }
