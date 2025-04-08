@@ -1,610 +1,87 @@
 #!/usr/bin/env node
 // src/lib/main.js
-// S3 SQS Bridge (v0.2.0) - S3 event sourcing, SQS bridging, Lambda projections.
+// This file serves as both the logger and the GitHub Event Projections Lambda Handler.
 
-import dotenv from "dotenv";
-import { z } from "zod";
-import express from "express";
-import { S3Client, ListObjectVersionsCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
-import { DynamoDBClient, GetItemCommand, ScanCommand, PutItemCommand } from "@aws-sdk/client-dynamodb";
-import { LambdaClient, ListEventSourceMappingsCommand, UpdateEventSourceMappingCommand } from "@aws-sdk/client-lambda";
+import pkg from 'pg';
+const { Client } = pkg;
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
-// Load environment variables from .env file if present
 dotenv.config();
 
-// Apply robust default configuration for all environments including production
-process.env.BUCKET_NAME = process.env.BUCKET_NAME || "s3-sqs-bridge-bucket-test";
-process.env.OBJECT_PREFIX = process.env.OBJECT_PREFIX || "events/";
-process.env.REPLAY_QUEUE_URL = process.env.REPLAY_QUEUE_URL || "https://test/000000000000/s3-sqs-bridge-replay-queue-test";
-process.env.DIGEST_QUEUE_URL = process.env.DIGEST_QUEUE_URL || "https://test/000000000000/s3-sqs-bridge-digest-queue-test";
-process.env.OFFSETS_TABLE_NAME = process.env.OFFSETS_TABLE_NAME || "s3-sqs-bridge-offsets-table-test";
-process.env.PROJECTIONS_TABLE_NAME = process.env.PROJECTIONS_TABLE_NAME || "s3-sqs-bridge-projections-table-test";
-process.env.SOURCE_LAMBDA_FUNCTION_NAME = process.env.SOURCE_LAMBDA_FUNCTION_NAME || "s3-sqs-bridge-source-lambda-test";
-process.env.AWS_ENDPOINT = process.env.AWS_ENDPOINT || "https://test";
-
-const configSchema = z.object({
-  BUCKET_NAME: z.string(),
-  OBJECT_PREFIX: z.string(),
-  REPLAY_QUEUE_URL: z.string(),
-  DIGEST_QUEUE_URL: z.string(),
-  OFFSETS_TABLE_NAME: z.string(),
-  PROJECTIONS_TABLE_NAME: z.string(),
-  SOURCE_LAMBDA_FUNCTION_NAME: z.string(),
-  AWS_ENDPOINT: z.string()
-});
-
-export const config = configSchema.parse(process.env);
-
-export function logConfig() {
-  console.log(JSON.stringify({
-    level: "info",
-    timestamp: new Date().toISOString(),
-    message: "Configuration loaded",
-    config: {
-      BUCKET_NAME: config.BUCKET_NAME,
-      OBJECT_PREFIX: config.OBJECT_PREFIX,
-      REPLAY_QUEUE_URL: config.REPLAY_QUEUE_URL,
-      DIGEST_QUEUE_URL: config.DIGEST_QUEUE_URL,
-      OFFSETS_TABLE_NAME: config.OFFSETS_TABLE_NAME,
-      PROJECTIONS_TABLE_NAME: config.PROJECTIONS_TABLE_NAME,
-      SOURCE_LAMBDA_FUNCTION_NAME: config.SOURCE_LAMBDA_FUNCTION_NAME,
-      AWS_ENDPOINT: config.AWS_ENDPOINT
-    }
-  }));
-}
-logConfig();
-
-export const s3 = new S3Client({ endpoint: config.AWS_ENDPOINT, forcePathStyle: true });
-export const sqs = new SQSClient({ endpoint: config.AWS_ENDPOINT });
-export const dynamodb = new DynamoDBClient({ endpoint: config.AWS_ENDPOINT });
-export const lambda = new LambdaClient();
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Helper function to fetch all object versions (extracted to reduce duplicated code and cognitive complexity)
-// ---------------------------------------------------------------------------------------------------------------------
-async function fetchAllVersions() {
-  const versions = [];
-  const params = {
-    Bucket: config.BUCKET_NAME,
-    Prefix: config.OBJECT_PREFIX
-  };
-  let response;
-  do {
-    response = await s3.send(new ListObjectVersionsCommand(params));
-    if (response.Versions) {
-      versions.push(...response.Versions);
-      params.KeyMarker = response.NextKeyMarker;
-      params.VersionIdMarker = response.NextVersionIdMarker;
-    } else {
-      logInfo(`No versions found in the response for ${config.BUCKET_NAME}: ${JSON.stringify(response)}`);
-      break;
-    }
-  } while (response.IsTruncated);
-  return versions;
+// Define logging functions
+export function logInfo(message) {
+  console.log(message);
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
-// AWS Utility functions
-// ---------------------------------------------------------------------------------------------------------------------
-
-export async function listAndSortAllObjectVersions() {
-  const versions = await fetchAllVersions();
-  versions.sort((a, b) => new Date(a.LastModified) - new Date(b.LastModified));
-  return versions;
+export function logError(message, error) {
+  console.error(message, error);
 }
 
-export async function listAllObjectVersionsOldestFirst() {
-  const versions = await fetchAllVersions();
-  // Group versions by object key.
-  const grouped = versions.reduce((acc, version) => {
-    const key = version.Key;
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(version);
-    return acc;
-  }, {});
+// Robust default configurations for GitHub Event Projection
+const PG_CONNECTION_STRING = process.env.PG_CONNECTION_STRING || 'postgres://user:pass@localhost:5432/db';
+const GITHUB_PROJECTIONS_TABLE = process.env.GITHUB_PROJECTIONS_TABLE || 'github_event_projections';
+const GITHUB_EVENT_QUEUE_URL = process.env.GITHUB_EVENT_QUEUE_URL || 'https://test/000000000000/github-event-queue-test';
 
-  // For each key, sort the array so that versions are in upload order (oldest first)
-  Object.keys(grouped).forEach((key) => {
-    grouped[key].sort((a, b) => new Date(a.LastModified) - new Date(b.LastModified));
-  });
-
-  // Now merge the sorted arrays (each group) into a single list ordered by LastModified using a k-way merge
-  const lists = Object.values(grouped);
-  const merged = [];
-  while (lists.some((list) => list.length > 0)) {
-    let minIndex = -1;
-    let minVersion = null;
-    for (let i = 0; i < lists.length; i++) {
-      if (lists[i].length > 0) {
-        const candidate = lists[i][0];
-        if (!minVersion || new Date(candidate.LastModified) < new Date(minVersion.LastModified)) {
-          minVersion = candidate;
-          minIndex = i;
-        }
+/**
+ * Lambda handler for processing GitHub event messages from SQS and persisting projections in PostgreSQL.
+ * Expected event record body format (JSON):
+ * {
+ *    "repository": "repo-name",
+ *    "eventType": "push",
+ *    "eventTimestamp": "2025-03-17T12:00:00Z",
+ *    "metadata": { ... }
+ * }
+ * 
+ * @param {object} event - The SQS event containing GitHub messages.
+ * @returns {Promise<object>} - Processing result status.
+ */
+export async function githubEventProjectionHandler(event) {
+  logInfo(`GitHub Event Projection Handler received event: ${JSON.stringify(event)}`);
+  const client = new Client({ connectionString: PG_CONNECTION_STRING });
+  try {
+    await client.connect();
+    const records = event.Records || [];
+    for (const record of records) {
+      let body;
+      try {
+        body = JSON.parse(record.body);
+      } catch (parseError) {
+        logError(`Failed to parse record body: ${record.body}`);
+        continue;
       }
+
+      const { repository, eventType, eventTimestamp, metadata } = body;
+      if (!repository || !eventType || !eventTimestamp) {
+        logError(`Missing required fields in GitHub event: ${record.body}`);
+        continue;
+      }
+
+      const query = `
+        INSERT INTO ${GITHUB_PROJECTIONS_TABLE} (repository, event_type, event_timestamp, metadata)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (repository) DO UPDATE SET
+          event_type = EXCLUDED.event_type,
+          event_timestamp = EXCLUDED.event_timestamp,
+          metadata = EXCLUDED.metadata;
+      `;
+      const values = [repository, eventType, eventTimestamp, JSON.stringify(metadata || {})];
+      await client.query(query, values);
+      logInfo(`Processed GitHub event for repository ${repository}`);
     }
-    if (minIndex >= 0) {
-      merged.push(lists[minIndex].shift());
-    }
-  }
-  return merged;
-}
-
-export function buildSQSMessageParams(body, sqsQueueUrl) {
-  return {
-    QueueUrl: sqsQueueUrl,
-    MessageBody: JSON.stringify(body)
-  };
-}
-
-// Updated sendToSqs to use default SQS queue from config if not provided
-export async function sendToSqs(body, sqsQueueUrl = config.REPLAY_QUEUE_URL) {
-  const params = buildSQSMessageParams(body, sqsQueueUrl);
-  try {
-    const result = await retryOperationExponential(async () => await sqs.send(new SendMessageCommand(params)));
-    logInfo(`Sent message to SQS queue ${sqsQueueUrl}, MessageId: ${result.MessageId}`);
-  } catch (err) {
-    logError(`Failed to send message to SQS queue ${sqsQueueUrl}: ${err}`);
-    throw err;
-  }
-}
-
-export async function writeLastOffsetProcessedToOffsetsTable(item) {
-  const lastOffsetProcessed = item.lastOffsetProcessed ? { S: item.lastOffsetProcessed } : null;
-  const params = {
-    TableName: config.OFFSETS_TABLE_NAME,
-    Item: {
-      id: { S: item.id },
-      lastOffsetProcessed
-    }
-  };
-  await writeToTable(item, params);
-  logInfo(`Successfully wrote offset ${JSON.stringify(item.lastOffsetProcessed)} to DynamoDB table ${config.OFFSETS_TABLE_NAME}`);
-}
-
-export async function readLastOffsetProcessedFromOffsetsTableById(id) {
-  const params = {
-    TableName: config.OFFSETS_TABLE_NAME,
-    Key: { id: { S: id } },
-    ConsistentRead: true
-  };
-
-  logInfo(`Getting item with id "${id}" from table ${config.OFFSETS_TABLE_NAME}.`);
-  const result = await dynamodb.send(new GetItemCommand(params));
-
-  if (!result || !result.Item) {
-    logInfo(`No item found with id "${id}" in table ${config.OFFSETS_TABLE_NAME}.`);
-    return undefined;
-  } else {
-    logInfo(`Got item with id "${id}" from table ${config.OFFSETS_TABLE_NAME}: ${JSON.stringify(result.Item)}.`);
-    return result.Item.lastOffsetProcessed === undefined ? undefined : result.Item.lastOffsetProcessed.S;
-  }
-}
-
-export async function writeValueToProjectionsTable(item) {
-  const value = item.value ? { S: item.value } : null;
-  const params = {
-    TableName: config.PROJECTIONS_TABLE_NAME,
-    Item: {
-      id: { S: item.id },
-      value
-    }
-  };
-  await writeToTable(item, params);
-  logInfo(`Successfully wrote value ${JSON.stringify(item.value)} to DynamoDB table ${config.PROJECTIONS_TABLE_NAME}`);
-}
-
-export async function writeToTable(item, params) {
-  try {
-    await dynamodb.send(new PutItemCommand(params));
+    await client.end();
+    return { status: 'success' };
   } catch (error) {
-    logError(`Error writing offset to DynamoDB table ${params.TableName}: ${error}`);
+    logError('Error processing GitHub events', error);
+    await client.end();
     throw error;
   }
 }
 
-export async function retryOperationExponential(operation, retries = 3, delay = 100) {
-  let attempt = 0;
-  while (attempt < retries) {
-    try {
-      return await operation();
-    } catch (err) {
-      attempt++;
-      if (attempt >= retries) {
-        throw err;
-      }
-      await sleep(delay * Math.pow(2, attempt));
-    }
-  }
-}
-
-export function createS3EventFromVersion({ key, versionId, lastModified }) {
-  return {
-    Records: [
-      {
-        eventVersion: "2.0",
-        eventSource: "aws:s3",
-        eventTime: lastModified,
-        eventName: "ObjectCreated:Put",
-        s3: {
-          s3SchemaVersion: "1.0",
-          bucket: {
-            name: config.BUCKET_NAME,
-            arn: "arn:aws:s3:::" + config.BUCKET_NAME
-          },
-          object: {
-            key,
-            versionId
-          }
-        }
-      }
-    ]
-  };
-}
-
-export function createSQSEventFromS3Event(s3Event) {
-  return {
-    Records: [
-      {
-        eventVersion: "2.0",
-        eventSource: "aws:sqs",
-        eventTime: s3Event.Records[0].eventTime,
-        eventName: "SendMessage",
-        body: JSON.stringify(s3Event)
-      }
-    ]
-  };
-}
-
-export function streamToString(stream) {
-  return new Promise(function (resolve, reject) {
-    if (!stream || typeof stream.on !== "function") {
-      // If stream is not valid, resolve with empty string
-      resolve("");
-      return;
-    }
-    const chunks = [];
-    stream.on("data", function (chunk) {
-      chunks.push(chunk);
-    });
-    stream.on("error", function (err) {
-      reject(err);
-    });
-    stream.on("end", function () {
-      resolve(Buffer.concat(chunks).toString("utf-8"));
-    });
-  });
-}
-
-export async function getS3ObjectWithContentAndVersion(s3BucketName, key, versionId) {
-  const objectMetaData = await getS3ObjectMetadata(s3BucketName, key, versionId);
-  const { object } = await getS3ObjectWithContent(s3BucketName, key, versionId);
-  return { objectMetaData, object, version: objectMetaData };
-}
-
-export async function getS3ObjectWithContent(s3BucketName, key, versionId) {
-  const objectMetaData = await getS3ObjectMetadata(s3BucketName, key, versionId);
-  const object = await streamToString(objectMetaData.Body);
-  return { objectMetaData, object };
-}
-
-export async function getS3ObjectMetadata(s3BucketName, key, versionId) {
-  const params = {
-    Bucket: s3BucketName,
-    Key: key,
-    VersionId: versionId
-  };
-  const objectMetaData = await s3.send(new GetObjectCommand(params));
-  return objectMetaData;
-}
-
-// Removed duplicate getS3ObjectVersion to avoid identical implementations.
-
-// Function to scan through all pages in the projections table and return a map:
-// { <id>: { id: <id> } } for each projection.
-export async function getProjectionIdsMap(ignoreKeys) {
-  let lastEvaluatedKey = undefined;
-  const idsMap = {};
-
-  do {
-    const params = {
-      TableName: config.PROJECTIONS_TABLE_NAME,
-      ExclusiveStartKey: lastEvaluatedKey,
-      ProjectionExpression: "id",
-      ConsistentRead: true
-    };
-
-    const result = await dynamodb.send(new ScanCommand(params));
-
-    if (result && result.Items) {
-      for (const item of result.Items) {
-        const id = item.id.S;
-        if (ignoreKeys && ignoreKeys.includes(id)) {
-          continue;
-        }
-        idsMap[id] = { id };
-      }
-    }
-
-    lastEvaluatedKey = result === undefined ? undefined : result.LastEvaluatedKey;
-  } while (lastEvaluatedKey);
-
-  return idsMap;
-}
-
-export async function enableDisableEventSourceMapping(functionName, enable) {
-  const listMappingsCommand = new ListEventSourceMappingsCommand({
-    FunctionName: functionName
-  });
-  const mappingsResponse = await lambda.send(listMappingsCommand);
-
-  if (!mappingsResponse.EventSourceMappings || mappingsResponse.EventSourceMappings.length === 0) {
-    throw new Error(`No event source mappings found for function ${functionName}`);
-  }
-
-  const uuid = mappingsResponse.EventSourceMappings[0].UUID;
-  if (!uuid) {
-    throw new Error("Unable to retrieve UUID from event source mapping.");
-  }
-
-  const updateMappingCommand = new UpdateEventSourceMappingCommand({
-    UUID: uuid,
-    Enabled: enable
-  });
-  const updateResponse = await lambda.send(updateMappingCommand);
-  logInfo(`Event source mapping ${enable ? "enabled" : "disabled"}: ${JSON.stringify(updateResponse)}`);
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Utility functions
-// ---------------------------------------------------------------------------------------------------------------------
-
-export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export function logInfo(message) {
-  console.log(JSON.stringify({ level: "info", timestamp: new Date().toISOString(), message }));
-}
-
-export function logError(message, error) {
-  console.error(JSON.stringify({
-    level: "error",
-    timestamp: new Date().toISOString(),
-    message,
-    error: error ? error.toString() : undefined
-  }));
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Replay functions
-// ---------------------------------------------------------------------------------------------------------------------
-
-export async function replay() {
-  logInfo(`Starting replay job for bucket ${config.BUCKET_NAME} prefix ${config.OBJECT_PREFIX}`);
-  await writeLastOffsetProcessedToOffsetsTable({
-    id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
-    lastOffsetProcessed: null
-  });
-  await writeLastOffsetProcessedToOffsetsTable({
-    id: config.REPLAY_QUEUE_URL,
-    lastOffsetProcessed: null
-  });
-  const versions = await listAllObjectVersionsOldestFirst();
-  logInfo(`Processing ${versions.length} versions...`);
-  let lastOffsetProcessed = null;
-  let eventsReplayed = 0;
-  if (versions.length === 0) {
-    logInfo("No versions found to process.");
-    lastOffsetProcessed = `${new Date().toISOString()} No versions found to replay`;
-    await writeLastOffsetProcessedToOffsetsTable({
-      id: config.REPLAY_QUEUE_URL,
-      lastOffsetProcessed
-    });
-    await writeLastOffsetProcessedToOffsetsTable({
-      id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
-      lastOffsetProcessed
-    });
-  } else {
-    for (const version of versions) {
-      logInfo(`Replaying version: ${JSON.stringify(version)}`);
-      const id = version.Key;
-      const versionId = version.VersionId;
-      const objectMetaData = await getS3ObjectMetadata(config.BUCKET_NAME, id, versionId);
-      const lastModified = (objectMetaData && objectMetaData.LastModified) ? objectMetaData.LastModified.toISOString() : undefined;
-      const versionMetadata = {
-        key: id,
-        versionId: versionId,
-        lastModified
-      };
-      logInfo(`Creating s3 Put event from versionMetadata: ${JSON.stringify(versionMetadata)} from object metadata LastModified: ${objectMetaData.LastModified}`);
-      const s3Event = createS3EventFromVersion(versionMetadata);
-
-      await sendToSqs(s3Event, config.REPLAY_QUEUE_URL);
-
-      lastOffsetProcessed = `${lastModified} ${id} ${versionId}`;
-      await writeLastOffsetProcessedToOffsetsTable({
-        id: config.REPLAY_QUEUE_URL,
-        lastOffsetProcessed
-      });
-
-      eventsReplayed++;
-    }
-  }
-  logInfo("replay job complete.");
-  return { versions: versions.length, eventsReplayed, lastOffsetProcessed };
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Projection functions
-// ---------------------------------------------------------------------------------------------------------------------
-
-export async function createProjections(s3Event) {
-  logInfo(`Creating projections from: ${JSON.stringify(s3Event)}...`);
-  const s3EventRecords = s3Event.Records || [];
-  let digest = null;
-  for (const s3EventRecord of s3EventRecords) {
-    if (s3EventRecord.eventName !== "ObjectCreated:Put") {
-      throw new Error(`Unsupported event name: ${s3EventRecord.eventName}`);
-    }
-    digest = await createProjection(s3EventRecord);
-  }
-  return digest;
-}
-
-export async function createProjection(s3PutEventRecord) {
-  const id = s3PutEventRecord.s3.object.key;
-  const versionId = s3PutEventRecord.s3.object.versionId;
-  const { objectMetaData, object, version } = await getS3ObjectWithContentAndVersion(config.BUCKET_NAME, id, versionId);
-  if (version && !version.IsLatest) {
-    logError(`This is not the latest version of the object: ${id} ${versionId}`);
-  }
-  await writeValueToProjectionsTable({
-    id,
-    value: object
-  });
-  const digest = await computeDigest(["digest"]);
-  await writeValueToProjectionsTable({
-    id: "digest",
-    value: JSON.stringify(digest)
-  });
-  const lastOffsetProcessed = `${objectMetaData.LastModified.toISOString()} ${id} ${versionId}`;
-  const bucketLastOffsetProcessed = await readLastOffsetProcessedFromOffsetsTableById(`${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`);
-  if (lastOffsetProcessed < bucketLastOffsetProcessed) {
-    logError(`Bucket offset ${bucketLastOffsetProcessed} is already at or ahead of this object's offset at ${lastOffsetProcessed}`);
-  } else {
-    logInfo(`Bucket offset ${bucketLastOffsetProcessed} is being replaced by this object's offset at ${lastOffsetProcessed}`);
-    await writeLastOffsetProcessedToOffsetsTable({
-      id: `${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`,
-      lastOffsetProcessed
-    });
-  }
-
-  return digest;
-}
-
-export async function computeDigest(ignoreKeys) {
-  const digest = await getProjectionIdsMap(ignoreKeys);
-  return digest;
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// SQS Lambda Handlers
-// ---------------------------------------------------------------------------------------------------------------------
-
-export async function replayBatchLambdaHandler(event) {
-  logInfo(`Replay Batch Lambda received event: ${JSON.stringify(event)}`);
-  const { versions, eventsReplayed, lastOffsetProcessed } = await replay();
-  return { handler: "src/lib/main.replayBatchLambdaHandler", versions, eventsReplayed, lastOffsetProcessed };
-}
-
-export async function sourceLambdaHandler(sqsEvent) {
-  logInfo(`Source Lambda received event: ${JSON.stringify(sqsEvent)}`);
-  const replayQueueLastOffsetProcessed = await readLastOffsetProcessedFromOffsetsTableById(config.REPLAY_QUEUE_URL);
-  const bucketLastOffsetProcessed = await readLastOffsetProcessedFromOffsetsTableById(`${config.BUCKET_NAME}/${config.OBJECT_PREFIX}`);
-  if (!bucketLastOffsetProcessed || bucketLastOffsetProcessed < replayQueueLastOffsetProcessed) {
-    throw new Error(`Bucket offset processed ${bucketLastOffsetProcessed} is behind replay queue offset processed ${replayQueueLastOffsetProcessed}. Replay needed.`);
-  } else {
-    logInfo(`Bucket offset processed ${bucketLastOffsetProcessed} is at or ahead of the replay queue offset processed ${replayQueueLastOffsetProcessed}. Ready to read from source.`);
-  }
-
-  const sqsEventRecords = Array.isArray(sqsEvent.Records) ? sqsEvent.Records : [sqsEvent];
-  const batchItemFailures = [];
-  for (const sqsEventRecord of sqsEventRecords) {
-    try {
-      const s3Event = JSON.parse(sqsEventRecord.body);
-      const digest = await createProjections(s3Event);
-      await sendToSqs(digest, config.DIGEST_QUEUE_URL);
-      logInfo(`Created source-projection with digest: ${JSON.stringify(digest)}`);
-    } catch (error) {
-      logError(`Error processing record ${sqsEventRecord.messageId}: ${error.message}: ${error}`);
-      batchItemFailures.push({ itemIdentifier: sqsEventRecord.messageId });
-    }
-  }
-
-  return {
-    batchItemFailures,
-    handler: "src/lib/main.sourceLambdaHandler"
-  };
-}
-
-export async function replayLambdaHandler(sqsEvent) {
-  logInfo(`Replay Lambda received event: ${JSON.stringify(sqsEvent)}`);
-  const sqsEventRecords = Array.isArray(sqsEvent.Records) ? sqsEvent.Records : [sqsEvent];
-  const batchItemFailures = [];
-  for (const sqsEventRecord of sqsEventRecords) {
-    try {
-      const s3Event = JSON.parse(sqsEventRecord.body);
-      const digest = await createProjections(s3Event);
-      logInfo(`Created replay-projection with digest: ${JSON.stringify(digest)}`);
-    } catch (error) {
-      logError(`Error processing record ${sqsEventRecord.messageId}: ${error.message}: ${error}`);
-      batchItemFailures.push({ itemIdentifier: sqsEventRecord.messageId });
-    }
-  }
-
-  return {
-    handler: "src/lib/main.replayLambdaHandler",
-    batchItemFailures
-  };
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Health check server
-// ---------------------------------------------------------------------------------------------------------------------
-
-export function healthCheckServer() {
-  const app = express();
-  app.disable('x-powered-by');
-  app.get("/", (req, res) => res.send("S3 SQS Bridge OK"));
-  app.listen(8080, () => logInfo("Healthcheck available at :8080"));
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Main CLI
-// ---------------------------------------------------------------------------------------------------------------------
-
-export async function main(args = process.argv.slice(2)) {
-  const exampleS3ObjectVersion = {
-    key: "events/1.json",
-    versionId: "AZW7UcKuQ.8ZZ5GnL9TaTMnK10xH1DON",
-    lastModified: new Date().toISOString()
-  };
-  if (args.includes("--help")) {
-    console.log(`
-      Usage:
-      --help                     Show this help message (default)
-      --source-projection        Run Lambda handler for events from source
-      --replay-projection        Run Lambda handler for events created by replay
-      --replay                   Run full bucket replay
-      --healthcheck              Run healthcheck server
-     Lambda handlers for --source-projection --replay-projection process a put event for the following object:
-     ${JSON.stringify(exampleS3ObjectVersion, null, 2)}
-    `);
-    return;
-  }
-
-  if (args.includes("--replay")) {
-    await replay();
-  } else if (args.includes("--source-projection")) {
-    const s3Event = createS3EventFromVersion(exampleS3ObjectVersion);
-    const sqsEvent = createSQSEventFromS3Event(s3Event);
-    await sourceLambdaHandler(sqsEvent);
-  } else if (args.includes("--replay-projection")) {
-    const s3Event = createS3EventFromVersion(exampleS3ObjectVersion);
-    const sqsEvent = createSQSEventFromS3Event(s3Event);
-    await replayLambdaHandler(sqsEvent);
-  } else if (args.includes("--healthcheck")) {
-    healthCheckServer();
-  } else {
-    console.log("No command argument supplied.");
-  }
-}
-
-if (import.meta.url.endsWith(process.argv[1])) {
-  main().catch((err) => {
-    logError("Fatal error in main execution: " + err, err);
-    process.exit(1);
-  });
+// If this module is executed directly, run a dummy event for local testing
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const dummyEvent = { Records: [] };
+  githubEventProjectionHandler(dummyEvent)
+    .then((result) => logInfo(`Execution result: ${JSON.stringify(result)}`))
+    .catch((err) => logError('Execution error', err));
 }
