@@ -43,7 +43,7 @@ jobs:
         id: engine
         shell: bash
         run: |
-          engine=$(grep '^schedule:' .github/schedule.yml | awk '{print $2}')
+          engine=$(grep '^schedule:' .github/agentic-lib.yml | awk '{print $2}')
           echo "engine=${engine}"
           echo "engine=${engine}" >> $GITHUB_OUTPUT
 

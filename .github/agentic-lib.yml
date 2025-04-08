@@ -1,2 +1,3 @@
 # Which agentic-lib workflow schedule should be used?
 schedule: schedule-1
+featuresMaximum: 5
