@@ -1,11 +1,16 @@
 {
-  "openIssues": 3,
+  "openIssues": 4,
   "issuesClosedLastHour": 0,
   "issuesClosedLastDay": 9,
-  "openPRs": 0,
-  "prDetails": [],
-  "diffMinutes": 117,
-  "diffMinutesMain": 576,
+  "openPRs": 1,
+  "prDetails": [
+    {
+      "title": "Updated ES module check by replacing require.main with a fileURLToPath based check to fix the build and execution issue in Node ES modules. (fixes #25)",
+      "ageMinutes": 1
+    }
+  ],
+  "diffMinutes": 1,
+  "diffMinutesMain": 698,
   "commitsLastHour": 0,
   "commitsLastDay": 13,
   "lastFiveCommitMessages": [
@@ -35,12 +40,12 @@
     "details": [
       {
         "branch": "agentic-lib-issue-25",
-        "minutesSinceLastCommit": 119
+        "minutesSinceLastCommit": 1
       }
     ]
   },
-  "averagePRAge": 0,
+  "averagePRAge": 1,
   "testStatus": "PASS",
   "testsLastPassedMinutes": 15,
-  "generatedAt": "2025-04-08T14:03:35.696Z"
+  "generatedAt": "2025-04-08T16:04:40.039Z"
 }
