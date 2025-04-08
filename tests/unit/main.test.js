@@ -1,6 +1,6 @@
-// tests/unit/githubProjectionHandler.test.js
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { githubEventProjectionHandler } from '../../src/lib/githubProjectionHandler.js';
+// tests/unit/main.test.js
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { githubEventProjectionHandler } from '../../src/lib/main.js';
 
 // Mock the pg Client
 const mockQuery = vi.fn();
@@ -15,26 +15,18 @@ vi.mock('pg', () => {
       end: mockEnd
     };
   };
-  return { Client: mClient };
+  return { default: { Client: mClient }, Client: mClient };
 });
 
-// Also mock the logging functions from main.js
-vi.mock('../../src/lib/main.js', () => {
-  return {
-    logInfo: vi.fn(),
-    logError: vi.fn()
-  };
-});
 
 describe('githubEventProjectionHandler', () => {
   beforeEach(() => {
-    mockConnect.mockReset();
-    mockQuery.mockReset();
-    mockEnd.mockReset();
+    mockConnect.mockClear();
+    mockQuery.mockClear();
+    mockEnd.mockClear();
   });
 
   it('processes valid GitHub event messages', async () => {
-    // Setup a valid SQS event record
     const event = {
       Records: [
         {

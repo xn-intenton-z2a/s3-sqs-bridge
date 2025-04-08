@@ -6,7 +6,7 @@ This repository includes:
 
 - AWS CloudFormation/CDK stacks for setting up necessary AWS infrastructure.
 - A Node.js Lambda function that processes S3 events forwarded to SQS.
-- A new Lambda function for processing GitHub event messages from a dedicated SQS queue and creating projections in a PostgreSQL database.
+- A GitHub Event Projections Lambda handler implemented in **src/lib/main.js** that processes GitHub event messages from a dedicated SQS queue and creates projections in a PostgreSQL database.
 - A comprehensive CLI for replaying events, processing source projections, and performing health checks.
 
 For the full mission statement, see [MISSION.md](MISSION.md). For contribution guidelines, please refer to [CONTRIBUTING.md](CONTRIBUTING.md). Setup instructions are provided in [SETUP.md] and licensing details in [LICENSE].
@@ -54,11 +54,11 @@ New PostgreSQL related environment variables:
 
 Use the following npm scripts:
 
-- `npm start` to run the main CLI.
+- `npm start` to run the GitHub event projection handler (located in **src/lib/main.js**).
 - `npm run healthcheck` to start the health check server.
 - `npm run replay` to replay S3 events.
 
-For GitHub event projections, deploy the new Lambda function using your preferred deployment method (e.g., AWS CDK, Serverless Framework) after configuring the required PostgreSQL environment variables.
+For GitHub event projections, deploy the Lambda function using your preferred deployment method (e.g., AWS CDK, Serverless Framework) after configuring the required PostgreSQL environment variables.
 
 ## Testing
 

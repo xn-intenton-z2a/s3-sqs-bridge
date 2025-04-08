@@ -1,13 +1,21 @@
 #!/usr/bin/env node
-// src/lib/githubProjectionHandler.js
-// GitHub Event Projections Lambda Handler - integrates GitHub event messages from SQS and writes to PostgreSQL
+// src/lib/main.js
+// This file serves as both the logger and the GitHub Event Projections Lambda Handler.
 
-import { Client } from 'pg';
+import pkg from 'pg';
+const { Client } = pkg;
 import dotenv from 'dotenv';
-import { logInfo, logError } from './main.js';
 
-// Load environment variables from .env file if present
 dotenv.config();
+
+// Define logging functions
+export function logInfo(message) {
+  console.log(message);
+}
+
+export function logError(message, error) {
+  console.error(message, error);
+}
 
 // Robust default configurations for GitHub Event Projection
 const PG_CONNECTION_STRING = process.env.PG_CONNECTION_STRING || 'postgres://user:pass@localhost:5432/db';
@@ -67,4 +75,12 @@ export async function githubEventProjectionHandler(event) {
     await client.end();
     throw error;
   }
+}
+
+// If this module is executed directly, run a dummy event for local testing
+if (require.main === module) {
+  const dummyEvent = { Records: [] };
+  githubEventProjectionHandler(dummyEvent)
+    .then((result) => logInfo(`Execution result: ${JSON.stringify(result)}`))
+    .catch((err) => logError('Execution error', err));
 }
