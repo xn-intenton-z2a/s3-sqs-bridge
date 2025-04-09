@@ -9,6 +9,34 @@ import { fileURLToPath } from 'url';
 
 dotenv.config();
 
+// Configuration for PostgreSQL retries
+const MAX_ATTEMPTS = parseInt(process.env.PG_MAX_RETRIES, 10) || 3;
+const RETRY_DELAY = parseInt(process.env.PG_RETRY_DELAY_MS, 10) || 1000;
+
+// Utility functions
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function retryOperation(operation, maxAttempts = MAX_ATTEMPTS, delay = RETRY_DELAY) {
+  let attempts = 0;
+  let lastError;
+  while (attempts < maxAttempts) {
+    try {
+      return await operation();
+    } catch (err) {
+      lastError = err;
+      attempts++;
+      if (attempts < maxAttempts) {
+        // Log retry attempt
+        console.warn(`Operation failed, retrying attempt ${attempts + 1} of ${maxAttempts} after ${delay}ms...`);
+        await sleep(delay);
+      }
+    }
+  }
+  throw lastError;
+}
+
 // Define logging functions
 export function logInfo(message) {
   console.log(message);
@@ -39,8 +67,11 @@ const GITHUB_EVENT_QUEUE_URL = process.env.GITHUB_EVENT_QUEUE_URL || 'https://te
 export async function githubEventProjectionHandler(event) {
   logInfo(`GitHub Event Projection Handler received event: ${JSON.stringify(event)}`);
   const client = new Client({ connectionString: PG_CONNECTION_STRING });
+
   try {
-    await client.connect();
+    // Retry connecting to the PostgreSQL database
+    await retryOperation(() => client.connect());
+
     const records = event.Records || [];
     for (const record of records) {
       let body;
@@ -66,15 +97,23 @@ export async function githubEventProjectionHandler(event) {
           metadata = EXCLUDED.metadata;
       `;
       const values = [repository, eventType, eventTimestamp, JSON.stringify(metadata || {})];
-      await client.query(query, values);
+
+      // Retry the query operation in case of transient failure
+      await retryOperation(() => client.query(query, values));
+
       logInfo(`Processed GitHub event for repository ${repository}`);
     }
-    await client.end();
     return { status: 'success' };
   } catch (error) {
     logError('Error processing GitHub events', error);
-    await client.end();
     throw error;
+  } finally {
+    // Ensure the client is closed regardless of success or failure
+    try {
+      await client.end();
+    } catch (endError) {
+      logError('Error closing the database connection', endError);
+    }
   }
 }
 
