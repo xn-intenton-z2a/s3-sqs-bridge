@@ -6,8 +6,17 @@ import pkg from 'pg';
 const { Client } = pkg;
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
+import { z } from 'zod';
 
 dotenv.config();
+
+// Zod schema for validating GitHub event projection messages
+const GitHubEventSchema = z.object({
+  repository: z.string(),
+  eventType: z.string(),
+  eventTimestamp: z.string().refine(val => !isNaN(Date.parse(val)), { message: 'Invalid ISO date format' }),
+  metadata: z.optional(z.object({}).passthrough())
+});
 
 // Configuration for PostgreSQL retries
 const MAX_ATTEMPTS = parseInt(process.env.PG_MAX_RETRIES, 10) || 3;
@@ -82,11 +91,15 @@ export async function githubEventProjectionHandler(event) {
         continue;
       }
 
-      const { repository, eventType, eventTimestamp, metadata } = body;
-      if (!repository || !eventType || !eventTimestamp) {
-        logError(`Missing required fields in GitHub event: ${record.body}`);
+      // Validate the parsed body using Zod schema
+      const validation = GitHubEventSchema.safeParse(body);
+      if (!validation.success) {
+        logError(`Validation failed for GitHub event: ${record.body}`, validation.error);
         continue;
       }
+      const validData = validation.data;
+
+      const { repository, eventType, eventTimestamp, metadata } = validData;
 
       const query = `
         INSERT INTO ${GITHUB_PROJECTIONS_TABLE} (repository, event_type, event_timestamp, metadata)

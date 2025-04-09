@@ -86,15 +86,35 @@ describe('githubEventProjectionHandler', () => {
         {
           body: JSON.stringify({
             repository: 'repo3',
-            // missing eventType and eventTimestamp
             metadata: {}
           })
         }
       ]
     };
-    
+
     const result = await githubEventProjectionHandler(event);
-    // No query should be executed
+    // No query should be executed as validation will fail
+    expect(mockQuery).not.toHaveBeenCalled();
+    expect(result).toEqual({ status: 'success' });
+  });
+
+  it('skips records with invalid data types', async () => {
+    // repository should be a string, pass a number instead
+    mockConnect.mockResolvedValue();
+    mockEnd.mockResolvedValue();
+
+    const event = {
+      Records: [
+        {
+          body: JSON.stringify({
+            repository: 123,
+            eventType: 'push',
+            eventTimestamp: '2025-03-17T12:00:00Z'
+          })
+        }
+      ]
+    };
+    const result = await githubEventProjectionHandler(event);
     expect(mockQuery).not.toHaveBeenCalled();
     expect(result).toEqual({ status: 'success' });
   });
