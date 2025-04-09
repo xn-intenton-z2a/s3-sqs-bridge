@@ -1,12 +1,12 @@
 # s3-sqs-bridge (Versioned Amazon S3 Object Put Event replay capable queuing to SQS)
 
-S3 SQS Bridge integrates Amazon S3 with AWS SQS to provide versioned event replay and real-time processing using Lambda and DynamoDB for durable offset tracking. This tool supports both AWS and local deployments (with Docker Compose and MinIO). Additionally, it now supports processing GitHub event messages for projection creation in PostgreSQL with enhanced connection resilience and error handling.
+S3 SQS Bridge integrates Amazon S3 with AWS SQS to provide versioned event replay and real-time processing using Lambda and DynamoDB for durable offset tracking. This tool supports both AWS and local deployments (with Docker Compose and MinIO). Additionally, it now supports processing GitHub event messages for projection creation in PostgreSQL with enhanced connection resilience, error handling, and robust input validation using Zod.
 
 This repository includes:
 
 - AWS CloudFormation/CDK stacks for setting up necessary AWS infrastructure.
 - A Node.js Lambda function that processes S3 events forwarded to SQS.
-- A GitHub Event Projections Lambda handler implemented in **src/lib/main.js** that processes GitHub event messages from a dedicated SQS queue and creates projections in a PostgreSQL database with automatic retries and robust error handling.
+- A GitHub Event Projections Lambda handler implemented in **src/lib/main.js** that processes GitHub event messages from a dedicated SQS queue and creates projections in a PostgreSQL database with automatic retries and robust error & schema validation.
 - A comprehensive CLI for replaying events, processing source projections, and performing health checks.
 
 For the full mission statement, see [MISSION.md](MISSION.md). For contribution guidelines, please refer to [CONTRIBUTING.md](CONTRIBUTING.md). Setup instructions are provided in [SETUP.md] and licensing details in [LICENSE].
@@ -18,7 +18,7 @@ Additionally, check out the intentïon agentic-lib on GitHub: [agentic-lib](http
 - **Robust Defaults:** The configuration automatically applies sensible default values for all environment variables (even in production), reducing the risk of misconfigurations.
 - **Event Replay:** Replay S3 object versions in chronological order to rebuild state.
 - **Real-Time Processing:** Forwards S3 events to an SQS queue for immediate processing.
-- **GitHub Event Projections:** Processes GitHub event messages to create or update projections stored in a PostgreSQL database with automatic retry mechanisms for transient failures.
+- **GitHub Event Projections:** Processes GitHub event messages to create or update projections stored in a PostgreSQL database with automatic retry mechanisms for transient failures and Zod-based schema validation to ensure data integrity.
 - **High Availability:** Optimized for low cost and high scalability on AWS Fargate Spot.
 
 ## Configuration
@@ -63,7 +63,7 @@ Use the following npm scripts:
 - `npm run healthcheck` to start the health check server.
 - `npm run replay` to replay S3 events.
 
-For GitHub event projections, deploy the Lambda function using your preferred deployment method (e.g., AWS CDK, Serverless Framework) after configuring the required PostgreSQL environment variables and retry options.
+For GitHub event projections, deploy the Lambda function using your preferred deployment method (e.g., AWS CDK, Serverless Framework) after configuring the required PostgreSQL environment variables, retry options, and ensuring valid event payloads per the Zod schema.
 
 ## Testing
 
