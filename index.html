@@ -28,7 +28,7 @@
 <ul class="md-github">
 <li class="md-github">AWS CloudFormation/CDK stacks for setting up necessary AWS infrastructure.</li>
 <li class="md-github">A Node.js Lambda function that processes S3 events forwarded to SQS.</li>
-<li class="md-github">A GitHub Event Projections Lambda handler implemented in <strong class="md-github">src/lib/main.js</strong> that processes GitHub event messages from a dedicated SQS queue and creates projections in a PostgreSQL database with automatic retries and robust error &amp; schema validation.</li>
+<li class="md-github">A GitHub Event Projections Lambda handler implemented in <strong class="md-github">src/lib/main.js</strong> that processes GitHub event messages from a dedicated SQS queue and creates projections in a PostgreSQL database. The handler now features a robust connection retry mechanism that creates a new PostgreSQL client for each connection attempt, ensuring that client reuse errors are avoided.</li>
 <li class="md-github">A comprehensive CLI for replaying events, processing source projections, and performing health checks.</li>
 </ul>
 <p class="md-github">For the full mission statement, see <a href="MISSION.md" class="md-github">MISSION.md</a>. For contribution guidelines, please refer to <a href="CONTRIBUTING.md" class="md-github">CONTRIBUTING.md</a>. Setup instructions are provided in [SETUP.md] and licensing details in [LICENSE].</p>
@@ -38,7 +38,7 @@
 <li class="md-github"><strong class="md-github">Robust Defaults:</strong> The configuration automatically applies sensible default values for all environment variables (even in production), reducing the risk of misconfigurations.</li>
 <li class="md-github"><strong class="md-github">Event Replay:</strong> Replay S3 object versions in chronological order to rebuild state.</li>
 <li class="md-github"><strong class="md-github">Real-Time Processing:</strong> Forwards S3 events to an SQS queue for immediate processing.</li>
-<li class="md-github"><strong class="md-github">GitHub Event Projections:</strong> Processes GitHub event messages to create or update projections stored in a PostgreSQL database with automatic retry mechanisms for transient failures and Zod-based schema validation to ensure data integrity.</li>
+<li class="md-github"><strong class="md-github">GitHub Event Projections:</strong> Processes GitHub event messages to create or update projections stored in a PostgreSQL database with an improved connection strategy that automatically retries with a new client in case of transient errors and utilizes Zod-based schema validation for data integrity.</li>
 <li class="md-github"><strong class="md-github">High Availability:</strong> Optimized for low cost and high scalability on AWS Fargate Spot.</li>
 </ul>
 <h2 class="md-github"><a class="md-github__anchor" name="configuration" href="#configuration"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Configuration</h2>
@@ -90,7 +90,7 @@
 
   </section>
   <footer>
-    <p>Generated on 2025-04-09T08:05:27.012Z</p>
+    <p>Generated on 2025-04-09T10:05:40.011Z</p>
   </footer>
 </body>
 </html>
