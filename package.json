@@ -56,11 +56,15 @@
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-security": "^3.0.1",
     "eslint-plugin-sonarjs": "^3.0.2",
-    "markdown-it": "^14.1.0",
+    "eslint": "^9.24.0",
+    "express": "^5.1.0",
     "markdown-it-github": "^0.5.0",
-    "npm-check-updates": "^17.1.15",
-    "prettier": "^3.5.2",
-    "vitest": "^3.0.7"
+    "markdown-it": "^14.1.0",
+    "npm-check-updates": "^17.1.16",
+    "openai": "^4.92.0",
+    "pg": "^8.9.0",
+    "prettier": "^3.5.3",
+    "vitest": "^3.1.1"
   },
   "overrides": {
     "rimraf": "^4.0.0",

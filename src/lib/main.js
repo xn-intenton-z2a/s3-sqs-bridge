@@ -22,6 +22,11 @@ const GitHubEventSchema = z.object({
 const MAX_ATTEMPTS = parseInt(process.env.PG_MAX_RETRIES, 10) || 3;
 const RETRY_DELAY = parseInt(process.env.PG_RETRY_DELAY_MS, 10) || 1000;
 
+// Robust default configurations for GitHub Event Projection
+const PG_CONNECTION_STRING = process.env.PG_CONNECTION_STRING || 'postgres://user:pass@localhost:5432/db';
+const GITHUB_PROJECTIONS_TABLE = process.env.GITHUB_PROJECTIONS_TABLE || 'github_event_projections';
+const GITHUB_EVENT_QUEUE_URL = process.env.GITHUB_EVENT_QUEUE_URL || 'https://test/000000000000/github-event-queue-test';
+
 // Utility functions
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -37,9 +42,29 @@ async function retryOperation(operation, maxAttempts = MAX_ATTEMPTS, delay = RET
       lastError = err;
       attempts++;
       if (attempts < maxAttempts) {
-        // Log retry attempt
         console.warn(`Operation failed, retrying attempt ${attempts + 1} of ${maxAttempts} after ${delay}ms...`);
         await sleep(delay);
+      }
+    }
+  }
+  throw lastError;
+}
+
+// New connectWithRetry function that creates a new client for each connection attempt
+async function connectWithRetry() {
+  let attempts = 0;
+  let lastError;
+  while (attempts < MAX_ATTEMPTS) {
+    const client = new Client({ connectionString: PG_CONNECTION_STRING });
+    try {
+      await client.connect();
+      return client;
+    } catch (err) {
+      lastError = err;
+      attempts++;
+      if (attempts < MAX_ATTEMPTS) {
+        console.warn(`Operation failed, retrying connection attempt ${attempts + 1} of ${MAX_ATTEMPTS} after ${RETRY_DELAY}ms...`);
+        await sleep(RETRY_DELAY);
       }
     }
   }
@@ -54,11 +79,6 @@ export function logInfo(message) {
 export function logError(message, error) {
   console.error(message, error);
 }
-
-// Robust default configurations for GitHub Event Projection
-const PG_CONNECTION_STRING = process.env.PG_CONNECTION_STRING || 'postgres://user:pass@localhost:5432/db';
-const GITHUB_PROJECTIONS_TABLE = process.env.GITHUB_PROJECTIONS_TABLE || 'github_event_projections';
-const GITHUB_EVENT_QUEUE_URL = process.env.GITHUB_EVENT_QUEUE_URL || 'https://test/000000000000/github-event-queue-test';
 
 /**
  * Lambda handler for processing GitHub event messages from SQS and persisting projections in PostgreSQL.
@@ -75,11 +95,9 @@ const GITHUB_EVENT_QUEUE_URL = process.env.GITHUB_EVENT_QUEUE_URL || 'https://te
  */
 export async function githubEventProjectionHandler(event) {
   logInfo(`GitHub Event Projection Handler received event: ${JSON.stringify(event)}`);
-  const client = new Client({ connectionString: PG_CONNECTION_STRING });
-
+  let client;
   try {
-    // Retry connecting to the PostgreSQL database
-    await retryOperation(() => client.connect());
+    client = await connectWithRetry();
 
     const records = event.Records || [];
     for (const record of records) {
@@ -98,7 +116,7 @@ export async function githubEventProjectionHandler(event) {
         continue;
       }
       const validData = validation.data;
-
+      
       const { repository, eventType, eventTimestamp, metadata } = validData;
 
       const query = `
@@ -121,11 +139,12 @@ export async function githubEventProjectionHandler(event) {
     logError('Error processing GitHub events', error);
     throw error;
   } finally {
-    // Ensure the client is closed regardless of success or failure
-    try {
-      await client.end();
-    } catch (endError) {
-      logError('Error closing the database connection', endError);
+    if (client) {
+      try {
+        await client.end();
+      } catch (endError) {
+        logError('Error closing the database connection', endError);
+      }
     }
   }
 }

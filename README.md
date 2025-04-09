@@ -6,7 +6,7 @@ This repository includes:
 
 - AWS CloudFormation/CDK stacks for setting up necessary AWS infrastructure.
 - A Node.js Lambda function that processes S3 events forwarded to SQS.
-- A GitHub Event Projections Lambda handler implemented in **src/lib/main.js** that processes GitHub event messages from a dedicated SQS queue and creates projections in a PostgreSQL database with automatic retries and robust error & schema validation.
+- A GitHub Event Projections Lambda handler implemented in **src/lib/main.js** that processes GitHub event messages from a dedicated SQS queue and creates projections in a PostgreSQL database. The handler now features a robust connection retry mechanism that creates a new PostgreSQL client for each connection attempt, ensuring that client reuse errors are avoided.
 - A comprehensive CLI for replaying events, processing source projections, and performing health checks.
 
 For the full mission statement, see [MISSION.md](MISSION.md). For contribution guidelines, please refer to [CONTRIBUTING.md](CONTRIBUTING.md). Setup instructions are provided in [SETUP.md] and licensing details in [LICENSE].
@@ -18,7 +18,7 @@ Additionally, check out the intentïon agentic-lib on GitHub: [agentic-lib](http
 - **Robust Defaults:** The configuration automatically applies sensible default values for all environment variables (even in production), reducing the risk of misconfigurations.
 - **Event Replay:** Replay S3 object versions in chronological order to rebuild state.
 - **Real-Time Processing:** Forwards S3 events to an SQS queue for immediate processing.
-- **GitHub Event Projections:** Processes GitHub event messages to create or update projections stored in a PostgreSQL database with automatic retry mechanisms for transient failures and Zod-based schema validation to ensure data integrity.
+- **GitHub Event Projections:** Processes GitHub event messages to create or update projections stored in a PostgreSQL database with an improved connection strategy that automatically retries with a new client in case of transient errors and utilizes Zod-based schema validation for data integrity.
 - **High Availability:** Optimized for low cost and high scalability on AWS Fargate Spot.
 
 ## Configuration
