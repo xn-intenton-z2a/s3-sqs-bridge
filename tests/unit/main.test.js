@@ -26,7 +26,13 @@ describe('githubEventProjectionHandler', () => {
     mockEnd.mockClear();
   });
 
-  it('processes valid GitHub event messages', async () => {
+  it('processes valid GitHub event messages and retries on initial connection failure', async () => {
+    // Simulate connection failure on first attempt then success
+    mockConnect.mockRejectedValueOnce(new Error('Connect error'));
+    mockConnect.mockResolvedValue();
+    mockQuery.mockResolvedValue({ rowCount: 1 });
+    mockEnd.mockResolvedValue();
+
     const event = {
       Records: [
         {
@@ -39,17 +45,18 @@ describe('githubEventProjectionHandler', () => {
         }
       ]
     };
-    mockConnect.mockResolvedValue();
-    mockQuery.mockResolvedValue({ rowCount: 1 });
-    mockEnd.mockResolvedValue();
 
     const result = await githubEventProjectionHandler(event);
-    expect(mockConnect).toHaveBeenCalled();
-    expect(mockQuery).toHaveBeenCalled();
+    expect(mockConnect).toHaveBeenCalledTimes(2);
+    expect(mockQuery).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ status: 'success' });
   });
 
   it('skips records with invalid JSON', async () => {
+    mockConnect.mockResolvedValue();
+    mockQuery.mockResolvedValue({ rowCount: 1 });
+    mockEnd.mockResolvedValue();
+
     const event = {
       Records: [
         { body: 'invalid-json' },
@@ -63,9 +70,6 @@ describe('githubEventProjectionHandler', () => {
         }
       ]
     };
-    mockConnect.mockResolvedValue();
-    mockQuery.mockResolvedValue({ rowCount: 1 });
-    mockEnd.mockResolvedValue();
 
     const result = await githubEventProjectionHandler(event);
     // Only one valid record should trigger a query
@@ -74,6 +78,9 @@ describe('githubEventProjectionHandler', () => {
   });
 
   it('skips records with missing required fields', async () => {
+    mockConnect.mockResolvedValue();
+    mockEnd.mockResolvedValue();
+
     const event = {
       Records: [
         {
@@ -85,16 +92,19 @@ describe('githubEventProjectionHandler', () => {
         }
       ]
     };
-    mockConnect.mockResolvedValue();
-    mockEnd.mockResolvedValue();
-
+    
     const result = await githubEventProjectionHandler(event);
     // No query should be executed
     expect(mockQuery).not.toHaveBeenCalled();
     expect(result).toEqual({ status: 'success' });
   });
 
-  it('throws error when database query fails', async () => {
+  it('throws error when database query fails after retries', async () => {
+    mockConnect.mockResolvedValue();
+    // Simulate query failure on each retry attempt
+    mockQuery.mockRejectedValue(new Error('DB error'));
+    mockEnd.mockResolvedValue();
+
     const event = {
       Records: [
         {
@@ -107,11 +117,9 @@ describe('githubEventProjectionHandler', () => {
         }
       ]
     };
-    mockConnect.mockResolvedValue();
-    mockQuery.mockRejectedValue(new Error('DB error'));
-    mockEnd.mockResolvedValue();
 
     await expect(githubEventProjectionHandler(event)).rejects.toThrow('DB error');
-    expect(mockQuery).toHaveBeenCalled();
+    // Expect query to have been attempted MAX_ATTEMPTS times
+    expect(mockQuery).toHaveBeenCalledTimes(3);
   });
 });
