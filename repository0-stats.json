@@ -2,48 +2,48 @@
   "owner": "xn-intenton-z2a",
   "repo": "repository0",
   "engine": "schedule-3",
-  "openIssues": 22,
-  "issuesClosedLastHour": 6,
+  "openIssues": 31,
+  "issuesClosedLastHour": 0,
   "issuesClosedLastDay": 100,
   "openPRs": 0,
   "prDetails": [],
   "diffMinutes": 0,
-  "diffMinutesMain": 23,
-  "commitsLastHour": 3,
-  "commitsLastDay": 100,
+  "diffMinutesMain": 117,
+  "commitsLastHour": 0,
+  "commitsLastDay": 95,
   "lastFiveCommitMessages": [
     {
-      "time": "20:06",
-      "message": "Consolidated duplicate NaN directive documentation across main.j..."
+      "time": "21:55",
+      "message": "Lock NaN-related flags to non-operative behavior by adding inlin..."
     },
     {
-      "time": "19:58",
-      "message": "Archived the decision on NaN directives and documented it in bot..."
+      "time": "21:50",
+      "message": "Updated README with detailed deprecation notice for legacy CLI f..."
     },
     {
-      "time": "19:47",
-      "message": "Consolidated NaN flag documentation across CLI help README and c..."
+      "time": "21:45",
+      "message": "Update README documentation to clarify CLI_MODE environment vari..."
     },
     {
-      "time": "19:28",
-      "message": "Refactored checkForUpdate error handling to always prefix networ..."
+      "time": "21:36",
+      "message": "Clarified the non-operative nature of the NaN command in both so..."
     },
     {
-      "time": "18:46",
-      "message": "Update from agentic-lib"
+      "time": "21:30",
+      "message": "Added early legacy flag handling in main.js to properly output d..."
     }
   ],
   "branches": {
     "count": 1,
     "details": [
       {
-        "branch": "agentic-lib-issue-1226",
-        "minutesSinceLastCommit": 11
+        "branch": "agentic-lib-issue-1244",
+        "minutesSinceLastCommit": 7
       }
     ]
   },
   "averagePRAge": 0,
   "testStatus": "PASS",
   "testsLastPassedMinutes": 15,
-  "generatedAt": "2025-04-10T20:29:32.579Z"
+  "generatedAt": "2025-04-10T23:53:30.438Z"
 }
