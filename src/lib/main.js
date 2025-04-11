@@ -10,6 +10,12 @@ import { z } from 'zod';
 
 dotenv.config();
 
+// Helper to mask sensitive information in PostgreSQL connection string
+function maskConnectionString(connStr) {
+  // Replace password part with ***, if present
+  return connStr.replace(/(\/\/[^:]+:)[^@]+(@)/, "$1***$2");
+}
+
 // Zod schema for validating GitHub event projection messages
 const GitHubEventSchema = z.object({
   repository: z.string(),
@@ -32,6 +38,7 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Generic retry operation
 async function retryOperation(operation, maxAttempts = MAX_ATTEMPTS, delay = RETRY_DELAY) {
   let attempts = 0;
   let lastError;
@@ -50,25 +57,19 @@ async function retryOperation(operation, maxAttempts = MAX_ATTEMPTS, delay = RET
   throw lastError;
 }
 
-// New connectWithRetry function that creates a new client for each connection attempt
+// Consolidated connectWithRetry function using retryOperation
 async function connectWithRetry() {
-  let attempts = 0;
-  let lastError;
-  while (attempts < MAX_ATTEMPTS) {
+  return await retryOperation(async () => {
     const client = new Client({ connectionString: PG_CONNECTION_STRING });
     try {
       await client.connect();
       return client;
     } catch (err) {
-      lastError = err;
-      attempts++;
-      if (attempts < MAX_ATTEMPTS) {
-        console.warn(`Operation failed, retrying connection attempt ${attempts + 1} of ${MAX_ATTEMPTS} after ${RETRY_DELAY}ms...`);
-        await sleep(RETRY_DELAY);
-      }
+      const masked = maskConnectionString(PG_CONNECTION_STRING);
+      console.warn(`Connection failed using ${masked}. Retrying...`);
+      throw err;
     }
-  }
-  throw lastError;
+  });
 }
 
 // Define logging functions
@@ -105,7 +106,7 @@ export async function githubEventProjectionHandler(event) {
       try {
         body = JSON.parse(record.body);
       } catch (parseError) {
-        logError(`Failed to parse record body: ${record.body}`);
+        logError(`Failed to parse record body: ${record.body}`, parseError);
         continue;
       }
 
@@ -129,8 +130,15 @@ export async function githubEventProjectionHandler(event) {
       `;
       const values = [repository, eventType, eventTimestamp, JSON.stringify(metadata || {})];
 
-      // Retry the query operation in case of transient failure
-      await retryOperation(() => client.query(query, values));
+      // Retry the query operation with detailed logging
+      await retryOperation(async () => {
+        try {
+          return await client.query(query, values);
+        } catch (err) {
+          logError(`Query failed for repository ${repository} (eventType: ${eventType}). Retrying...`, err);
+          throw err;
+        }
+      });
 
       logInfo(`Processed GitHub event for repository ${repository}`);
     }
