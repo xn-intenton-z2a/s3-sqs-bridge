@@ -4,33 +4,33 @@
   "engine": "schedule-3",
   "openIssues": 100,
   "issuesClosedLastHour": 6,
-  "issuesClosedLastDay": 97,
+  "issuesClosedLastDay": 100,
   "openPRs": 0,
   "prDetails": [],
   "diffMinutes": 0,
-  "diffMinutesMain": 1,
+  "diffMinutesMain": 0,
   "commitsLastHour": 3,
   "commitsLastDay": 100,
   "lastFiveCommitMessages": [
     {
-      "time": "01:08",
-      "message": "Refine NaN handling in numeric argument validation with clearer ..."
+      "time": "03:56",
+      "message": "Implemented case-insensitive handling for NaN in numeric argumen..."
     },
     {
-      "time": "00:40",
-      "message": "Integrated CSV importer function into main.js and updated test i..."
+      "time": "03:41",
+      "message": "Enhance CSV importer to use fallback for NaN values in CSV cells..."
     },
     {
-      "time": "00:16",
-      "message": "Updated fallback numeric argument warnings to use console.log in..."
+      "time": "03:34",
+      "message": "Integrated numeric parser utilities into main.js and updated tes..."
     },
     {
-      "time": "23:38",
-      "message": "Refactored numeric input normalization to explicitly reject NaN ..."
+      "time": "02:27",
+      "message": "Refactor validateNumericArg to immediately reject NaN inputs and..."
     },
     {
-      "time": "23:31",
-      "message": "Added missing afterEach import in test file to resolve Reference..."
+      "time": "01:55",
+      "message": "Refactored numeric argument validation to consolidate NaN handli..."
     }
   ],
   "branches": {
@@ -40,5 +40,5 @@
   "averagePRAge": 0,
   "testStatus": "PASS",
   "testsLastPassedMinutes": 15,
-  "generatedAt": "2025-04-11T01:09:32.599Z"
+  "generatedAt": "2025-04-11T03:57:15.105Z"
 }
