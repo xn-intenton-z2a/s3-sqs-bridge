@@ -2,43 +2,31 @@
   "owner": "xn-intenton-z2a",
   "repo": "s3-sqs-bridge",
   "engine": "schedule-1",
+  "lastActivityName": "Stats",
+  "lastActivityBranchName": "main",
   "openIssues": 0,
   "issuesClosedLastHour": 0,
   "issuesClosedLastDay": 2,
   "openPRs": 0,
+  "averagePRAge": 0,
   "prDetails": [],
-  "diffMinutes": 185,
-  "diffMinutesMain": 258,
-  "commitsLastHour": 0,
-  "commitsLastDay": 13,
+  "diffMinutes": 0,
+  "diffMinutesMain": 0,
+  "commitsLastHour": 9,
+  "commitsLastDay": 22,
   "lastFiveCommitMessages": [
-    {
-      "time": "11:43",
-      "message": "Update from agentic-lib"
-    },
-    {
-      "time": "11:13",
-      "message": "Update from agentic-lib"
-    },
-    {
-      "time": "11:08",
-      "message": "Update from agentic-lib"
-    },
-    {
-      "time": "10:58",
-      "message": "Update from agentic-lib"
-    },
-    {
-      "time": "10:40",
-      "message": "Remove issue-creator workflow file\n\nDeleted the `.github/workflo..."
-    }
+    "[17:01] - Remove issue-creator workflow file\n\nDeleted the `.github/workflo...",
+    "[16:59] - Update from agentic-lib",
+    "[16:55] - Update from agentic-lib",
+    "[16:46] - Update from agentic-lib",
+    "[16:37] - Update from agentic-lib"
   ],
   "branches": {
     "count": 0,
-    "details": []
+    "details": [],
+    "averageBranchAge": 0
   },
-  "averagePRAge": 0,
-  "testStatus": "PASS",
+  "testStatusOnBranch": "PASS",
   "testsLastPassedMinutes": 15,
-  "generatedAt": "2025-04-12T16:01:51.920Z"
+  "statsGeneratedAt": "2025-04-12T17:01:49.750Z"
 }
