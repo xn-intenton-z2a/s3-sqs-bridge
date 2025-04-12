@@ -139,7 +139,7 @@ describe('githubEventProjectionHandler', () => {
     };
 
     await expect(githubEventProjectionHandler(event)).rejects.toThrow('DB error');
-    // Expect query to have been attempted MAX_ATTEMPTS times
+    // Expect query to have been attempted MAX_ATTEMPTS times (3 attempts)
     expect(mockQuery).toHaveBeenCalledTimes(3);
   });
 });
