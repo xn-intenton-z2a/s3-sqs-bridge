@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // src/lib/main.js
 // This file serves as both the logger and the GitHub Event Projections Lambda Handler.
+// It processes GitHub event messages from an SQS queue and stores projections in PostgreSQL with robust retry logic.
 
 import pkg from 'pg';
 const { Client } = pkg;
@@ -18,22 +19,21 @@ function maskConnectionString(connStr) {
 
 // Zod schema for validating GitHub event projection messages
 const GitHubEventSchema = z.object({
-  repository: z.string(),
-  eventType: z.string(),
-  eventTimestamp: z.string().refine(val => !isNaN(Date.parse(val)), { message: 'Invalid ISO date format' }),
+  repository: z.string({ required_error: 'repository is required' }),
+  eventType: z.string({ required_error: 'eventType is required' }),
+  eventTimestamp: z.string({ required_error: 'eventTimestamp is required' }).refine(val => !isNaN(Date.parse(val)), { message: 'Invalid ISO date format' }),
   metadata: z.optional(z.object({}).passthrough())
 });
 
-// Configuration for PostgreSQL retries
+// Configuration for PostgreSQL retries and defaults
 const MAX_ATTEMPTS = parseInt(process.env.PG_MAX_RETRIES, 10) || 3;
 const RETRY_DELAY = parseInt(process.env.PG_RETRY_DELAY_MS, 10) || 1000;
 
-// Robust default configurations for GitHub Event Projection
 const PG_CONNECTION_STRING = process.env.PG_CONNECTION_STRING || 'postgres://user:pass@localhost:5432/db';
 const GITHUB_PROJECTIONS_TABLE = process.env.GITHUB_PROJECTIONS_TABLE || 'github_event_projections';
 const GITHUB_EVENT_QUEUE_URL = process.env.GITHUB_EVENT_QUEUE_URL || 'https://test/000000000000/github-event-queue-test';
 
-// Utility functions
+// Utility function to pause for a given number of milliseconds
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -83,7 +83,7 @@ export function logError(message, error) {
 
 /**
  * Lambda handler for processing GitHub event messages from SQS and persisting projections in PostgreSQL.
- * Expected event record body format (JSON):
+ * The expected SQS event record body format (JSON):
  * {
  *    "repository": "repo-name",
  *    "eventType": "push",
@@ -117,7 +117,6 @@ export async function githubEventProjectionHandler(event) {
         continue;
       }
       const validData = validation.data;
-      
       const { repository, eventType, eventTimestamp, metadata } = validData;
 
       const query = `
