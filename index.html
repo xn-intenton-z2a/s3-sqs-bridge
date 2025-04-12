@@ -23,26 +23,26 @@
   </header>
   <section>
     <h1 class="md-github"><a class="md-github__anchor" name="s3-sqs-bridge-versioned-amazon-s3-object-put-event-replay-capable-queuing-to-sqs" href="#s3-sqs-bridge-versioned-amazon-s3-object-put-event-replay-capable-queuing-to-sqs"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>s3-sqs-bridge (Versioned Amazon S3 Object Put Event replay capable queuing to SQS)</h1>
-<p class="md-github">S3 SQS Bridge integrates Amazon S3 with AWS SQS to provide versioned event replay and real-time processing using Lambda and DynamoDB for durable offset tracking. This tool supports both AWS and local deployments (with Docker Compose and MinIO). It also processes GitHub event messages for projection creation in PostgreSQL with enhanced connection resilience, improved retry logic, and detailed logging for better clarity and maintainability.</p>
+<p class="md-github">s3-sqs-bridge integrates Amazon S3 with AWS SQS to enable versioned event replay and real-time processing using Lambda backed by a resilient PostgreSQL projection system. The GitHub Event Projections Lambda handler now features robust connection retries, enhanced logging with sensitive data masking, and strict schema validation using Zod.</p>
 <p class="md-github">This repository includes:</p>
 <ul class="md-github">
-<li class="md-github">AWS CloudFormation/CDK stacks for setting up necessary AWS infrastructure.</li>
-<li class="md-github">A Node.js Lambda function that processes S3 events forwarded to SQS.</li>
-<li class="md-github">A GitHub Event Projections Lambda handler implemented in <strong class="md-github">src/lib/main.js</strong> that processes GitHub event messages from a dedicated SQS queue and creates projections in a PostgreSQL database. This handler features a consolidated and robust retry mechanism that creates a new PostgreSQL client for each connection attempt and logs detailed context for connection failures without exposing sensitive data.</li>
-<li class="md-github">A comprehensive CLI for replaying events, processing source projections, and performing health checks.</li>
+<li class="md-github">AWS CloudFormation/CDK stacks for setting up the necessary AWS infrastructure.</li>
+<li class="md-github">A Node.js Lambda function for processing S3 events forwarded to SQS.</li>
+<li class="md-github">A GitHub Event Projections Lambda handler implemented in <strong class="md-github">src/lib/main.js</strong> that processes GitHub event messages from a dedicated SQS queue, validates them, and creates/upserts projections in PostgreSQL with detailed logging and retry logic.</li>
+<li class="md-github">A comprehensive CLI for event replay, projection processing, and health checks.</li>
 </ul>
 <p class="md-github">For the full mission statement, see <a href="MISSION.md" class="md-github">MISSION.md</a>. For contribution guidelines, please refer to <a href="CONTRIBUTING.md" class="md-github">CONTRIBUTING.md</a>. Setup instructions are provided in [SETUP.md] and licensing details in [LICENSE].</p>
-<p class="md-github">Additionally, check out the intentïon s3-sqs-bridge on GitHub: <a href="https://github.com/xn-intenton-z2a/s3-sqs-bridge" class="md-github">s3-sqs-bridge</a>.</p>
+<p class="md-github">Additionally, visit the intentïon s3-sqs-bridge on GitHub: <a href="https://github.com/xn-intenton-z2a/s3-sqs-bridge" class="md-github">s3-sqs-bridge</a>.</p>
 <h2 class="md-github"><a class="md-github__anchor" name="key-features" href="#key-features"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Key Features</h2>
 <ul class="md-github">
-<li class="md-github"><strong class="md-github">Robust Defaults:</strong> Sensible default values for environment variables reduce misconfiguration risks.</li>
-<li class="md-github"><strong class="md-github">Event Replay:</strong> Replay S3 object versions in order to rebuild state.</li>
-<li class="md-github"><strong class="md-github">Real-Time Processing:</strong> Forwards S3 events to an SQS queue for immediate processing.</li>
-<li class="md-github"><strong class="md-github">GitHub Event Projections:</strong> Processes GitHub event messages to create or update projections stored in PostgreSQL. The logic now includes an improved connection strategy with consolidated retry mechanisms and enhanced logging to better diagnose issues.</li>
-<li class="md-github"><strong class="md-github">High Availability:</strong> Optimized for low cost and high scalability on AWS Fargate Spot.</li>
+<li class="md-github"><strong class="md-github">Robust Defaults:</strong> Sensible default values prevent misconfiguration.</li>
+<li class="md-github"><strong class="md-github">Event Replay:</strong> Replays S3 object versions to rebuild state.</li>
+<li class="md-github"><strong class="md-github">Real-Time Processing:</strong> S3 events are forwarded to SQS for immediate processing.</li>
+<li class="md-github"><strong class="md-github">GitHub Event Projections:</strong> Processes GitHub event messages to create or update PostgreSQL projections with enhanced retry and logging mechanisms that safely mask sensitive data.</li>
+<li class="md-github"><strong class="md-github">High Availability:</strong> Designed for scalable deployment on AWS Fargate Spot.</li>
 </ul>
 <h2 class="md-github"><a class="md-github__anchor" name="configuration" href="#configuration"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Configuration</h2>
-<p class="md-github">The application uses environment variables to configure AWS S3, SQS, DynamoDB, and PostgreSQL parameters. Defaults are used when variables are not set:</p>
+<p class="md-github">Environment variables configure AWS services and PostgreSQL parameters. Defaults are used if variables are not set:</p>
 <ul class="md-github">
 <li class="md-github">BUCKET_NAME: <code class="md-github">s3-sqs-bridge-bucket-test</code></li>
 <li class="md-github">OBJECT_PREFIX: <code class="md-github">events/</code></li>
@@ -53,16 +53,16 @@
 <li class="md-github">SOURCE_LAMBDA_FUNCTION_NAME: <code class="md-github">s3-sqs-bridge-source-lambda-test</code></li>
 <li class="md-github">AWS_ENDPOINT: <code class="md-github">https://test</code></li>
 </ul>
-<p class="md-github">New PostgreSQL related environment variables:</p>
+<p class="md-github">PostgreSQL specific variables:</p>
 <ul class="md-github">
 <li class="md-github">PG_CONNECTION_STRING: PostgreSQL connection string (default: <code class="md-github">postgres://user:pass@localhost:5432/db</code>)</li>
-<li class="md-github">GITHUB_PROJECTIONS_TABLE: PostgreSQL table name for GitHub event projections (default: <code class="md-github">github_event_projections</code>)</li>
-<li class="md-github">GITHUB_EVENT_QUEUE_URL: URL of the dedicated SQS queue for GitHub events (default: <code class="md-github">https://test/000000000000/github-event-queue-test</code>)</li>
+<li class="md-github">GITHUB_PROJECTIONS_TABLE: Table for GitHub event projections (default: <code class="md-github">github_event_projections</code>)</li>
+<li class="md-github">GITHUB_EVENT_QUEUE_URL: SQS URL for GitHub events (default: <code class="md-github">https://test/000000000000/github-event-queue-test</code>)</li>
 </ul>
-<p class="md-github">Retry configuration environment variables for PostgreSQL connections and queries:</p>
+<p class="md-github">Retry configuration for PostgreSQL:</p>
 <ul class="md-github">
 <li class="md-github">PG_MAX_RETRIES: Maximum retry attempts (default: 3)</li>
-<li class="md-github">PG_RETRY_DELAY_MS: Delay between retry attempts in milliseconds (default: 1000)</li>
+<li class="md-github">PG_RETRY_DELAY_MS: Delay in milliseconds between retries (default: 1000)</li>
 </ul>
 <h2 class="md-github"><a class="md-github__anchor" name="usage" href="#usage"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Usage</h2>
 <h3 class="md-github"><a class="md-github__anchor" name="cli-options" href="#cli-options"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>CLI Options</h3>
@@ -70,7 +70,7 @@
 <li class="md-github"><code class="md-github">--help</code>: Show usage instructions.</li>
 <li class="md-github"><code class="md-github">--source-projection</code>: Run the Lambda handler for processing source S3 events.</li>
 <li class="md-github"><code class="md-github">--replay-projection</code>: Run the Lambda handler for replayed events.</li>
-<li class="md-github"><code class="md-github">--replay</code>: Replay all object versions from S3 in order.</li>
+<li class="md-github"><code class="md-github">--replay</code>: Replay all S3 object versions in order.</li>
 <li class="md-github"><code class="md-github">--healthcheck</code>: Start an HTTP health check server on port 8080.</li>
 </ul>
 <h3 class="md-github"><a class="md-github__anchor" name="running-locally" href="#running-locally"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Running Locally</h3>
@@ -80,9 +80,9 @@
 <li class="md-github"><code class="md-github">npm run healthcheck</code> to start the health check server.</li>
 <li class="md-github"><code class="md-github">npm run replay</code> to replay S3 events.</li>
 </ul>
-<p class="md-github">For GitHub event projections, deploy the Lambda function using your preferred deployment method (e.g., AWS CDK, Serverless Framework) after configuring the required PostgreSQL environment variables and ensuring payloads conform to the Zod schema.</p>
+<p class="md-github">For GitHub event projections, deploy the Lambda function using your preferred method (e.g., AWS CDK, Serverless Framework) after setting the required PostgreSQL environment variables.</p>
 <h2 class="md-github"><a class="md-github__anchor" name="testing" href="#testing"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Testing</h2>
-<p class="md-github">The project uses Vitest for unit testing. Run the tests with:</p>
+<p class="md-github">This project uses Vitest for unit testing. Run the tests with:</p>
 <pre class="md-github"><code class="md-github">npm test
 </code></pre>
 <h2 class="md-github"><a class="md-github__anchor" name="license" href="#license"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>License</h2>
@@ -90,7 +90,7 @@
 
   </section>
   <footer>
-    <p>Generated on 2025-04-12T04:10:30.319Z</p>
+    <p>Generated on 2025-04-12T04:12:06.184Z</p>
   </footer>
 </body>
 </html>
