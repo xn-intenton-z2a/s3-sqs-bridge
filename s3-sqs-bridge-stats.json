@@ -11,10 +11,10 @@
   "openPRs": 0,
   "averagePRAge": 0,
   "prDetails": [],
-  "diffMinutes": 25,
-  "diffMinutesMain": 281,
+  "diffMinutes": 60,
+  "diffMinutesMain": 341,
   "commitsLastHour": 0,
-  "commitsLastDay": 35,
+  "commitsLastDay": 32,
   "lastFiveCommitMessages": [
     "[12:20] - Reduce attemptsPerBranch limit to 2\n\nLowered the attemptsPerBran...",
     "[12:18] - Update from agentic-lib",
@@ -30,5 +30,5 @@
   },
   "testStatusOnBranch": "PASS",
   "testsLastPassedMinutes": 15,
-  "statsGeneratedAt": "2025-04-13T17:02:03.620Z"
+  "statsGeneratedAt": "2025-04-13T18:02:23.959Z"
 }
