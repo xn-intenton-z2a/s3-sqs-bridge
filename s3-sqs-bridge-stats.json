@@ -2,8 +2,8 @@
   "owner": "xn-intenton-z2a",
   "repo": "s3-sqs-bridge",
   "engine": "schedule-1",
-  "lastActivityName": "Tests",
-  "lastActivityBranchName": "dependabot/npm_and_yarn/npm-check-updates-17.1.18",
+  "lastActivityName": "Automerge",
+  "lastActivityBranchName": "41/merge",
   "nextIssue": "[]  ",
   "openIssues": 5,
   "issuesClosedLastHour": 0,
@@ -48,5 +48,5 @@
   },
   "testStatusOnBranch": "PASS",
   "testsLastPassedMinutes": 15,
-  "statsGeneratedAt": "2025-04-14T12:41:11.277Z"
+  "statsGeneratedAt": "2025-04-14T12:41:17.912Z"
 }
