@@ -2,23 +2,23 @@
   "owner": "xn-intenton-z2a",
   "repo": "s3-sqs-bridge",
   "engine": "schedule-1",
-  "lastActivityName": "Automerge",
-  "lastActivityBranchName": "45/merge",
+  "lastActivityName": "Issue Worker",
+  "lastActivityBranchName": "main",
   "nextIssue": "[]  ",
   "openIssues": 5,
   "issuesClosedLastHour": 0,
   "issuesClosedLastDay": 0,
   "openPRs": 5,
-  "averagePRAge": 1,
+  "averagePRAge": 23,
   "prDetails": [
-    "[1m] Bump aws-cdk from 2.1005.0 to 2.1007.0",
-    "[1m] Bump @aws-sdk/client-dynamodb from 3.774.0 to 3.788.0",
-    "[1m] Bump npm-check-updates from 17.1.16 to 17.1.18",
-    "[2m] Bump eslint-config-prettier from 10.1.1 to 10.1.2",
-    "[2m] Bump @aws-sdk/client-s3 from 3.774.0 to 3.787.0"
+    "[23m] Bump aws-cdk from 2.1005.0 to 2.1007.0",
+    "[23m] Bump @aws-sdk/client-dynamodb from 3.774.0 to 3.788.0",
+    "[23m] Bump npm-check-updates from 17.1.16 to 17.1.18",
+    "[23m] Bump eslint-config-prettier from 10.1.1 to 10.1.2",
+    "[23m] Bump @aws-sdk/client-s3 from 3.774.0 to 3.787.0"
   ],
-  "diffMinutes": 0,
-  "diffMinutesMain": 1024,
+  "diffMinutes": 21,
+  "diffMinutesMain": 1046,
   "commitsLastHour": 0,
   "commitsLastDay": 3,
   "lastFiveCommitMessages": [
@@ -31,11 +31,11 @@
   "branches": {
     "count": 5,
     "details": [
-      "[1m] dependabot/npm_and_yarn/aws-cdk-2.1007.0",
-      "[1m] dependabot/npm_and_yarn/aws-sdk/client-dynamodb-3.788.0",
-      "[2m] dependabot/npm_and_yarn/aws-sdk/client-s3-3.787.0",
-      "[2m] dependabot/npm_and_yarn/eslint-config-prettier-10.1.2",
-      "[1m] dependabot/npm_and_yarn/npm-check-updates-17.1.18"
+      "[23m] dependabot/npm_and_yarn/aws-cdk-2.1007.0",
+      "[23m] dependabot/npm_and_yarn/aws-sdk/client-dynamodb-3.788.0",
+      "[23m] dependabot/npm_and_yarn/aws-sdk/client-s3-3.787.0",
+      "[23m] dependabot/npm_and_yarn/eslint-config-prettier-10.1.2",
+      "[23m] dependabot/npm_and_yarn/npm-check-updates-17.1.18"
     ],
     "branchIssueDetails": [
       "[]  ",
@@ -44,9 +44,9 @@
       "[]  ",
       "[]  "
     ],
-    "averageBranchAge": 1
+    "averageBranchAge": 23
   },
   "testStatusOnBranch": "PASS",
   "testsLastPassedMinutes": 15,
-  "statsGeneratedAt": "2025-04-14T12:42:29.955Z"
+  "statsGeneratedAt": "2025-04-14T13:04:02.918Z"
 }
