@@ -2,8 +2,8 @@
   "owner": "xn-intenton-z2a",
   "repo": "s3-sqs-bridge",
   "engine": "schedule-1",
-  "lastActivityName": "Automerge",
-  "lastActivityBranchName": "41/merge",
+  "lastActivityName": "Tests",
+  "lastActivityBranchName": "dependabot/npm_and_yarn/aws-cdk-2.1007.0",
   "nextIssue": "[]  ",
   "openIssues": 5,
   "issuesClosedLastHour": 0,
@@ -14,8 +14,8 @@
     "[0m] Bump aws-cdk from 2.1005.0 to 2.1007.0",
     "[0m] Bump @aws-sdk/client-dynamodb from 3.774.0 to 3.788.0",
     "[0m] Bump npm-check-updates from 17.1.16 to 17.1.18",
-    "[0m] Bump eslint-config-prettier from 10.1.1 to 10.1.2",
-    "[0m] Bump @aws-sdk/client-s3 from 3.774.0 to 3.787.0"
+    "[1m] Bump eslint-config-prettier from 10.1.1 to 10.1.2",
+    "[1m] Bump @aws-sdk/client-s3 from 3.774.0 to 3.787.0"
   ],
   "diffMinutes": 0,
   "diffMinutesMain": 1023,
@@ -33,8 +33,8 @@
     "details": [
       "[0m] dependabot/npm_and_yarn/aws-cdk-2.1007.0",
       "[0m] dependabot/npm_and_yarn/aws-sdk/client-dynamodb-3.788.0",
-      "[0m] dependabot/npm_and_yarn/aws-sdk/client-s3-3.787.0",
-      "[0m] dependabot/npm_and_yarn/eslint-config-prettier-10.1.2",
+      "[1m] dependabot/npm_and_yarn/aws-sdk/client-s3-3.787.0",
+      "[1m] dependabot/npm_and_yarn/eslint-config-prettier-10.1.2",
       "[0m] dependabot/npm_and_yarn/npm-check-updates-17.1.18"
     ],
     "branchIssueDetails": [
@@ -48,5 +48,5 @@
   },
   "testStatusOnBranch": "PASS",
   "testsLastPassedMinutes": 15,
-  "statsGeneratedAt": "2025-04-14T12:41:17.912Z"
+  "statsGeneratedAt": "2025-04-14T12:41:34.383Z"
 }
