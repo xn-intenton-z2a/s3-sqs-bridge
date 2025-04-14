@@ -9,16 +9,16 @@
   "issuesClosedLastHour": 0,
   "issuesClosedLastDay": 0,
   "openPRs": 5,
-  "averagePRAge": 26,
+  "averagePRAge": 78,
   "prDetails": [
-    "[26m] Bump aws-cdk from 2.1005.0 to 2.1007.0",
-    "[26m] Bump @aws-sdk/client-dynamodb from 3.774.0 to 3.788.0",
-    "[26m] Bump npm-check-updates from 17.1.16 to 17.1.18",
-    "[26m] Bump eslint-config-prettier from 10.1.1 to 10.1.2",
-    "[27m] Bump @aws-sdk/client-s3 from 3.774.0 to 3.787.0"
+    "[78m] Bump aws-cdk from 2.1005.0 to 2.1007.0",
+    "[78m] Bump @aws-sdk/client-dynamodb from 3.774.0 to 3.788.0",
+    "[78m] Bump npm-check-updates from 17.1.16 to 17.1.18",
+    "[78m] Bump eslint-config-prettier from 10.1.1 to 10.1.2",
+    "[78m] Bump @aws-sdk/client-s3 from 3.774.0 to 3.787.0"
   ],
-  "diffMinutes": 3,
-  "diffMinutesMain": 1049,
+  "diffMinutes": 51,
+  "diffMinutesMain": 1101,
   "commitsLastHour": 0,
   "commitsLastDay": 3,
   "lastFiveCommitMessages": [
@@ -31,11 +31,11 @@
   "branches": {
     "count": 5,
     "details": [
-      "[26m] dependabot/npm_and_yarn/aws-cdk-2.1007.0",
-      "[26m] dependabot/npm_and_yarn/aws-sdk/client-dynamodb-3.788.0",
-      "[27m] dependabot/npm_and_yarn/aws-sdk/client-s3-3.787.0",
-      "[26m] dependabot/npm_and_yarn/eslint-config-prettier-10.1.2",
-      "[26m] dependabot/npm_and_yarn/npm-check-updates-17.1.18"
+      "[78m] dependabot/npm_and_yarn/aws-cdk-2.1007.0",
+      "[78m] dependabot/npm_and_yarn/aws-sdk/client-dynamodb-3.788.0",
+      "[78m] dependabot/npm_and_yarn/aws-sdk/client-s3-3.787.0",
+      "[78m] dependabot/npm_and_yarn/eslint-config-prettier-10.1.2",
+      "[78m] dependabot/npm_and_yarn/npm-check-updates-17.1.18"
     ],
     "branchIssueDetails": [
       "[]  ",
@@ -44,9 +44,9 @@
       "[]  ",
       "[]  "
     ],
-    "averageBranchAge": 26
+    "averageBranchAge": 78
   },
   "testStatusOnBranch": "PASS",
   "testsLastPassedMinutes": 15,
-  "statsGeneratedAt": "2025-04-14T13:07:25.724Z"
+  "statsGeneratedAt": "2025-04-14T13:59:06.606Z"
 }
