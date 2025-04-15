@@ -1,12 +1,12 @@
 # s3-sqs-bridge (Versioned Amazon S3 Object Put Event replay capable queuing to SQS)
 
-s3-sqs-bridge integrates Amazon S3 with AWS SQS to enable versioned event replay and real-time processing using Lambda backed by a resilient PostgreSQL projection system. The GitHub Event Projections Lambda handler now features robust connection retries, enhanced logging with sensitive data masking, and strict schema validation using Zod.
+s3-sqs-bridge integrates Amazon S3 with AWS SQS to enable versioned event replay and real-time processing using Lambda backed by a resilient PostgreSQL projection system. The GitHub Event Projections Lambda handler now features robust connection retries, enhanced logging with sensitive data masking, strict schema validation using Zod, and basic in-memory metrics collection to track event processing performance.
 
 This repository includes:
 
 - AWS CloudFormation/CDK stacks for setting up the necessary AWS infrastructure.
 - A Node.js Lambda function for processing S3 events forwarded to SQS.
-- A GitHub Event Projections Lambda handler implemented in **src/lib/main.js** that processes GitHub event messages from a dedicated SQS queue, validates them, and creates/upserts projections in PostgreSQL with detailed logging and retry logic.
+- A GitHub Event Projections Lambda handler implemented in **src/lib/main.js** that processes GitHub event messages from a dedicated SQS queue, validates them, and creates/upserts projections in PostgreSQL with detailed logging, retry logic, and metrics collection.
 - A comprehensive CLI for event replay, projection processing, and health checks.
 
 For the full mission statement, see [MISSION.md](MISSION.md). For contribution guidelines, please refer to [CONTRIBUTING.md](CONTRIBUTING.md). Setup instructions are provided in [SETUP.md] and licensing details in [LICENSE].
@@ -18,8 +18,19 @@ Additionally, visit the intentïon agentic-lib on GitHub: [agentic-lib](https://
 - **Robust Defaults:** Sensible default values prevent misconfiguration.
 - **Event Replay:** Replays S3 object versions to rebuild state.
 - **Real-Time Processing:** S3 events are forwarded to SQS for immediate processing.
-- **GitHub Event Projections:** Processes GitHub event messages to create or update PostgreSQL projections with enhanced retry and logging mechanisms that safely mask sensitive data.
+- **GitHub Event Projections:** Processes GitHub event messages to create or update PostgreSQL projections with enhanced retry, logging, and now metrics collection that tracks total events, successful processings, skipped events, and database failures.
 - **High Availability:** Designed for scalable deployment on AWS Fargate Spot.
+
+## Metrics
+
+The GitHub Event Projection handler now collects basic in-memory metrics during event processing:
+
+- **totalEvents:** Total number of events received.
+- **successfulEvents:** Number of events processed successfully.
+- **skippedEvents:** Number of events skipped due to invalid JSON or failed validation.
+- **dbFailures:** Number of events that encountered database query failures after retry attempts.
+
+Metrics are logged after processing and can be accessed programmatically via the exported `getMetrics()` function.
 
 ## Configuration
 

@@ -1,6 +1,6 @@
 // tests/unit/main.test.js
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { githubEventProjectionHandler } from '../../src/lib/main.js';
+import { githubEventProjectionHandler, getMetrics, resetMetrics } from '../../src/lib/main.js';
 
 // Mock the pg Client
 const mockQuery = vi.fn();
@@ -24,6 +24,7 @@ describe('githubEventProjectionHandler', () => {
     mockConnect.mockClear();
     mockQuery.mockClear();
     mockEnd.mockClear();
+    resetMetrics();
   });
 
   it('processes valid GitHub event messages and retries on initial connection failure', async () => {
@@ -50,6 +51,8 @@ describe('githubEventProjectionHandler', () => {
     expect(mockConnect).toHaveBeenCalledTimes(2);
     expect(mockQuery).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ status: 'success' });
+    const metricsResult = getMetrics();
+    expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 1, skippedEvents: 0, dbFailures: 0 });
   });
 
   it('skips records with invalid JSON', async () => {
@@ -75,6 +78,8 @@ describe('githubEventProjectionHandler', () => {
     // Only one valid record should trigger a query
     expect(mockQuery).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ status: 'success' });
+    const metricsResult = getMetrics();
+    expect(metricsResult).toEqual({ totalEvents: 2, successfulEvents: 1, skippedEvents: 1, dbFailures: 0 });
   });
 
   it('skips records with missing required fields', async () => {
@@ -96,6 +101,8 @@ describe('githubEventProjectionHandler', () => {
     // No query should be executed as validation will fail
     expect(mockQuery).not.toHaveBeenCalled();
     expect(result).toEqual({ status: 'success' });
+    const metricsResult = getMetrics();
+    expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 0, skippedEvents: 1, dbFailures: 0 });
   });
 
   it('skips records with invalid data types', async () => {
@@ -117,6 +124,8 @@ describe('githubEventProjectionHandler', () => {
     const result = await githubEventProjectionHandler(event);
     expect(mockQuery).not.toHaveBeenCalled();
     expect(result).toEqual({ status: 'success' });
+    const metricsResult = getMetrics();
+    expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 0, skippedEvents: 1, dbFailures: 0 });
   });
 
   it('throws error when database query fails after retries', async () => {
@@ -141,5 +150,7 @@ describe('githubEventProjectionHandler', () => {
     await expect(githubEventProjectionHandler(event)).rejects.toThrow('DB error');
     // Expect query to have been attempted MAX_ATTEMPTS times (3 attempts)
     expect(mockQuery).toHaveBeenCalledTimes(3);
+    const metricsResult = getMetrics();
+    expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 0, skippedEvents: 0, dbFailures: 1 });
   });
 });
