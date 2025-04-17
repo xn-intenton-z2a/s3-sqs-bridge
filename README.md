@@ -63,6 +63,8 @@ Use the following npm scripts:
 - `npm run healthcheck` to start the health check server.
 - `npm run replay` to replay S3 events.
 
+Note: When running locally with a dummy event (i.e. no records), the handler will short-circuit and return success without attempting a database connection.
+
 For GitHub event projections, deploy the Lambda function using your preferred method (e.g., AWS CDK, Serverless Framework) after setting the required PostgreSQL environment variables.
 
 ## Testing

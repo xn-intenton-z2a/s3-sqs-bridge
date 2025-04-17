@@ -96,6 +96,12 @@ export function logError(message, error) {
  */
 export async function githubEventProjectionHandler(event) {
   logInfo(`GitHub Event Projection Handler received event: ${JSON.stringify(event)}`);
+  // If there are no records, skip connecting to the database
+  if (!event.Records || event.Records.length === 0) {
+    logInfo('No records to process, exiting early.');
+    return { status: 'success' };
+  }
+
   let client;
   try {
     client = await connectWithRetry();
