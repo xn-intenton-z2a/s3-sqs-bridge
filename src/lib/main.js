@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // src/lib/main.js
 // This file serves as both the logger and the GitHub Event Projections Lambda Handler.
-// It processes GitHub event messages from an SQS queue and stores projections in PostgreSQL with robust retry logic.
+// It processes GitHub event messages from an SQS queue and stores projections in PostgreSQL with robust retry logic and now includes basic metrics collection.
 
 import pkg from 'pg';
 const { Client } = pkg;
@@ -10,6 +10,25 @@ import { fileURLToPath } from 'url';
 import { z } from 'zod';
 
 dotenv.config();
+
+// Metrics counters for tracking event processing
+export const metrics = {
+  totalEvents: 0,
+  successfulEvents: 0,
+  skippedEvents: 0,
+  dbFailures: 0
+};
+
+export function resetMetrics() {
+  metrics.totalEvents = 0;
+  metrics.successfulEvents = 0;
+  metrics.skippedEvents = 0;
+  metrics.dbFailures = 0;
+}
+
+export function getMetrics() {
+  return { ...metrics };
+}
 
 // Helper to mask sensitive information in PostgreSQL connection string
 function maskConnectionString(connStr) {
@@ -108,11 +127,13 @@ export async function githubEventProjectionHandler(event) {
 
     const records = event.Records || [];
     for (const record of records) {
+      metrics.totalEvents++;
       let body;
       try {
         body = JSON.parse(record.body);
       } catch (parseError) {
         logError(`Failed to parse record body: ${record.body}`, parseError);
+        metrics.skippedEvents++;
         continue;
       }
 
@@ -120,6 +141,7 @@ export async function githubEventProjectionHandler(event) {
       const validation = GitHubEventSchema.safeParse(body);
       if (!validation.success) {
         logError(`Validation failed for GitHub event: ${record.body}`, validation.error);
+        metrics.skippedEvents++;
         continue;
       }
       const validData = validation.data;
@@ -135,18 +157,23 @@ export async function githubEventProjectionHandler(event) {
       `;
       const values = [repository, eventType, eventTimestamp, JSON.stringify(metadata || {})];
 
-      // Retry the query operation with detailed logging
-      await retryOperation(async () => {
-        try {
-          return await client.query(query, values);
-        } catch (err) {
-          logError(`Query failed for repository ${repository} (eventType: ${eventType}). Retrying...`, err);
-          throw err;
-        }
-      });
-
-      logInfo(`Processed GitHub event for repository ${repository}`);
+      try {
+        await retryOperation(async () => {
+          try {
+            return await client.query(query, values);
+          } catch (err) {
+            logError(`Query failed for repository ${repository} (eventType: ${eventType}). Retrying...`, err);
+            throw err;
+          }
+        });
+        metrics.successfulEvents++;
+        logInfo(`Processed GitHub event for repository ${repository}`);
+      } catch (err) {
+        metrics.dbFailures++;
+        throw err;
+      }
     }
+    logInfo(`Metrics: ${JSON.stringify(getMetrics())}`);
     return { status: 'success' };
   } catch (error) {
     logError('Error processing GitHub events', error);
