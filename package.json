@@ -32,7 +32,7 @@
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.307.0",
+    "@aws-sdk/client-dynamodb": "^3.788.0",
     "@aws-sdk/client-s3": "^3.307.0",
     "@aws-sdk/client-sqs": "^3.782.0",
     "@aws-sdk/client-lambda": "^3.782.0",
