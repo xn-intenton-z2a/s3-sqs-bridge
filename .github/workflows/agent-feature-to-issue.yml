@@ -110,11 +110,13 @@ jobs:
       - name: Select feature from ./features
         id: select
         uses: actions/github-script@v7
+        env:
+          featureName: ${{ inputs.featureName || 'house choice' }}
         with:
           script: |
             const fs = require('fs');
             const path = require('path');
-            let featureName = '${{ inputs.featureName }}';
+            let featureName = process.env.featureName;
             if (featureName === 'house choice') {
               const promptsDir = './features';
               // Get all items in the directory
@@ -186,7 +188,7 @@ jobs:
     uses: 'xn-intenton-z2a/agentic-lib/.github/workflows/wfr-github-select-issue.yml@4.0.4'
     with:
       issueNumber: ''
-      selectionLabel: 'automated'
+      selectionLabel: 'ready'
     secrets:
       CHATGPT_API_SECRET_KEY: ${{ secrets.CHATGPT_API_SECRET_KEY }}
 
