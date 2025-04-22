@@ -55,4 +55,37 @@ The endpoint responds with a JSON object representing the current in-memory metr
 }
 ```
 
-These changes ensure that retry behavior, error messaging, and connection handling follow Clean Code principles.
+## Metrics Collection API
+
+The GitHub Event Projection handler collects in-memory metrics during event processing to help track the performance and reliability of the system. The following metrics are maintained:
+
+- **totalEvents:** The total number of events received.
+- **successfulEvents:** The number of events successfully processed and persisted.
+- **skippedEvents:** The number of events skipped due to invalid JSON or failed validation.
+- **dbFailures:** The number of events that encountered database query failures even after retry attempts.
+
+The metrics are updated in real-time as events are processed, and a summary is logged after processing is complete.
+
+### Exported Functions
+
+The following functions are provided to interact with the metrics:
+
+- `getMetrics()`: Returns the current state of the metrics as a JSON object.
+- `resetMetrics()`: Resets all metrics to their default values (zero).
+
+### Example Usage
+
+Below is an example showing how to retrieve and reset metrics:
+
+```
+// Example usage:
+import { getMetrics, resetMetrics } from './src/lib/main.js';
+
+console.log('Current Metrics:', getMetrics());
+
+// Reset the metrics
+resetMetrics();
+console.log('Metrics after reset:', getMetrics());
+```
+
+These functions enable you to programmatically monitor and manage the metrics, ensuring that you can integrate them into your logging or monitoring system as needed.
