@@ -1,6 +1,7 @@
 // tests/unit/main.test.js
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { githubEventProjectionHandler, getMetrics, resetMetrics } from '../../src/lib/main.js';
+import { githubEventProjectionHandler, getMetrics, resetMetrics, createMetricsServer } from '../../src/lib/main.js';
+import request from 'supertest';
 
 // Mock the pg Client
 const mockQuery = vi.fn();
@@ -152,5 +153,17 @@ describe('githubEventProjectionHandler', () => {
     expect(mockQuery).toHaveBeenCalledTimes(3);
     const metricsResult = getMetrics();
     expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 0, skippedEvents: 0, dbFailures: 1 });
+  });
+});
+
+
+describe('Metrics Endpoint', () => {
+  it('returns the current metrics when GET /metrics is called', async () => {
+    // Ensure metrics are at their default
+    resetMetrics();
+    const app = createMetricsServer();
+    const response = await request(app).get('/metrics');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ totalEvents: 0, successfulEvents: 0, skippedEvents: 0, dbFailures: 0 });
   });
 });
