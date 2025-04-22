@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 // src/lib/main.js
 // This file serves as both the logger and the GitHub Event Projections Lambda Handler.
-// It processes GitHub event messages from an SQS queue and stores projections in PostgreSQL with robust retry logic and now includes basic metrics collection.
+// It processes GitHub event messages from an SQS queue and stores projections in PostgreSQL with robust retry logic,
+// basic metrics collection, and now an optional HTTP metrics endpoint using Express.
 
 import pkg from 'pg';
 const { Client } = pkg;
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { z } from 'zod';
+import express from 'express';
 
 dotenv.config();
 
@@ -189,10 +191,26 @@ export async function githubEventProjectionHandler(event) {
   }
 }
 
+// Function to create an Express server exposing the metrics
+export function createMetricsServer() {
+  const app = express();
+  app.get('/metrics', (req, res) => {
+    res.json(getMetrics());
+  });
+  return app;
+}
+
 // If this module is executed directly, run a dummy event for local testing
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const dummyEvent = { Records: [] };
   githubEventProjectionHandler(dummyEvent)
     .then((result) => logInfo(`Execution result: ${JSON.stringify(result)}`))
     .catch((err) => logError('Execution error', err));
+}
+
+// Start the HTTP metrics endpoint if the '--metrics' flag is provided
+if (process.argv.includes('--metrics')) {
+  const app = createMetricsServer();
+  const port = process.env.METRICS_PORT || 3000;
+  app.listen(port, () => logInfo(`Metrics server listening on port ${port}`));
 }
