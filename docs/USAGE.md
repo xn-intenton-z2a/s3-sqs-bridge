@@ -42,7 +42,8 @@ By starting the application with the `--metrics` flag, an HTTP metrics endpoint 
     "totalEvents": number,
     "successfulEvents": number,
     "skippedEvents": number,
-    "dbFailures": number
+    "dbFailures": number,
+    "dbRetryCount": number
   }
   ```
 
@@ -57,7 +58,8 @@ A new status endpoint is available by running the application with the `--status
     "totalEvents": number,
     "successfulEvents": number,
     "skippedEvents": number,
-    "dbFailures": number
+    "dbFailures": number,
+    "dbRetryCount": number
   }
   ```
 
@@ -69,6 +71,7 @@ The GitHub Event Projection handler collects in-memory metrics during event proc
 - **successfulEvents:** The number of events successfully processed and persisted.
 - **skippedEvents:** The number of events skipped due to invalid JSON or failed validation.
 - **dbFailures:** The number of events that encountered database query failures even after retry attempts.
+- **dbRetryCount:** The total number of database retry attempts triggered during event processing.
 
 The metrics are updated in real-time as events are processed, and a summary is logged after processing is complete.
 
