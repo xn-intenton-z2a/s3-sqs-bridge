@@ -14,6 +14,16 @@ You can also directly run the application with Node:
 node src/lib/main.js
 ```
 
+## Enhanced Retry Logic
+
+The GitHub Event Projection handler now uses enhanced retry logic for connecting to PostgreSQL and executing queries. Helper functions have been isolated to:
+
+- Compute the retry delay (`computeRetryDelay`).
+- Log detailed retry errors (`logRetryError`).
+- Log connection errors with masked connection strings (`logConnectionError`).
+
+These improvements provide clearer error messages and better maintainability, ensuring that sensitive information is masked and that operations are retried reliably.
+
 ## Metrics Endpoint
 
 By starting the application with the `--metrics` flag, an HTTP metrics endpoint is activated using Express. The server listens on port 3000 by default (or use the `METRICS_PORT` environment variable to configure the port).
@@ -45,4 +55,4 @@ The endpoint responds with a JSON object representing the current in-memory metr
 }
 ```
 
-This feature allows operators and external systems to monitor the performance and processing statistics of the application.
+These changes ensure that retry behavior, error messaging, and connection handling follow Clean Code principles.

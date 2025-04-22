@@ -156,7 +156,6 @@ describe('githubEventProjectionHandler', () => {
   });
 });
 
-
 describe('Metrics Endpoint', () => {
   it('returns the current metrics when GET /metrics is called', async () => {
     // Ensure metrics are at their default
