@@ -18,7 +18,8 @@ export const metrics = {
   totalEvents: 0,
   successfulEvents: 0,
   skippedEvents: 0,
-  dbFailures: 0
+  dbFailures: 0,
+  dbRetryCount: 0
 };
 
 export function resetMetrics() {
@@ -26,6 +27,7 @@ export function resetMetrics() {
   metrics.successfulEvents = 0;
   metrics.skippedEvents = 0;
   metrics.dbFailures = 0;
+  metrics.dbRetryCount = 0;
 }
 
 export function getMetrics() {
@@ -69,6 +71,8 @@ async function retryOperation(operation, maxAttempts = MAX_ATTEMPTS, delay = RET
       if (attempt === maxAttempts) {
         throw err;
       }
+      // Increment dbRetryCount each time a retry is attempted
+      metrics.dbRetryCount++;
       const computedDelay = computeRetryDelay(delay);
       logRetryError(err, attempt + 1, maxAttempts, computedDelay);
       await sleep(computedDelay);

@@ -49,11 +49,16 @@ describe('githubEventProjectionHandler', () => {
     };
 
     const result = await githubEventProjectionHandler(event);
+    // Should have retried once for connection failure
     expect(mockConnect).toHaveBeenCalledTimes(2);
     expect(mockQuery).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ status: 'success' });
     const metricsResult = getMetrics();
-    expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 1, skippedEvents: 0, dbFailures: 0 });
+    expect(metricsResult.totalEvents).toEqual(1);
+    expect(metricsResult.successfulEvents).toEqual(1);
+    expect(metricsResult.skippedEvents).toEqual(0);
+    expect(metricsResult.dbFailures).toEqual(0);
+    expect(metricsResult.dbRetryCount).toEqual(1);
   });
 
   it('skips records with invalid JSON', async () => {
@@ -80,7 +85,11 @@ describe('githubEventProjectionHandler', () => {
     expect(mockQuery).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ status: 'success' });
     const metricsResult = getMetrics();
-    expect(metricsResult).toEqual({ totalEvents: 2, successfulEvents: 1, skippedEvents: 1, dbFailures: 0 });
+    expect(metricsResult.totalEvents).toEqual(2);
+    expect(metricsResult.successfulEvents).toEqual(1);
+    expect(metricsResult.skippedEvents).toEqual(1);
+    expect(metricsResult.dbFailures).toEqual(0);
+    expect(metricsResult.dbRetryCount).toEqual(0);
   });
 
   it('skips records with missing required fields', async () => {
@@ -103,7 +112,11 @@ describe('githubEventProjectionHandler', () => {
     expect(mockQuery).not.toHaveBeenCalled();
     expect(result).toEqual({ status: 'success' });
     const metricsResult = getMetrics();
-    expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 0, skippedEvents: 1, dbFailures: 0 });
+    expect(metricsResult.totalEvents).toEqual(1);
+    expect(metricsResult.successfulEvents).toEqual(0);
+    expect(metricsResult.skippedEvents).toEqual(1);
+    expect(metricsResult.dbFailures).toEqual(0);
+    expect(metricsResult.dbRetryCount).toEqual(0);
   });
 
   it('skips records with invalid data types', async () => {
@@ -126,7 +139,11 @@ describe('githubEventProjectionHandler', () => {
     expect(mockQuery).not.toHaveBeenCalled();
     expect(result).toEqual({ status: 'success' });
     const metricsResult = getMetrics();
-    expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 0, skippedEvents: 1, dbFailures: 0 });
+    expect(metricsResult.totalEvents).toEqual(1);
+    expect(metricsResult.successfulEvents).toEqual(0);
+    expect(metricsResult.skippedEvents).toEqual(1);
+    expect(metricsResult.dbFailures).toEqual(0);
+    expect(metricsResult.dbRetryCount).toEqual(0);
   });
 
   it('throws error when database query fails after retries', async () => {
@@ -149,13 +166,16 @@ describe('githubEventProjectionHandler', () => {
     };
 
     await expect(githubEventProjectionHandler(event)).rejects.toThrow('DB error');
-    // Expect query to have been attempted MAX_ATTEMPTS times (3 attempts)
+    // Expect query to have been attempted MAX_ATTEMPTS times (3 attempts) and 2 retries
     expect(mockQuery).toHaveBeenCalledTimes(3);
     const metricsResult = getMetrics();
-    expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 0, skippedEvents: 0, dbFailures: 1 });
+    expect(metricsResult.totalEvents).toEqual(1);
+    expect(metricsResult.successfulEvents).toEqual(0);
+    expect(metricsResult.skippedEvents).toEqual(0);
+    expect(metricsResult.dbFailures).toEqual(1);
+    expect(metricsResult.dbRetryCount).toEqual(2);
   });
 });
-
 
 describe('Metrics Endpoint', () => {
   it('returns the current metrics when GET /metrics is called', async () => {
@@ -164,7 +184,7 @@ describe('Metrics Endpoint', () => {
     const app = createMetricsServer();
     const response = await request(app).get('/metrics');
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ totalEvents: 0, successfulEvents: 0, skippedEvents: 0, dbFailures: 0 });
+    expect(response.body).toEqual({ totalEvents: 0, successfulEvents: 0, skippedEvents: 0, dbFailures: 0, dbRetryCount: 0 });
   });
 });
 
@@ -175,6 +195,6 @@ describe('Status Endpoint', () => {
     const app = createStatusServer();
     const response = await request(app).get('/status');
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ totalEvents: 0, successfulEvents: 0, skippedEvents: 0, dbFailures: 0 });
+    expect(response.body).toEqual({ totalEvents: 0, successfulEvents: 0, skippedEvents: 0, dbFailures: 0, dbRetryCount: 0 });
   });
 });
