@@ -2,7 +2,7 @@
 // src/lib/main.js
 // This file serves as both the logger and the GitHub Event Projections Lambda Handler.
 // It processes GitHub event messages from an SQS queue and stores projections in PostgreSQL with robust retry logic,
-// basic metrics collection, and now an optional HTTP metrics endpoint using Express.
+// basic metrics collection, and now an optional HTTP metrics endpoint using Express, as well as a status endpoint.
 
 import pkg from 'pg';
 const { Client } = pkg;
@@ -204,13 +204,29 @@ export async function githubEventProjectionHandler(event) {
   }
 }
 
-// Function to create an Express server exposing the metrics
+// Function to create an Express server exposing the /metrics endpoint
 export function createMetricsServer() {
   const app = express();
   app.get('/metrics', (req, res) => {
     res.json(getMetrics());
   });
   return app;
+}
+
+// New function to create an Express server exposing the /status endpoint
+export function createStatusServer() {
+  const app = express();
+  app.get('/status', (req, res) => {
+    res.json(getMetrics());
+  });
+  return app;
+}
+
+// New function to start the status endpoint server
+export function startStatusEndpoint() {
+  const app = createStatusServer();
+  const port = process.env.STATUS_PORT || 3000;
+  app.listen(port, () => logInfo(`Status server listening on port ${port}`));
 }
 
 // If this module is executed directly, run a dummy event for local testing
@@ -226,4 +242,9 @@ if (process.argv.includes('--metrics')) {
   const app = createMetricsServer();
   const port = process.env.METRICS_PORT || 3000;
   app.listen(port, () => logInfo(`Metrics server listening on port ${port}`));
+}
+
+// Start the HTTP status endpoint if the '--status-endpoint' flag is provided
+if (process.argv.includes('--status-endpoint')) {
+  startStatusEndpoint();
 }
