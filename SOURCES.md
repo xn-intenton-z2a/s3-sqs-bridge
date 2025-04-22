@@ -1,55 +1,41 @@
 START_OF_FORMAT
 # GitHub REST API Documentation
 ## https://docs.github.com/en/rest
-Official documentation detailing GitHub's REST API endpoints and usage. Useful for understanding integration points and handling GitHub events.
+Official documentation detailing GitHub's REST API endpoints and usage. This source provides comprehensive guidance on integrating with GitHub events, understanding endpoint behavior, and troubleshooting common integration scenarios. Last verified in 2023; widely regarded as authoritative on GitHub's API offerings.
 ## License: Not Applicable
 END_OF_FORMAT
 
 START_OF_FORMAT
-# AWS SQS Documentation
-## https://docs.aws.amazon.com/AWSSQS/latest/SQSDeveloperGuide/welcome.html
-Comprehensive guide to AWS Simple Queue Service, covering message queuing, configuration, and best practices for reliable messaging.
-## License: Amazon Service Terms
-END_OF_FORMAT
-
-START_OF_FORMAT
-# AWS Lambda Developer Guide
-## https://docs.aws.amazon.com/lambda/latest/dg/welcome.html
-Official documentation for AWS Lambda functions covering deployment, integration, and troubleshooting techniques.
-## License: Amazon Service Terms
-END_OF_FORMAT
-
-START_OF_FORMAT
-# AWS CDK Documentation
-## https://docs.aws.amazon.com/cdk/v2/guide/home.html
-Resource for using the AWS Cloud Development Kit to provision cloud infrastructure with modern programming languages, including best practices and examples.
+# AWS Documentation
+## https://aws.amazon.com/documentation/
+A consolidated source for AWS services documentation including SQS, Lambda, CDK, and Amazon S3. This resource provides detailed guides, best practices, and configuration details crucial for setting up reliable messaging, serverless functions, infrastructure as code, and scalable object storage. Last updated frequently by AWS, and subject to Amazon Service Terms.
 ## License: Amazon Service Terms
 END_OF_FORMAT
 
 START_OF_FORMAT
 # Express.js Documentation
 ## https://expressjs.com/en/starter/installing.html
-Detailed documentation on using Express.js for Node.js, including middleware concepts, routing, and building HTTP servers such as the health check endpoint.
+Detailed documentation on using Express.js for building HTTP servers, middleware integration, and RESTful endpoints. Essential for understanding the implementation of healthcheck and metrics endpoints within the repository.
 ## License: MIT
 END_OF_FORMAT
 
 START_OF_FORMAT
 # PostgreSQL Official Documentation
 ## https://www.postgresql.org/docs/current/index.html
-The definitive source for PostgreSQL features, SQL syntax, and performance tuning, essential for working with database connections and queries.
+The definitive resource for PostgreSQL features, SQL syntax, and performance tuning. This source is key for managing database connections, understanding query behaviors, and optimizing PostgreSQL interactions as used in the repository's projection system.
 ## License: PostgreSQL License
 END_OF_FORMAT
 
 START_OF_FORMAT
 # Zod Documentation
 ## https://zod.dev
-Documentation for the Zod schema validation library, which is used in the repository to enforce robust data validation in JavaScript projects.
+Official documentation for the Zod schema validation library, used extensively in the repository to enforce strict data validation rules. This source offers in-depth examples and best practices for data parsing and validation in JavaScript projects.
 ## License: MIT
 END_OF_FORMAT
 
 START_OF_FORMAT
-# Amazon S3 Documentation
-## https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html
-Official documentation for Amazon S3, covering object storage, event notification setup, and versioning, all relevant for configuring S3 event triggers.
-## License: Amazon Service Terms
+# Testing Tools Documentation
+## https://vitest.dev/
+A consolidated documentation resource covering modern testing tools used in this repository. It includes Vitest for unit testing and Supertest for HTTP endpoint validations, providing guidance on writing tests for Express servers, simulating HTTP interactions, and ensuring robust code quality. Updated regularly with community and contributor insights.
+## License: MIT (Vitest), MIT (Supertest)
 END_OF_FORMAT
