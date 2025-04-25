@@ -40,21 +40,18 @@ function maskConnectionString(connStr) {
   return connStr.replace(/(\/\/[^:]+:)[^@]+(@)/, "$1***$2");
 }
 
-// Helper function to compute retry delay
-function computeRetryDelay(baseDelay) {
-  // Here we simply return the base delay, but this can be extended for exponential backoff.
-  return baseDelay;
+// New helper function to compute exponential backoff retry delay
+function computeRetryDelay(baseDelay, attempt) {
+  // Exponential backoff: baseDelay * (2^(attempt - 1))
+  return baseDelay * Math.pow(2, attempt - 1);
 }
+
+// Export computeRetryDelay for testing purposes
+export { computeRetryDelay };
 
 // Helper function to log retry errors
 function logRetryError(error, nextAttempt, maxAttempts, delay) {
   console.warn(`Operation failed, retrying attempt ${nextAttempt} of ${maxAttempts} after ${delay}ms...`);
-}
-
-// Helper function to log connection errors with masked connection strings
-function logConnectionError(error) {
-  const masked = maskConnectionString(PG_CONNECTION_STRING);
-  console.warn(`Connection failed using ${masked}. Retrying...`);
 }
 
 // Utility function to pause for a given number of milliseconds
@@ -73,7 +70,7 @@ async function retryOperation(operation, maxAttempts = MAX_ATTEMPTS, delay = RET
       }
       // Increment dbRetryCount each time a retry is attempted
       metrics.dbRetryCount++;
-      const computedDelay = computeRetryDelay(delay);
+      const computedDelay = computeRetryDelay(delay, attempt);
       logRetryError(err, attempt + 1, maxAttempts, computedDelay);
       await sleep(computedDelay);
     }
@@ -100,6 +97,12 @@ async function connectWithRetry() {
       throw err;
     }
   });
+}
+
+// Helper function to log connection errors with masked connection strings
+function logConnectionError(error) {
+  const masked = maskConnectionString(PG_CONNECTION_STRING);
+  console.warn(`Connection failed using ${masked}. Retrying...`);
 }
 
 // Zod schema for validating GitHub event projection messages
