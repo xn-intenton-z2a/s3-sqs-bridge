@@ -1,6 +1,6 @@
 // tests/unit/main.test.js
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { githubEventProjectionHandler, getMetrics, resetMetrics, createMetricsServer, createStatusServer } from '../../src/lib/main.js';
+import { githubEventProjectionHandler, getMetrics, resetMetrics, createMetricsServer, createStatusServer, computeRetryDelay } from '../../src/lib/main.js';
 import request from 'supertest';
 
 // Mock the pg Client
@@ -17,6 +17,16 @@ vi.mock('pg', () => {
     };
   };
   return { default: { Client: mClient }, Client: mClient };
+});
+
+
+describe('computeRetryDelay', () => {
+  it('returns correct exponential delays', () => {
+    const baseDelay = 1000;
+    expect(computeRetryDelay(baseDelay, 1)).toBe(1000);
+    expect(computeRetryDelay(baseDelay, 2)).toBe(2000);
+    expect(computeRetryDelay(baseDelay, 3)).toBe(4000);
+  });
 });
 
 
