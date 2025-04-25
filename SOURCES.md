@@ -8,7 +8,7 @@ END_OF_FORMAT
 START_OF_FORMAT
 # AWS Documentation Suite
 ## https://docs.aws.amazon.com/
-A consolidated source for AWS services documentation. This suite merges key AWS documentation including general AWS services, SQS Dead Letter Queues, and the AWS CDK Developer Guide. It provides detailed guides, best practices, and configuration details for building scalable, fault-tolerant cloud applications, such as setting up Lambda functions, configuring DLQs, and provisioning infrastructure with CDK. Last updated in 2023; maintained by AWS.
+A consolidated source for AWS services documentation. This suite merges key AWS documentation including general AWS services, SQS Dead Letter Queues, the AWS CDK Developer Guide, and best practices for building scalable, fault-tolerant cloud applications. It covers configuration details such as setting up Lambda functions, provisioning infrastructure with CDK, and guidance on implementing exponential backoff strategies with jitter (for example, see https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/). Last updated in 2023; maintained by AWS.
 ## License: Amazon Service Terms
 END_OF_FORMAT
 
