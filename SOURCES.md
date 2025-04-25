@@ -6,9 +6,9 @@ Official documentation detailing GitHub's REST API endpoints and usage. This sou
 END_OF_FORMAT
 
 START_OF_FORMAT
-# AWS Documentation
-## https://aws.amazon.com/documentation/
-A consolidated source for AWS services documentation including SQS, Lambda, CDK, and Amazon S3. This resource offers detailed guides, best practices, and configuration details crucial for setting up reliable messaging, serverless functions, infrastructure as code, and scalable object storage. Updated frequently by AWS and subject to Amazon Service Terms.
+# AWS Documentation Suite
+## https://docs.aws.amazon.com/
+A consolidated source for AWS services documentation. This suite merges key AWS documentation including general AWS services, SQS Dead Letter Queues, and the AWS CDK Developer Guide. It provides detailed guides, best practices, and configuration details for building scalable, fault-tolerant cloud applications, such as setting up Lambda functions, configuring DLQs, and provisioning infrastructure with CDK. Last updated in 2023; maintained by AWS.
 ## License: Amazon Service Terms
 END_OF_FORMAT
 
@@ -36,20 +36,20 @@ END_OF_FORMAT
 START_OF_FORMAT
 # Testing Tools Documentation
 ## https://vitest.dev/
-A centralized documentation resource covering modern testing tools used in the repository. It includes Vitest for unit testing and Supertest for HTTP endpoint validations, providing guidance on simulating HTTP interactions, writing tests, and ensuring robust code quality. Updated regularly with community and contributor insights.
+A centralized documentation resource covering modern testing tools used in the repository, including Vitest for unit testing and Supertest for HTTP endpoint validations. It provides guidance on simulating HTTP interactions, writing comprehensive tests, and ensuring robust code quality. Updated regularly with community and contributor insights.
 ## License: MIT (Vitest), MIT (Supertest)
 END_OF_FORMAT
 
 START_OF_FORMAT
-# AWS SQS Dead Letter Queues Documentation
-## https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html
-This documentation covers the configuration, best practices, and operational guidelines for AWS SQS Dead Letter Queues (DLQs). It explains how to set up DLQs to capture failed message processing attempts, a mechanism leveraged in the repository to handle GitHub event record failures. The guide is regularly updated by AWS and is highly authoritative for implementing reliable error handling in distributed systems.
+# AWS Lambda Developer Guide
+## https://docs.aws.amazon.com/lambda/latest/dg/welcome.html
+Official documentation for AWS Lambda, offering extensive guidance on deploying, managing, and monitoring serverless functions. It covers event source configurations, performance optimizations, and best practices for building resilient, scalable applications using Lambda. Last verified in 2023 and widely regarded as authoritative.
 ## License: AWS Service Terms
 END_OF_FORMAT
 
 START_OF_FORMAT
-# AWS CDK Developer Guide
-## https://docs.aws.amazon.com/cdk/latest/guide/home.html
-The AWS Cloud Development Kit (CDK) Developer Guide provides comprehensive instructions for defining cloud infrastructure using familiar programming languages. This source is crucial for understanding the infrastructure provisioning part of the repository, offering insights on best practices, lifecycle management, and integration with AWS services. The guide is frequently updated to reflect new features and enhancements in AWS CDK.
-## License: Amazon Service Terms
+# Serverless Framework Documentation
+## https://www.serverless.com/framework/docs/
+Comprehensive documentation for the Serverless Framework, which aids developers in building, deploying, and monitoring serverless applications across multiple cloud platforms. This source provides detailed usage examples, best practices, and troubleshooting guidelines. Updated frequently to reflect the latest innovations in serverless architectures.
+## License: Not Specified
 END_OF_FORMAT
