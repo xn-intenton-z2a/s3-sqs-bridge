@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>agentic-lib</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; background-color: #f9f9f9; color: #333; }
+    header { padding-bottom: 1em; border-bottom: 2px solid #ccc; margin-bottom: 1em; }
+    h1 { font-size: 2em; }
+    section { margin-bottom: 1.5em; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 0.5em 0; }
+    .label { font-weight: bold; }
+    footer { margin-top: 2em; font-size: 0.9em; color: #777; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>agentic-lib</h1>
+    <p><a href="https://github.com/xn-intenton-z2a/agentic-lib">repository</a> - <a href="https://xn-intenton-z2a.github.io/agentic-lib/latest.html">latest stats</a> - <a href="https://xn-intenton-z2a.github.io/agentic-lib/all.html">all stats</a></p>
+  </header>
+  <section>
+    <h1 class="md-github"><a class="md-github__anchor" name="sqs_dlq" href="#sqs_dlq"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>SQS_DLQ</h1>
+<h2 class="md-github"><a class="md-github__anchor" name="crawl-summary" href="#crawl-summary"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Crawl Summary</h2>
+<p class="md-github">Redrive Policy: Use redrive policy with a maxReceiveCount parameter (1-1000) and a redrive allow policy (allowAll by default, byQueue for specifying up to 10 ARNs, denyAll to prohibit access). Message Retention: For standard queues, retention uses original enqueue timestamp and DLQ retention should exceed source queue retention; for FIFO queues, the enqueue timestamp resets upon redrive. Configuration Steps: Create a new DLQ; edit source queue settings in the SQS console; toggle DLQ enabled; select queue ARN; set maximum receives; save configuration. CloudWatch Alarms: Monitor DLQ using the ApproximateNumberOfMessagesVisible metric.</p>
+<h2 class="md-github"><a class="md-github__anchor" name="normalised-extract" href="#normalised-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Normalised Extract</h2>
+<p class="md-github">Table of Contents:</p>
+<ol class="md-github">
+<li class="md-github">
+<p class="md-github">Redrive Policy</p>
+</li>
+<li class="md-github">
+<p class="md-github">Message Retention</p>
+</li>
+<li class="md-github">
+<p class="md-github">Console Configuration</p>
+</li>
+<li class="md-github">
+<p class="md-github">CloudWatch Alarm Setup</p>
+</li>
+<li class="md-github">
+<p class="md-github">Redrive Policy:</p>
+<ul class="md-github">
+<li class="md-github">Parameter 'maxReceiveCount': defines the number of message receives before redrive (valid range: 1 to 1000).</li>
+<li class="md-github">'redriveAllowPolicy': default is allowAll, use 'byQueue' to specify up to 10 source queue ARNs, or 'denyAll' to disable DLQ use.</li>
+</ul>
+</li>
+<li class="md-github">
+<p class="md-github">Message Retention:</p>
+<ul class="md-github">
+<li class="md-github">Standard Queues: Retention based on original enqueue timestamp; DLQ retention should be set longer than source retention. For example, if a message waits 1 day before redrive and DLQ retention is 4 days, the active retention in DLQ becomes 3 days.</li>
+<li class="md-github">FIFO Queues: The enqueue timestamp is reset upon redrive; the retention period applies from the moment of DLQ entry, e.g., 4 days.</li>
+</ul>
+</li>
+<li class="md-github">
+<p class="md-github">Console Configuration:</p>
+<ul class="md-github">
+<li class="md-github">Steps:
+a. Create a new queue for DLQ.
+b. Open SQS console at https://console.aws.amazon.com/sqs/.
+c. Select the source queue and click Edit.
+d. Toggle 'Dead-letter queue' section to Enabled.
+e. Select the dead-letter queue ARN from available queues.
+f. Set 'Maximum receives' value (1 to 1000).
+g. Save the settings.</li>
+</ul>
+</li>
+<li class="md-github">
+<p class="md-github">CloudWatch Alarm Setup:</p>
+<ul class="md-github">
+<li class="md-github">Monitor using metric 'ApproximateNumberOfMessagesVisible'.</li>
+<li class="md-github">Configure alarm to trigger when messages in the DLQ exceed a threshold.</li>
+<li class="md-github">Recommended command-line example provided in supplementary details.</li>
+</ul>
+</li>
+</ol>
+<h2 class="md-github"><a class="md-github__anchor" name="supplementary-details" href="#supplementary-details"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Supplementary Details</h2>
+<p class="md-github">Technical Specifications and Implementation Steps:</p>
+<ul class="md-github">
+<li class="md-github">
+<p class="md-github">Redrive Policy JSON Format:
+{ &quot;maxReceiveCount&quot;: &quot;3&quot;, &quot;deadLetterTargetArn&quot;: &quot;arn:aws:sqs:region:account-id:dlq-queueName&quot; }</p>
+</li>
+<li class="md-github">
+<p class="md-github">API Call: SetQueueAttributes</p>
+<ul class="md-github">
+<li class="md-github">Endpoint: https://sqs.{region}.amazonaws.com/{account-id}/{queueName}</li>
+<li class="md-github">Parameter example: 'Attributes' can include 'RedrivePolicy' and 'MessageRetentionPeriod'.</li>
+<li class="md-github">Valid MessageRetentionPeriod: 60 to 1209600 seconds (default 345600 seconds or 4 days).</li>
+</ul>
+</li>
+<li class="md-github">
+<p class="md-github">AWS SDK (Node.js) Code Example:
+const AWS = require('aws-sdk');
+const sqs = new AWS.SQS();
+const params = {
+QueueUrl: 'https://sqs.region.amazonaws.com/account-id/queueName',
+Attributes: {
+'RedrivePolicy': JSON.stringify({
+maxReceiveCount: &quot;3&quot;,
+deadLetterTargetArn: &quot;arn:aws:sqs:region:account-id:dlq-queueName&quot;
+}),
+'MessageRetentionPeriod': &quot;345600&quot;
+}
+};
+sqs.setQueueAttributes(params, function(err, data) {
+if (err) {
+console.error(&quot;Error&quot;, err);
+} else {
+console.log(&quot;Success&quot;, data);
+}
+});</p>
+</li>
+<li class="md-github">
+<p class="md-github">Configuration Options:</p>
+<ul class="md-github">
+<li class="md-github">maxReceiveCount: integer, set according to expected retry logic.</li>
+<li class="md-github">MessageRetentionPeriod: string representing seconds, ensure DLQ retention &gt; source queue retention.</li>
+</ul>
+</li>
+<li class="md-github">
+<p class="md-github">Best Practices:</p>
+<ul class="md-github">
+<li class="md-github">Place DLQ and source queue in the same AWS account and region.</li>
+<li class="md-github">Set a sufficiently high maxReceiveCount to allow for retry attempts before moving the message.</li>
+<li class="md-github">Configure CloudWatch alarms to monitor DLQ for rapid troubleshooting.</li>
+</ul>
+</li>
+<li class="md-github">
+<p class="md-github">Troubleshooting Procedures:</p>
+<ol class="md-github">
+<li class="md-github">Examine CloudWatch logs for consumer exceptions.</li>
+<li class="md-github">Verify redrive policy JSON format in queue attributes.</li>
+<li class="md-github">Use AWS CLI to test message visibility changes:
+Command: aws sqs change-message-visibility --queue-url https://sqs.region.amazonaws.com/account-id/queueName --receipt-handle <handle> --visibility-timeout 0</li>
+<li class="md-github">Re-drive messages using the redrive command if applicable.</li>
+</ol>
+</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="reference-details" href="#reference-details"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Reference Details</h2>
+<p class="md-github">API Specifications and SDK Details:</p>
+<p class="md-github">Method: setQueueAttributes
+Signature (Node.js AWS SDK):
+SQS.setQueueAttributes(params: {
+QueueUrl: string,
+Attributes: {
+RedrivePolicy?: string,
+MessageRetentionPeriod?: string,
+[key: string]: string
+}
+}, callback?: (err: AWSError, data: {}) =&gt; void): Request&lt;{}, AWSError&gt;</p>
+<p class="md-github">Parameters:</p>
+<ul class="md-github">
+<li class="md-github">QueueUrl: string - URL of the SQS queue.</li>
+<li class="md-github">Attributes: Object containing key-value pairs of configuration.
+<ul class="md-github">
+<li class="md-github">RedrivePolicy: JSON string with keys:
+maxReceiveCount (string representation of integer between 1 and 1000),
+deadLetterTargetArn (ARN string of the DLQ).</li>
+<li class="md-github">MessageRetentionPeriod: string (seconds, range 60 to 1209600).</li>
+</ul>
+</li>
+</ul>
+<p class="md-github">Return Type:</p>
+<ul class="md-github">
+<li class="md-github">On success: SetQueueAttributesResult object.</li>
+</ul>
+<p class="md-github">Code Example (Node.js):
+const AWS = require('aws-sdk');
+const sqs = new AWS.SQS();
+const params = {
+QueueUrl: 'https://sqs.region.amazonaws.com/account-id/queueName',
+Attributes: {
+'RedrivePolicy': JSON.stringify({
+maxReceiveCount: &quot;3&quot;,
+deadLetterTargetArn: &quot;arn:aws:sqs:region:account-id:dlq-queueName&quot;
+}),
+'MessageRetentionPeriod': &quot;345600&quot;
+}
+};
+sqs.setQueueAttributes(params, function(err, data) {
+if (err) {
+console.error('Error', err);
+} else {
+console.log('Success', data);
+}
+});</p>
+<p class="md-github">Additional API Methods:</p>
+<ul class="md-github">
+<li class="md-github">getQueueAttributes
+Signature: SQS.getQueueAttributes(params: { QueueUrl: string, AttributeNames: string[] }, callback?: (err: AWSError, data: GetQueueAttributesResult) =&gt; void): Request&lt;GetQueueAttributesResult, AWSError&gt;</li>
+</ul>
+<p class="md-github">Configuration Options and Their Effects:</p>
+<ul class="md-github">
+<li class="md-github">maxReceiveCount: Determines when messages are moved to the DLQ; low value may result in premature redrive.</li>
+<li class="md-github">MessageRetentionPeriod: Sets the maximum time a message is retained in the queue; must be adjusted for DLQ vs. source.</li>
+<li class="md-github">redriveAllowPolicy: Controls access for source queues to the DLQ (values: allowAll, byQueue, denyAll).</li>
+</ul>
+<p class="md-github">Concrete Best Practices:</p>
+<ul class="md-github">
+<li class="md-github">Always use the same AWS region and account for sourcing the DLQ.</li>
+<li class="md-github">Set CloudWatch alarms on the ApproximateNumberOfMessagesVisible metric for proactive monitoring.</li>
+</ul>
+<p class="md-github">Step-by-step Troubleshooting:</p>
+<ol class="md-github">
+<li class="md-github">Verify queue attribute settings with AWS CLI command:
+aws sqs get-queue-attributes --queue-url https://sqs.region.amazonaws.com/account-id/queueName --attribute-names All</li>
+<li class="md-github">Check CloudWatch logs for consumer application errors.</li>
+<li class="md-github">Test message redrive manually by altering message visibility using:
+aws sqs change-message-visibility --queue-url https://sqs.region.amazonaws.com/account-id/queueName --receipt-handle <handle> --visibility-timeout 0</li>
+<li class="md-github">Examine the returned error messages in case of misconfiguration and validate the JSON format of the RedrivePolicy.</li>
+</ol>
+<h2 class="md-github"><a class="md-github__anchor" name="information-dense-extract" href="#information-dense-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Information Dense Extract</h2>
+<p class="md-github">redrivePolicy:{maxReceiveCount:1-1000, redriveAllowPolicy:{default:allowAll, byQueue:up to 10 ARNs, denyAll}, deadLetterTargetArn:ARN}; messageRetention:{standard:based on original enqueue timestamp, FIFO:reset timestamp} ; consoleSteps:{create DLQ, open SQS console, select source queue, toggle DLQ enabled, select ARN, set Maximum receives (1-1000), save} ; API: setQueueAttributes(QueueUrl:string, Attributes:{RedrivePolicy:string, MessageRetentionPeriod:string}) -&gt; Promise; SDK Code: AWS SDK for Node.js example provided; CloudWatchAlarm: metric ApproximateNumberOfMessagesVisible, threshold configuration; CLI troubleshooting: aws sqs change-message-visibility, aws sqs get-queue-attributes; bestPractices: DLQ in same account/region, sufficient maxReceiveCount, CloudWatch monitoring</p>
+<h2 class="md-github"><a class="md-github__anchor" name="sanitised-extract" href="#sanitised-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Sanitised Extract</h2>
+<p class="md-github">Table of Contents:</p>
+<ol class="md-github">
+<li class="md-github">
+<p class="md-github">Redrive Policy</p>
+</li>
+<li class="md-github">
+<p class="md-github">Message Retention</p>
+</li>
+<li class="md-github">
+<p class="md-github">Console Configuration</p>
+</li>
+<li class="md-github">
+<p class="md-github">CloudWatch Alarm Setup</p>
+</li>
+<li class="md-github">
+<p class="md-github">Redrive Policy:</p>
+<ul class="md-github">
+<li class="md-github">Parameter 'maxReceiveCount': defines the number of message receives before redrive (valid range: 1 to 1000).</li>
+<li class="md-github">'redriveAllowPolicy': default is allowAll, use 'byQueue' to specify up to 10 source queue ARNs, or 'denyAll' to disable DLQ use.</li>
+</ul>
+</li>
+<li class="md-github">
+<p class="md-github">Message Retention:</p>
+<ul class="md-github">
+<li class="md-github">Standard Queues: Retention based on original enqueue timestamp; DLQ retention should be set longer than source retention. For example, if a message waits 1 day before redrive and DLQ retention is 4 days, the active retention in DLQ becomes 3 days.</li>
+<li class="md-github">FIFO Queues: The enqueue timestamp is reset upon redrive; the retention period applies from the moment of DLQ entry, e.g., 4 days.</li>
+</ul>
+</li>
+<li class="md-github">
+<p class="md-github">Console Configuration:</p>
+<ul class="md-github">
+<li class="md-github">Steps:
+a. Create a new queue for DLQ.
+b. Open SQS console at https://console.aws.amazon.com/sqs/.
+c. Select the source queue and click Edit.
+d. Toggle 'Dead-letter queue' section to Enabled.
+e. Select the dead-letter queue ARN from available queues.
+f. Set 'Maximum receives' value (1 to 1000).
+g. Save the settings.</li>
+</ul>
+</li>
+<li class="md-github">
+<p class="md-github">CloudWatch Alarm Setup:</p>
+<ul class="md-github">
+<li class="md-github">Monitor using metric 'ApproximateNumberOfMessagesVisible'.</li>
+<li class="md-github">Configure alarm to trigger when messages in the DLQ exceed a threshold.</li>
+<li class="md-github">Recommended command-line example provided in supplementary details.</li>
+</ul>
+</li>
+</ol>
+<h2 class="md-github"><a class="md-github__anchor" name="original-source" href="#original-source"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Original Source</h2>
+<p class="md-github">AWS SQS Dead Letter Queues Documentation
+https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html</p>
+<h2 class="md-github"><a class="md-github__anchor" name="digest-of-sqs_dlq" href="#digest-of-sqs_dlq"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Digest of SQS_DLQ</h2>
+<h1 class="md-github"><a class="md-github__anchor" name="amazon-sqs-dead-letter-queues" href="#amazon-sqs-dead-letter-queues"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Amazon SQS DEAD LETTER QUEUES</h1>
+<p class="md-github">Date Retrieved: 2023-10-12</p>
+<h2 class="md-github"><a class="md-github__anchor" name="redrive-policy-configuration" href="#redrive-policy-configuration"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Redrive Policy Configuration</h2>
+<ul class="md-github">
+<li class="md-github">Parameter: maxReceiveCount
+<ul class="md-github">
+<li class="md-github">Defines the number of times a consumer can receive a message from the source queue before moving it to the dead-letter queue (valid range: 1 to 1000).</li>
+</ul>
+</li>
+<li class="md-github">Redrive Allow Policy
+<ul class="md-github">
+<li class="md-github">Controls which source queues can access the dead-letter queue. Options include:
+<ul class="md-github">
+<li class="md-github">allowAll (default): All source queues are permitted.</li>
+<li class="md-github">byQueue: Specify up to 10 source queue ARNs.</li>
+<li class="md-github">denyAll: Denies any source queue use.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="message-retention-for-dead-letter-queues" href="#message-retention-for-dead-letter-queues"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Message Retention for Dead-letter Queues</h2>
+<ul class="md-github">
+<li class="md-github">Standard Queues:
+<ul class="md-github">
+<li class="md-github">The expiration is based on the original enqueue timestamp; retention period of the DLQ should be longer than that of the source queue.</li>
+<li class="md-github">Example: If a message spends 1 day in the source queue and the dead-letter queue retention is 4 days, the message is deleted after 3 days in the DLQ.</li>
+</ul>
+</li>
+<li class="md-github">FIFO Queues:
+<ul class="md-github">
+<li class="md-github">The enqueue timestamp resets when moved to the DLQ; retention period applies from the time the message enters the DLQ.</li>
+<li class="md-github">Example: With a 4-day retention period, the message lives exactly 4 days in the DLQ.</li>
+</ul>
+</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="console-configuration-steps" href="#console-configuration-steps"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Console Configuration Steps</h2>
+<ol class="md-github">
+<li class="md-github">Create a new queue that will serve as the dead-letter queue (DLQ).</li>
+<li class="md-github">Open the Amazon SQS Console at https://console.aws.amazon.com/sqs/.</li>
+<li class="md-github">In the navigation pane, select the source queue and choose Edit.</li>
+<li class="md-github">Scroll to the Dead-letter queue section and toggle Enabled.</li>
+<li class="md-github">Under Dead-letter queue settings, select the ARN of an existing queue to use as DLQ.</li>
+<li class="md-github">Set the Maximum receives value (range: 1 to 1000) to determine when messages are moved.</li>
+<li class="md-github">Save the configuration.</li>
+</ol>
+<h2 class="md-github"><a class="md-github__anchor" name="cloudwatch-alarm-integration" href="#cloudwatch-alarm-integration"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>CloudWatch Alarm Integration</h2>
+<ul class="md-github">
+<li class="md-github">Use the ApproximateNumberOfMessagesVisible metric to monitor the DLQ.</li>
+<li class="md-github">Recommended to configure an alarm for early detection of message failures.</li>
+<li class="md-github">Reference CloudWatch alarm creation documentation for detailed setup.</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="attribution-and-data-size" href="#attribution-and-data-size"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Attribution and Data Size</h2>
+<ul class="md-github">
+<li class="md-github">Data Size: 1412409 bytes</li>
+<li class="md-github">Links Found: 4430</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="attribution" href="#attribution"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Attribution</h2>
+<ul class="md-github">
+<li class="md-github">Source: AWS SQS Dead Letter Queues Documentation</li>
+<li class="md-github">URL: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html</li>
+<li class="md-github">License: License: AWS Service Terms</li>
+<li class="md-github">Crawl Date: 2025-04-25T18:34:13.066Z</li>
+<li class="md-github">Data Size: 1412409 bytes</li>
+<li class="md-github">Links Found: 4430</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="retrieved" href="#retrieved"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Retrieved</h2>
+<p class="md-github">2025-04-25</p>
+
+  </section>
+  <footer>
+    <p>Generated on 2025-04-26T00:36:05.485Z</p>
+  </footer>
+</body>
+</html>
