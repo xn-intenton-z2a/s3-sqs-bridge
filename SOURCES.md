@@ -1,55 +1,41 @@
-START_OF_FORMAT
 # GitHub REST API Documentation
 ## https://docs.github.com/en/rest
-Official documentation detailing GitHub's REST API endpoints and usage. This source provides comprehensive guidance on integrating with GitHub events, understanding endpoint behavior, and troubleshooting typical integration scenarios. Last verified in 2023; widely regarded as authoritative on GitHub's API offerings.
+Official documentation detailing GitHub's REST API endpoints, parameters, and best practices for authentication, pagination, and rate limiting. This resource is indispensable for integrating with GitHub services, responding to events, and troubleshooting API issues. It provides comprehensive HTTP request/response examples, schema definitions, and guidance on error handling, making it critical for building resilient event-driven pipelines. Last verified May 2024; authoritative source maintained by GitHub.
 ## License: Not Applicable
-END_OF_FORMAT
 
-START_OF_FORMAT
-# AWS Cloud, Lambda & SQS Documentation
-## https://docs.aws.amazon.com/
-A comprehensive resource covering AWS services including Lambda, S3, and SQS, along with best practices for implementing dead letter queues (DLQ) and robust cloud architectures. This documentation is essential for understanding how to integrate AWS SQS for error handling (e.g., forwarding events to a DLQ) and deploying Lambda functions with resilient retry strategies. Last updated in 2023; maintained by AWS.
-## License: Amazon Service Terms
-END_OF_FORMAT
+# GitHub Webhooks & Events Payloads
+## https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads
+In-depth specification of GitHub webhook event types and JSON payload structures. This documentation enumerates supported event actions (e.g., push, pull_request), field definitions, and delivery semantics, enabling precise schema validation and processing logic. Practical examples illustrate event workflows and edge cases—essential for designing robust Zod schemas and error-handling in the projection handler. Last updated April 2024; official GitHub documentation.
+## License: Not Applicable
 
-START_OF_FORMAT
-# Express.js Documentation
+# AWS SQS Client (AWS SDK v3) Documentation
+## https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sqs/index.html
+Detailed API reference for the AWS SDK v3 SQS client in JavaScript. Covers operations such as SendMessage, ReceiveMessage, DeleteMessage, and configuration options including retry modes and middleware customization. Includes code snippets for promise-based usage, batching strategies, and error classification—key for implementing efficient event enqueueing and DLQ forwarding. Last reviewed June 2024; maintained by AWS.
+## License: Apache 2.0
+
+# AWS CDK API Reference
+## https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib-readme.html
+Comprehensive reference for AWS CDK v2 constructs, focusing on modules for SQS, Lambda, and IAM. Provides class and interface definitions, property details, and deployment patterns in TypeScript. Highlights recommended practices for configuring dead-letter queues, retry policies, and environment variables—crucial for infrastructure-as-code and consistent deployment of the GitHub event projection pipeline. Last updated May 2024; official AWS CDK documentation.
+## License: Apache 2.0
+
+# Node.js & Express Documentation
+## https://nodejs.org/en/docs/
 ## https://expressjs.com/en/starter/installing.html
-Detailed documentation on using Express.js for building HTTP servers, middleware integration, and RESTful endpoints. This source is critical for implementing unified health and metrics endpoints within the repository, ensuring seamless integration of web services.
+Combined guidance on Node.js core APIs (event loop, HTTP, ESM modules) and Express framework fundamentals (routing, middleware, error handlers). This merged resource supports the creation of robust `/metrics`, `/status`, and health-check endpoints, covers asynchronous programming best practices, and illustrates production-grade server configuration for observability and resilience. Last verified March 2024; Node.js and Express communities.
 ## License: MIT
-END_OF_FORMAT
 
-START_OF_FORMAT
 # PostgreSQL & Node-Postgres Pooling Documentation
-## https://www.postgresql.org/docs/current/index.html
-The definitive resource for PostgreSQL features, SQL syntax, and performance tuning. This source also encompasses best practices for connection pooling, particularly when using node-postgres, to optimize resource management and integrate with exponential backoff retry strategies. It is essential for building robust and efficient database interactions in high-load scenarios.
+## https://node-postgres.com/features/pooling
+Official documentation for PostgreSQL connection pooling using the `pg` module in Node.js. Explains Pool configuration options (max, idleTimeoutMillis), acquire/release semantics, and integration with retry/backoff strategies. Includes performance tuning tips and connection leak detection techniques—fundamental for high-throughput event projections. Last reviewed April 2024; maintained by node-postgres authors.
 ## License: PostgreSQL License
-END_OF_FORMAT
 
-START_OF_FORMAT
 # Zod Documentation
 ## https://zod.dev
-Official documentation for the Zod schema validation library, offering in-depth examples and best practices for enforcing strict data validation in JavaScript applications. This resource is critical for ensuring data integrity and robust validation of GitHub event messages within the repository.
+Authoritative guide to Zod schema validation for TypeScript and JavaScript. Covers object, union, and refinement schemas, as well as error formatting and asynchronous parsing. Provides advanced patterns for strict type inference, custom transformers, and performance considerations—key for validating incoming GitHub event payloads before database operations. Last updated May 2024; maintained by Zod maintainers.
 ## License: MIT
-END_OF_FORMAT
 
-START_OF_FORMAT
 # Testing Tools Documentation
 ## https://vitest.dev/
-A centralized resource detailing modern testing tools such as Vitest and Supertest. It offers actionable guidance on simulating HTTP interactions, writing comprehensive tests, and ensuring robust code quality through both unit and integration testing, which aligns with the repository’s critical need for reliability and resilience.
-## License: MIT (Vitest), MIT (Supertest)
-END_OF_FORMAT
-
-START_OF_FORMAT
-# Serverless Framework Documentation
-## https://www.serverless.com/framework/docs/
-Comprehensive documentation for the Serverless Framework that aids in building, deploying, and monitoring serverless applications across multiple cloud platforms. This source provides detailed usage examples, best practices, and troubleshooting guidelines, reflecting the latest innovations in serverless architecture necessary for scalable deployments.
-## License: Not Specified
-END_OF_FORMAT
-
-START_OF_FORMAT
-# Node.js Official Documentation
-## https://nodejs.org/en/docs/
-The primary resource for Node.js, offering extensive guidance on the runtime environment, asynchronous programming, event loop management, and core module APIs. This documentation is essential for developers to understand and optimize the underlying mechanics required for building high-performance, scalable JavaScript applications.
+## https://github.com/visionmedia/supertest
+Central resource for Vitest and Supertest testing frameworks. Vitest docs detail configuration, mocking strategies, and snapshot testing for rapid unit test development. Supertest documentation offers clear examples for simulating HTTP requests against Express servers, validating responses, and chaining assertions. Together, they deliver a complete toolkit for unit and integration testing of event handlers and HTTP endpoints. Last updated June 2024; maintained by respective communities.
 ## License: MIT
-END_OF_FORMAT
