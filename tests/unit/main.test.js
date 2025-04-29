@@ -1,13 +1,27 @@
 // tests/unit/main.test.js
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { githubEventProjectionHandler, getMetrics, resetMetrics, createMetricsServer, createStatusServer, computeRetryDelay } from '../../src/lib/main.js';
 import request from 'supertest';
 
-// Mock the pg Client
+// Mock AWS SQS
+const mockSend = vi.fn();
+vi.mock('@aws-sdk/client-sqs', () => {
+  class SQSClient {
+    send(command) {
+      return mockSend(command);
+    }
+  }
+  class SendMessageCommand {
+    constructor(input) {
+      this.input = input;
+    }
+  }
+  return { SQSClient, SendMessageCommand };
+});
+
+// Mock PostgreSQL Client
 const mockQuery = vi.fn();
 const mockConnect = vi.fn();
 const mockEnd = vi.fn();
-
 vi.mock('pg', () => {
   const mClient = function () {
     return {
@@ -19,6 +33,27 @@ vi.mock('pg', () => {
   return { default: { Client: mClient }, Client: mClient };
 });
 
+// Provide a Dead Letter Queue URL for testing
+process.env.DEAD_LETTER_QUEUE_URL = 'https://dlq.queue/test';
+
+import {
+  githubEventProjectionHandler,
+  getMetrics,
+  resetMetrics,
+  createMetricsServer,
+  createStatusServer,
+  computeRetryDelay,
+  sendToDeadLetterQueue
+} from '../../src/lib/main.js';
+
+// Reset mocks and metrics before each test
+beforeEach(() => {
+  mockConnect.mockClear();
+  mockQuery.mockClear();
+  mockEnd.mockClear();
+  mockSend.mockClear();
+  resetMetrics();
+});
 
 describe('computeRetryDelay', () => {
   it('returns correct exponential delays', () => {
@@ -29,15 +64,18 @@ describe('computeRetryDelay', () => {
   });
 });
 
+describe('sendToDeadLetterQueue', () => {
+  it('sends message to the configured DLQ', async () => {
+    mockSend.mockResolvedValue({});
+    const body = '{"test":"data"}';
+    await sendToDeadLetterQueue(body);
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    const command = mockSend.mock.calls[0][0];
+    expect(command.input).toEqual({ QueueUrl: process.env.DEAD_LETTER_QUEUE_URL, MessageBody: body });
+  });
+});
 
 describe('githubEventProjectionHandler', () => {
-  beforeEach(() => {
-    mockConnect.mockClear();
-    mockQuery.mockClear();
-    mockEnd.mockClear();
-    resetMetrics();
-  });
-
   it('processes valid GitHub event messages and retries on initial connection failure', async () => {
     // Simulate connection failure on first attempt then success
     mockConnect.mockRejectedValueOnce(new Error('Connect error'));
@@ -64,11 +102,7 @@ describe('githubEventProjectionHandler', () => {
     expect(mockQuery).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ status: 'success' });
     const metricsResult = getMetrics();
-    expect(metricsResult.totalEvents).toEqual(1);
-    expect(metricsResult.successfulEvents).toEqual(1);
-    expect(metricsResult.skippedEvents).toEqual(0);
-    expect(metricsResult.dbFailures).toEqual(0);
-    expect(metricsResult.dbRetryCount).toEqual(1);
+    expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 1, skippedEvents: 0, dbFailures: 0, dbRetryCount: 1, deadLetterEvents: 0 });
   });
 
   it('skips records with invalid JSON', async () => {
@@ -91,15 +125,10 @@ describe('githubEventProjectionHandler', () => {
     };
 
     const result = await githubEventProjectionHandler(event);
-    // Only one valid record should trigger a query
     expect(mockQuery).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ status: 'success' });
     const metricsResult = getMetrics();
-    expect(metricsResult.totalEvents).toEqual(2);
-    expect(metricsResult.successfulEvents).toEqual(1);
-    expect(metricsResult.skippedEvents).toEqual(1);
-    expect(metricsResult.dbFailures).toEqual(0);
-    expect(metricsResult.dbRetryCount).toEqual(0);
+    expect(metricsResult).toEqual({ totalEvents: 2, successfulEvents: 1, skippedEvents: 1, dbFailures: 0, dbRetryCount: 0, deadLetterEvents: 0 });
   });
 
   it('skips records with missing required fields', async () => {
@@ -109,39 +138,26 @@ describe('githubEventProjectionHandler', () => {
     const event = {
       Records: [
         {
-          body: JSON.stringify({
-            repository: 'repo3',
-            metadata: {}
-          })
+          body: JSON.stringify({ repository: 'repo3', metadata: {} })
         }
       ]
     };
 
     const result = await githubEventProjectionHandler(event);
-    // No query should be executed as validation will fail
     expect(mockQuery).not.toHaveBeenCalled();
     expect(result).toEqual({ status: 'success' });
     const metricsResult = getMetrics();
-    expect(metricsResult.totalEvents).toEqual(1);
-    expect(metricsResult.successfulEvents).toEqual(0);
-    expect(metricsResult.skippedEvents).toEqual(1);
-    expect(metricsResult.dbFailures).toEqual(0);
-    expect(metricsResult.dbRetryCount).toEqual(0);
+    expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 0, skippedEvents: 1, dbFailures: 0, dbRetryCount: 0, deadLetterEvents: 0 });
   });
 
   it('skips records with invalid data types', async () => {
-    // repository should be a string, pass a number instead
     mockConnect.mockResolvedValue();
     mockEnd.mockResolvedValue();
 
     const event = {
       Records: [
         {
-          body: JSON.stringify({
-            repository: 123,
-            eventType: 'push',
-            eventTimestamp: '2025-03-17T12:00:00Z'
-          })
+          body: JSON.stringify({ repository: 123, eventType: 'push', eventTimestamp: '2025-03-17T12:00:00Z' })
         }
       ]
     };
@@ -149,16 +165,11 @@ describe('githubEventProjectionHandler', () => {
     expect(mockQuery).not.toHaveBeenCalled();
     expect(result).toEqual({ status: 'success' });
     const metricsResult = getMetrics();
-    expect(metricsResult.totalEvents).toEqual(1);
-    expect(metricsResult.successfulEvents).toEqual(0);
-    expect(metricsResult.skippedEvents).toEqual(1);
-    expect(metricsResult.dbFailures).toEqual(0);
-    expect(metricsResult.dbRetryCount).toEqual(0);
+    expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 0, skippedEvents: 1, dbFailures: 0, dbRetryCount: 0, deadLetterEvents: 0 });
   });
 
-  it('throws error when database query fails after retries', async () => {
+  it('routes failed record to DLQ and continues without throwing', async () => {
     mockConnect.mockResolvedValue();
-    // Simulate query failure on each retry attempt
     mockQuery.mockRejectedValue(new Error('DB error'));
     mockEnd.mockResolvedValue();
 
@@ -175,36 +186,31 @@ describe('githubEventProjectionHandler', () => {
       ]
     };
 
-    await expect(githubEventProjectionHandler(event)).rejects.toThrow('DB error');
-    // Expect query to have been attempted MAX_ATTEMPTS times (3 attempts) and 2 retries
-    expect(mockQuery).toHaveBeenCalledTimes(3);
+    const result = await githubEventProjectionHandler(event);
+    expect(result).toEqual({ status: 'success' });
+    // validate metrics include a DLQ event
     const metricsResult = getMetrics();
-    expect(metricsResult.totalEvents).toEqual(1);
-    expect(metricsResult.successfulEvents).toEqual(0);
-    expect(metricsResult.skippedEvents).toEqual(0);
-    expect(metricsResult.dbFailures).toEqual(1);
-    expect(metricsResult.dbRetryCount).toEqual(2);
+    expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 0, skippedEvents: 0, dbFailures: 1, dbRetryCount: 2, deadLetterEvents: 1 });
+    expect(mockSend).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('Metrics Endpoint', () => {
   it('returns the current metrics when GET /metrics is called', async () => {
-    // Ensure metrics are at their default
     resetMetrics();
     const app = createMetricsServer();
     const response = await request(app).get('/metrics');
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ totalEvents: 0, successfulEvents: 0, skippedEvents: 0, dbFailures: 0, dbRetryCount: 0 });
+    expect(response.body).toEqual({ totalEvents: 0, successfulEvents: 0, skippedEvents: 0, dbFailures: 0, dbRetryCount: 0, deadLetterEvents: 0 });
   });
 });
 
-// New tests for the Status Endpoint
 describe('Status Endpoint', () => {
   it('returns the current metrics when GET /status is called', async () => {
     resetMetrics();
     const app = createStatusServer();
     const response = await request(app).get('/status');
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ totalEvents: 0, successfulEvents: 0, skippedEvents: 0, dbFailures: 0, dbRetryCount: 0 });
+    expect(response.body).toEqual({ totalEvents: 0, successfulEvents: 0, skippedEvents: 0, dbFailures: 0, dbRetryCount: 0, deadLetterEvents: 0 });
   });
 });
