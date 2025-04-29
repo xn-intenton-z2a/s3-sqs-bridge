@@ -96,13 +96,10 @@ const sqsClient = new SQSClient();
 
 /**
  * Send a message to the configured Dead Letter Queue.
- * If DEAD_LETTER_QUEUE_URL is not set, this is a no-op.
  * @param {string} body - The raw record body to send
  */
 async function sendToDeadLetterQueue(body) {
-  if (!DEAD_LETTER_QUEUE_URL) {
-    return;
-  }
+  // Always attempt to send to the DLQ (queue URL may be undefined if not configured)
   try {
     await sqsClient.send(new SendMessageCommand({
       QueueUrl: DEAD_LETTER_QUEUE_URL,
