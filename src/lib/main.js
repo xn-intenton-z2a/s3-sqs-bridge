@@ -2,7 +2,8 @@
 // src/lib/main.js
 // This file serves as both the logger and the GitHub Event Projections Lambda Handler.
 // It processes GitHub event messages from an SQS queue and stores projections in PostgreSQL with robust retry logic,
-// basic metrics collection, and now an optional HTTP metrics endpoint using Express, as well as a status endpoint.
+// basic metrics collection, and now an optional HTTP metrics endpoint using Express, as well as a status endpoint,
+// and dead-letter queue support for failed records.
 
 import pkg from 'pg';
 const { Client } = pkg;
@@ -10,6 +11,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { z } from 'zod';
 import express from 'express';
+import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 
 dotenv.config();
 
@@ -19,7 +21,8 @@ export const metrics = {
   successfulEvents: 0,
   skippedEvents: 0,
   dbFailures: 0,
-  dbRetryCount: 0
+  dbRetryCount: 0,
+  deadLetterEvents: 0
 };
 
 export function resetMetrics() {
@@ -28,6 +31,7 @@ export function resetMetrics() {
   metrics.skippedEvents = 0;
   metrics.dbFailures = 0;
   metrics.dbRetryCount = 0;
+  metrics.deadLetterEvents = 0;
 }
 
 export function getMetrics() {
@@ -37,7 +41,7 @@ export function getMetrics() {
 // Helper to mask sensitive information in PostgreSQL connection string
 function maskConnectionString(connStr) {
   // Replace password part with ***, if present
-  return connStr.replace(/(\/\/[^:]+:)[^@]+(@)/, "$1***$2");
+  return connStr.replace(/(\/\/[^:]+:)[^@]+(@)/, '$1***$2');
 }
 
 // New helper function to compute exponential backoff retry delay
@@ -85,6 +89,31 @@ const PG_CONNECTION_STRING = process.env.PG_CONNECTION_STRING || 'postgres://use
 const GITHUB_PROJECTIONS_TABLE = process.env.GITHUB_PROJECTIONS_TABLE || 'github_event_projections';
 const GITHUB_EVENT_QUEUE_URL = process.env.GITHUB_EVENT_QUEUE_URL || 'https://test/000000000000/github-event-queue-test';
 
+// Initialize SQS client
+const sqsClient = new SQSClient();
+
+/**
+ * Send a message to the configured Dead Letter Queue.
+ * @param {string} body - The raw record body to send
+ */
+export async function sendToDeadLetterQueue(body) {
+  const queueUrl = process.env.DEAD_LETTER_QUEUE_URL;
+  if (!queueUrl) {
+    // No DLQ configured; skip sending
+    return;
+  }
+  try {
+    await sqsClient.send(
+      new SendMessageCommand({
+        QueueUrl: queueUrl,
+        MessageBody: body
+      })
+    );
+  } catch (err) {
+    logError(`Failed to send message to DLQ: ${queueUrl}`, err);
+  }
+}
+
 // Consolidated connectWithRetry function using retryOperation and separation of concerns
 async function connectWithRetry() {
   return await retryOperation(async () => {
@@ -109,7 +138,9 @@ function logConnectionError(error) {
 const GitHubEventSchema = z.object({
   repository: z.string({ required_error: 'repository is required' }),
   eventType: z.string({ required_error: 'eventType is required' }),
-  eventTimestamp: z.string({ required_error: 'eventTimestamp is required' }).refine(val => !isNaN(Date.parse(val)), { message: 'Invalid ISO date format' }),
+  eventTimestamp: z
+    .string({ required_error: 'eventTimestamp is required' })
+    .refine(val => !isNaN(Date.parse(val)), { message: 'Invalid ISO date format' }),
   metadata: z.optional(z.object({}).passthrough())
 });
 
@@ -191,8 +222,12 @@ export async function githubEventProjectionHandler(event) {
         metrics.successfulEvents++;
         logInfo(`Processed GitHub event for repository ${repository}`);
       } catch (err) {
+        // On repeated DB failure, send to DLQ instead of failing the batch
         metrics.dbFailures++;
-        throw err;
+        await sendToDeadLetterQueue(record.body);
+        metrics.deadLetterEvents++;
+        logError(`Failed to process GitHub event for repository ${repository}, routing to DLQ.`, err);
+        continue;
       }
     }
     logInfo(`Metrics: ${JSON.stringify(getMetrics())}`);

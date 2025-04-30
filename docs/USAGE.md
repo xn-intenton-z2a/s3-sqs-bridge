@@ -19,6 +19,12 @@ Additional flags:
 - `--metrics`: Starts an HTTP metrics endpoint on the port defined by `METRICS_PORT` (default 3000). The endpoint is available at `/metrics`.
 - `--status-endpoint`: Starts an HTTP status endpoint on the port defined by `STATUS_PORT` (default 3000). The endpoint is available at `/status`.
 
+## Dead Letter Queue Configuration
+
+You can configure a dead-letter queue to receive events that could not be persisted after all retry attempts.
+
+- **DEAD_LETTER_QUEUE_URL**: URL of the SQS queue to use for dead-lettering failed GitHub event projections. When set, failed records will be routed to this queue instead of failing the batch. If undefined or empty, dead-letter routing is skipped.
+
 ## Enhanced Retry Logic with Exponential Backoff
 
 The GitHub Event Projection handler now uses enhanced retry logic when connecting to PostgreSQL and executing queries. It implements an exponential backoff mechanism for retrying failed operations. This mechanism calculates the delay as follows:
@@ -47,16 +53,27 @@ By starting the application with the `--metrics` flag, an HTTP metrics endpoint 
     "successfulEvents": number,
     "skippedEvents": number,
     "dbFailures": number,
-    "dbRetryCount": number
+    "dbRetryCount": number,
+    "deadLetterEvents": number
   }
   ```
 
 ### Status Endpoint
 
-A new status endpoint is available by running the application with the `--status-endpoint` flag. This endpoint provides the same in-memory metrics as the metrics endpoint and is useful for health checks or integration monitoring.
+By starting the application with the `--status-endpoint` flag, an HTTP status endpoint is activated using Express. The server listens on port `STATUS_PORT` (default 3000).
 
 - **URL:** `GET http://localhost:3000/status`
-- **Response:** JSON object containing the metrics described above.
+- **Response:** JSON object containing the same metrics as the `/metrics` endpoint:
+  ```json
+  {
+    "totalEvents": number,
+    "successfulEvents": number,
+    "skippedEvents": number,
+    "dbFailures": number,
+    "dbRetryCount": number,
+    "deadLetterEvents": number
+  }
+  ```
 
 ## Metrics Collection API
 
@@ -67,6 +84,7 @@ The GitHub Event Projection handler collects in-memory metrics during event proc
 - **skippedEvents:** The number of events skipped due to invalid JSON or failed validation.
 - **dbFailures:** The number of events that encountered database query failures after retry attempts.
 - **dbRetryCount:** The total number of database retry attempts triggered during event processing.
+- **deadLetterEvents:** The number of events that were routed to the dead-letter queue after exhausting retries.
 
 The metrics are updated in real-time as events are processed, and a summary is logged after processing is complete.
 
