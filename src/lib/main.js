@@ -41,7 +41,7 @@ export function getMetrics() {
 // Helper to mask sensitive information in PostgreSQL connection string
 function maskConnectionString(connStr) {
   // Replace password part with ***, if present
-  return connStr.replace(/(\/\/[^:]+:)[^@]+(@)/, "$1***$2");
+  return connStr.replace(/(\\/\\/[^:]+:)[^@]+(@)/, "$1***$2");
 }
 
 // New helper function to compute exponential backoff retry delay
@@ -89,8 +89,6 @@ const PG_CONNECTION_STRING = process.env.PG_CONNECTION_STRING || 'postgres://use
 const GITHUB_PROJECTIONS_TABLE = process.env.GITHUB_PROJECTIONS_TABLE || 'github_event_projections';
 const GITHUB_EVENT_QUEUE_URL = process.env.GITHUB_EVENT_QUEUE_URL || 'https://test/000000000000/github-event-queue-test';
 
-// Dead-letter queue configuration
-const DEAD_LETTER_QUEUE_URL = process.env.DEAD_LETTER_QUEUE_URL;
 // Initialize SQS client
 const sqsClient = new SQSClient();
 
@@ -98,18 +96,23 @@ const sqsClient = new SQSClient();
  * Send a message to the configured Dead Letter Queue.
  * @param {string} body - The raw record body to send
  */
-async function sendToDeadLetterQueue(body) {
-  // Always attempt to send to the DLQ (queue URL may be undefined if not configured)
+export async function sendToDeadLetterQueue(body) {
+  const queueUrl = process.env.DEAD_LETTER_QUEUE_URL;
+  if (!queueUrl) {
+    // No DLQ configured; skip sending
+    return;
+  }
   try {
-    await sqsClient.send(new SendMessageCommand({
-      QueueUrl: DEAD_LETTER_QUEUE_URL,
-      MessageBody: body
-    }));
+    await sqsClient.send(
+      new SendMessageCommand({
+        QueueUrl: queueUrl,
+        MessageBody: body
+      })
+    );
   } catch (err) {
-    logError(`Failed to send message to DLQ: ${DEAD_LETTER_QUEUE_URL}`, err);
+    logError(`Failed to send message to DLQ: ${queueUrl}`, err);
   }
 }
-export { sendToDeadLetterQueue };
 
 // Consolidated connectWithRetry function using retryOperation and separation of concerns
 async function connectWithRetry() {
