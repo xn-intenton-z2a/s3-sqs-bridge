@@ -41,7 +41,7 @@ export function getMetrics() {
 // Helper to mask sensitive information in PostgreSQL connection string
 function maskConnectionString(connStr) {
   // Replace password part with ***, if present
-  return connStr.replace(/(\\/\\/[^:]+:)[^@]+(@)/, "$1***$2");
+  return connStr.replace(/(\/\/[^:]+:)[^@]+(@)/, '$1***$2');
 }
 
 // New helper function to compute exponential backoff retry delay
