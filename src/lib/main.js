@@ -118,7 +118,7 @@ export async function sendToDeadLetterQueue(body) {
 }
 
 // Consolidated connectWithRetry function using retryOperation and pooling
-async function connectWithRetry() {
+export async function connectWithRetry() {
   return await retryOperation(async () => {
     try {
       return await pool.connect();
