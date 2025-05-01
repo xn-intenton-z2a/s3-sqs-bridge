@@ -5,8 +5,7 @@
 // basic metrics collection, and now an optional HTTP metrics endpoint using Express, as well as a status endpoint,
 // and dead-letter queue support for failed records.
 
-import pkg from 'pg';
-const { Client } = pkg;
+import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { z } from 'zod';
@@ -89,6 +88,10 @@ const PG_CONNECTION_STRING = process.env.PG_CONNECTION_STRING || 'postgres://use
 const GITHUB_PROJECTIONS_TABLE = process.env.GITHUB_PROJECTIONS_TABLE || 'github_event_projections';
 const GITHUB_EVENT_QUEUE_URL = process.env.GITHUB_EVENT_QUEUE_URL || 'https://test/000000000000/github-event-queue-test';
 
+// Pool configuration
+const PG_POOL_SIZE = parseInt(process.env.PG_POOL_SIZE, 10) || 10;
+const pool = new Pool({ connectionString: PG_CONNECTION_STRING, max: PG_POOL_SIZE });
+
 // Initialize SQS client
 const sqsClient = new SQSClient();
 
@@ -114,13 +117,11 @@ export async function sendToDeadLetterQueue(body) {
   }
 }
 
-// Consolidated connectWithRetry function using retryOperation and separation of concerns
+// Consolidated connectWithRetry function using retryOperation and pooling
 async function connectWithRetry() {
   return await retryOperation(async () => {
-    const client = new Client({ connectionString: PG_CONNECTION_STRING });
     try {
-      await client.connect();
-      return client;
+      return await pool.connect();
     } catch (err) {
       logConnectionError(err);
       throw err;
@@ -238,9 +239,9 @@ export async function githubEventProjectionHandler(event) {
   } finally {
     if (client) {
       try {
-        await client.end();
-      } catch (endError) {
-        logError('Error closing the database connection', endError);
+        client.release();
+      } catch (releaseError) {
+        logError('Error releasing the database client', releaseError);
       }
     }
   }
@@ -290,3 +291,17 @@ if (process.argv.includes('--metrics')) {
 if (process.argv.includes('--status-endpoint')) {
   startStatusEndpoint();
 }
+
+// Graceful shutdown: close pool on process termination
+async function shutdown() {
+  try {
+    await pool.end();
+    logInfo('Database pool has been closed.');
+  } catch (err) {
+    logError('Error closing database pool', err);
+  }
+  process.exit(0);
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

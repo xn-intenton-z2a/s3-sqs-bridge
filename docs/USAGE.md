@@ -39,6 +39,18 @@ For example, with a baseDelay of 1000ms:
 
 This strategy helps to reduce the load on the database during intermittent failures and improves overall system resilience.
 
+## Database Connection Pooling
+
+You can configure connection pooling for PostgreSQL to improve performance and resource utilization:
+
+- **PG_POOL_SIZE**: Maximum number of clients in the pool (default: 10).
+
+Example usage:
+
+```bash
+PG_POOL_SIZE=20 PG_MAX_RETRIES=5 PG_RETRY_DELAY_MS=500 node src/lib/main.js
+```
+
 ## Metrics and Status Endpoints
 
 ### Metrics Endpoint
@@ -74,34 +86,3 @@ By starting the application with the `--status-endpoint` flag, an HTTP status en
     "deadLetterEvents": number
   }
   ```
-
-## Metrics Collection API
-
-The GitHub Event Projection handler collects in-memory metrics during event processing to help track the performance and reliability of the system. The following metrics are maintained:
-
-- **totalEvents:** The total number of events received.
-- **successfulEvents:** The number of events successfully processed and persisted.
-- **skippedEvents:** The number of events skipped due to invalid JSON or failed validation.
-- **dbFailures:** The number of events that encountered database query failures after retry attempts.
-- **dbRetryCount:** The total number of database retry attempts triggered during event processing.
-- **deadLetterEvents:** The number of events that were routed to the dead-letter queue after exhausting retries.
-
-The metrics are updated in real-time as events are processed, and a summary is logged after processing is complete.
-
-### Exported Functions
-
-- `getMetrics()`: Returns the current state of the metrics as a JSON object.
-- `resetMetrics()`: Resets all metrics to their default values (zero).
-
-### Example Usage
-
-```js
-// Example usage:
-import { getMetrics, resetMetrics } from './src/lib/main.js';
-
-console.log('Current Metrics:', getMetrics());
-
-// Reset the metrics
-resetMetrics();
-console.log('Metrics after reset:', getMetrics());
-```

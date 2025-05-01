@@ -18,19 +18,23 @@ vi.mock('@aws-sdk/client-sqs', () => {
   return { SQSClient, SendMessageCommand };
 });
 
-// Mock PostgreSQL Client
-const mockQuery = vi.fn();
+// Mocks for pg.Pool
 const mockConnect = vi.fn();
-const mockEnd = vi.fn();
+const mockQuery = vi.fn();
+const mockRelease = vi.fn();
+const mockPoolEnd = vi.fn();
 vi.mock('pg', () => {
-  const mClient = function () {
-    return {
-      connect: mockConnect,
-      query: mockQuery,
-      end: mockEnd
-    };
-  };
-  return { default: { Client: mClient }, Client: mClient };
+  class Pool {
+    constructor(opts) {}
+    async connect() {
+      await mockConnect();
+      return { query: mockQuery, release: mockRelease };
+    }
+    async end() {
+      await mockPoolEnd();
+    }
+  }
+  return { Pool };
 });
 
 // Provide a Dead Letter Queue URL for testing
@@ -50,7 +54,8 @@ import {
 beforeEach(() => {
   mockConnect.mockClear();
   mockQuery.mockClear();
-  mockEnd.mockClear();
+  mockRelease.mockClear();
+  mockPoolEnd.mockClear();
   mockSend.mockClear();
   resetMetrics();
 });
@@ -81,7 +86,6 @@ describe('githubEventProjectionHandler', () => {
     mockConnect.mockRejectedValueOnce(new Error('Connect error'));
     mockConnect.mockResolvedValue();
     mockQuery.mockResolvedValue({ rowCount: 1 });
-    mockEnd.mockResolvedValue();
 
     const event = {
       Records: [
@@ -108,7 +112,6 @@ describe('githubEventProjectionHandler', () => {
   it('skips records with invalid JSON', async () => {
     mockConnect.mockResolvedValue();
     mockQuery.mockResolvedValue({ rowCount: 1 });
-    mockEnd.mockResolvedValue();
 
     const event = {
       Records: [
@@ -133,7 +136,6 @@ describe('githubEventProjectionHandler', () => {
 
   it('skips records with missing required fields', async () => {
     mockConnect.mockResolvedValue();
-    mockEnd.mockResolvedValue();
 
     const event = {
       Records: [
@@ -152,7 +154,6 @@ describe('githubEventProjectionHandler', () => {
 
   it('skips records with invalid data types', async () => {
     mockConnect.mockResolvedValue();
-    mockEnd.mockResolvedValue();
 
     const event = {
       Records: [
@@ -171,7 +172,6 @@ describe('githubEventProjectionHandler', () => {
   it('routes failed record to DLQ and continues without throwing', async () => {
     mockConnect.mockResolvedValue();
     mockQuery.mockRejectedValue(new Error('DB error'));
-    mockEnd.mockResolvedValue();
 
     const event = {
       Records: [
