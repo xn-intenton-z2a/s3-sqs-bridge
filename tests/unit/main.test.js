@@ -47,7 +47,8 @@ import {
   createMetricsServer,
   createStatusServer,
   computeRetryDelay,
-  sendToDeadLetterQueue
+  sendToDeadLetterQueue,
+  connectWithRetry
 } from '../../src/lib/main.js';
 
 // Reset mocks and metrics before each test
@@ -80,6 +81,35 @@ describe('sendToDeadLetterQueue', () => {
   });
 });
 
+// New tests for connectWithRetry
+describe('connectWithRetry', () => {
+  it('retries on initial connection failures and returns a client', async () => {
+    // First connect fails, then succeeds
+    mockConnect.mockRejectedValueOnce(new Error('Initial failure'));
+    mockConnect.mockResolvedValue();
+    const client = await connectWithRetry();
+    expect(mockConnect).toHaveBeenCalledTimes(2);
+    // Ensure returned client has query and release
+    expect(client).toHaveProperty('query');
+    expect(client).toHaveProperty('release');
+    // Retry attempts should be recorded
+    const metricsResult = getMetrics();
+    expect(metricsResult.dbRetryCount).toBe(1);
+    // Release not called here (client returned)
+  });
+
+  it('throws after maximum retry attempts', async () => {
+    // Always fail
+    mockConnect.mockRejectedValue(new Error('Failure'));
+    await resetMetrics();
+    await expect(connectWithRetry()).rejects.toThrow('Failure');
+    // It should have attempted max attempts (default 3)
+    expect(mockConnect).toHaveBeenCalledTimes(3);
+    const metricsResult = getMetrics();
+    expect(metricsResult.dbRetryCount).toBe(2);
+  });
+});
+
 describe('githubEventProjectionHandler', () => {
   it('processes valid GitHub event messages and retries on initial connection failure', async () => {
     // Simulate connection failure on first attempt then success
@@ -101,9 +131,9 @@ describe('githubEventProjectionHandler', () => {
     };
 
     const result = await githubEventProjectionHandler(event);
-    // Should have retried once for connection failure
     expect(mockConnect).toHaveBeenCalledTimes(2);
     expect(mockQuery).toHaveBeenCalledTimes(1);
+    expect(mockRelease).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ status: 'success' });
     const metricsResult = getMetrics();
     expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 1, skippedEvents: 0, dbFailures: 0, dbRetryCount: 1, deadLetterEvents: 0 });
@@ -129,6 +159,7 @@ describe('githubEventProjectionHandler', () => {
 
     const result = await githubEventProjectionHandler(event);
     expect(mockQuery).toHaveBeenCalledTimes(1);
+    expect(mockRelease).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ status: 'success' });
     const metricsResult = getMetrics();
     expect(metricsResult).toEqual({ totalEvents: 2, successfulEvents: 1, skippedEvents: 1, dbFailures: 0, dbRetryCount: 0, deadLetterEvents: 0 });
@@ -147,6 +178,7 @@ describe('githubEventProjectionHandler', () => {
 
     const result = await githubEventProjectionHandler(event);
     expect(mockQuery).not.toHaveBeenCalled();
+    expect(mockRelease).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ status: 'success' });
     const metricsResult = getMetrics();
     expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 0, skippedEvents: 1, dbFailures: 0, dbRetryCount: 0, deadLetterEvents: 0 });
@@ -164,6 +196,7 @@ describe('githubEventProjectionHandler', () => {
     };
     const result = await githubEventProjectionHandler(event);
     expect(mockQuery).not.toHaveBeenCalled();
+    expect(mockRelease).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ status: 'success' });
     const metricsResult = getMetrics();
     expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 0, skippedEvents: 1, dbFailures: 0, dbRetryCount: 0, deadLetterEvents: 0 });
@@ -192,6 +225,7 @@ describe('githubEventProjectionHandler', () => {
     const metricsResult = getMetrics();
     expect(metricsResult).toEqual({ totalEvents: 1, successfulEvents: 0, skippedEvents: 0, dbFailures: 1, dbRetryCount: 2, deadLetterEvents: 1 });
     expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 });
 
