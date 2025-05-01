@@ -1,28 +1,51 @@
 # Overview
 
-Extend the existing diagnostics capabilities by introducing a lightweight HTTP health check endpoint. Users can now start a health check server via a new CLI flag `--healthcheck`, which responds to `GET /health` with a simple readiness status. This feature enhances operational tooling by providing a minimal endpoint for integration probes, load-balancer checks, and Kubernetes readiness/liveness checks, leveraging the existing Express infrastructure.
+Introduce a unified diagnostics server that consolidates all existing health, metrics, status, and API version endpoints under a single CLI flag. Operators can start one HTTP server on a configurable port to expose:
+
+- GET /health    readiness check
+- GET /metrics   in-memory metrics snapshot
+- GET /status    same payload as /metrics for compatibility
+- GET /meta      API version metadata
+
+This simplifies deployment, reduces port conflicts, and provides a single observable endpoint for probes and tooling integration.
 
 # Source File Updates (src/lib/main.js)
 
-- Add a new function `createHealthcheckServer` that returns an Express app with a single route `GET /health` responding with JSON `{ status: 'ok' }` and HTTP 200.
-- Add a new function `startHealthcheckEndpoint` that reads `HEALTHCHECK_PORT` (default 8080), creates the health-check server, and listens on the port, logging startup using `logInfo`.
-- Modify the module execution block to detect the `--healthcheck` CLI flag. If present, invoke `startHealthcheckEndpoint` and exit the process only when the server is closed.
-- Ensure existing diagnostics flags (`--metrics`, `--status-endpoint`, `--config-dump`) remain fully functional and coexist without conflict.
+- Add function createDiagnosticsServer that returns an Express app with four routes:
+  - GET /health    returns { status: 'ok' }
+  - GET /metrics   returns metrics via getMetrics()
+  - GET /status    returns metrics via getMetrics()
+  - GET /meta      returns { installed_version, supported_api_versions }
+
+- Add function startDiagnosticsEndpoint that reads DIAGNOSTICS_PORT (default 3000) and starts the diagnostics server, logging startup via logInfo.
+
+- Modify CLI handling to detect the --diagnostics flag. When present, invoke startDiagnosticsEndpoint and keep the process running until termination.
+
+- Deprecate separate --metrics and --status-endpoint flags in favor of --diagnostics. Ensure backward compatibility by retaining these flags and redirecting them to startDiagnosticsEndpoint.
 
 # Test File Updates (tests/unit/main.test.js)
 
-- Add unit tests for `createHealthcheckServer` using Supertest to verify that `GET /health` returns status 200 and body `{ status: 'ok' }`.
-- Add a test for the `--healthcheck` flag simulation that ensures the server starts on the default port without blocking other flags (mock Express `listen` and `logInfo`).
-- Verify that no other endpoints (`/metrics`, `/status`) are inadvertently removed.
+- Add Supertest tests for each diagnostics route:
+  - GET /health returns 200 and { status: 'ok' }
+  - GET /metrics returns current metrics
+  - GET /status returns same payload as /metrics
+  - GET /meta returns installed and supported versions matching API_VERSIONS.md defaults
+
+- Add a unit test simulating the --diagnostics flag to confirm that startDiagnosticsEndpoint is invoked on the configured port without blocking other flags.
 
 # Documentation Updates (README.md and docs/USAGE.md)
 
-- In CLI Options sections, document the new `--healthcheck` flag and explain that it starts an HTTP health check server on port `HEALTHCHECK_PORT` (default 8080), with `/health` for readiness checks.
-- Provide an example: `node src/lib/main.js --healthcheck` and sample response.
-- Update the Features list in README to mention health check capability as part of diagnostics improvements.
+- In the CLI Options section, document the new --diagnostics flag: starts a unified diagnostics server on DIAGNOSTICS_PORT (default 3000).
+
+- Provide examples:
+  node src/lib/main.js --diagnostics
+  curl http://localhost:3000/health
+
+- Update the Features list in README to mention the unified diagnostics capability, replacing separate entries for metrics and status endpoints.
 
 # Benefits
 
-- Enables automated liveness and readiness probes for container orchestration and load-balancer health checks.
-- Provides a lightweight endpoint with minimal overhead, ensuring compatibility with existing Express instrumentation.
-- Consolidates all diagnostics and monitoring endpoints under one feature, reducing configuration drift and simplifying operational workflows.
+- Simplifies operational tooling by exposing a single endpoint for readiness, health, metrics, and version information.
+- Avoids multiple port allocations and flag collisions.
+- Enhances consistency and discoverability for monitoring and platform probes.
+- Respects existing functionality and provides backward compatibility for --metrics and --status-endpoint flags.
