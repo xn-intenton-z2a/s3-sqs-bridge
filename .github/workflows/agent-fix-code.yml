@@ -446,7 +446,7 @@ jobs:
       - needs-fix
     runs-on: ubuntu-latest
     env:
-      branchPrefix: 'agentic-lib-'
+      branchPrefix: 'agentic-lib-issue-'
     steps:
       - uses: actions/checkout@v4
         with:
