@@ -23,44 +23,37 @@
   </header>
   <section>
     <h1 class="md-github"><a class="md-github__anchor" name="s3-sqs-bridge-versioned-amazon-s3-object-put-event-replay-capable-queuing-to-sqs" href="#s3-sqs-bridge-versioned-amazon-s3-object-put-event-replay-capable-queuing-to-sqs"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>s3-sqs-bridge (Versioned Amazon S3 Object Put Event replay capable queuing to SQS)</h1>
-<p class="md-github">s3-sqs-bridge integrates Amazon S3 with AWS SQS to enable versioned event replay and real-time processing using Lambda backed by a resilient PostgreSQL projection system. The GitHub Event Projections Lambda handler now features robust connection retries, enhanced logging with sensitive data masking, strict schema validation using Zod, and basic in-memory metrics collection to track event processing performance.</p>
+<p class="md-github">s3-sqs-bridge integrates Amazon S3 with AWS SQS to enable versioned event replay and real-time processing using Lambda backed by a resilient PostgreSQL projection system. The GitHub Event Projections Lambda handler now features robust connection retries, enhanced logging with sensitive data masking, strict schema validation using Zod, basic in-memory metrics collection to track event processing performance, and optional dead-letter queue support for failed records.</p>
 <p class="md-github">This repository includes:</p>
 <ul class="md-github">
 <li class="md-github">AWS CloudFormation/CDK stacks for setting up the necessary AWS infrastructure.</li>
 <li class="md-github">A Node.js Lambda function for processing S3 events forwarded to SQS.</li>
-<li class="md-github">A GitHub Event Projections Lambda handler implemented in <strong class="md-github">src/lib/main.js</strong> that processes GitHub event messages from a dedicated SQS queue, validates them, and creates/upserts projections in PostgreSQL with detailed logging, retry logic, and metrics collection.</li>
+<li class="md-github">A GitHub Event Projections Lambda handler implemented in <strong class="md-github">src/lib/main.js</strong> that processes GitHub event messages from a dedicated SQS queue, validates them, and creates/upserts projections in PostgreSQL with detailed logging, retry logic, metrics collection, and dead-letter queue routing.</li>
 <li class="md-github">A comprehensive CLI for event replay, projection processing, and health checks.</li>
 </ul>
-<p class="md-github">For the full mission statement, see <a href="MISSION.md" class="md-github">MISSION.md</a>. For contribution guidelines, please refer to <a href="CONTRIBUTING.md" class="md-github">CONTRIBUTING.md</a>. Setup instructions are provided in [SETUP.md] and licensing details in [LICENSE].</p>
-<p class="md-github">Additionally, visit the intentïon agentic-lib on GitHub: <a href="https://github.com/xn-intenton-z2a/agentic-lib" class="md-github">agentic-lib</a>.</p>
+<p class="md-github">For the full mission statement, see <a href="MISSION.md" class="md-github">MISSION.md</a>. For contribution guidelines, please refer to <a href="CONTRIBUTING.md" class="md-github">CONTRIBUTING.md</a>. Setup instructions are provided in [SETUP.md], and licensing details in <a href="LICENSE" class="md-github">LICENSE</a>.
+Additionally, visit the intentïon agentic-lib on GitHub: <a href="https://github.com/xn-intenton-z2a/agentic-lib" class="md-github">agentic-lib</a>.</p>
 <h2 class="md-github"><a class="md-github__anchor" name="key-features" href="#key-features"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Key Features</h2>
 <ul class="md-github">
+<li class="md-github"><strong class="md-github">Dead-Letter Queue Support:</strong> Failed GitHub event records after all retry attempts can be routed to an SQS dead-letter queue (when configured via <code class="md-github">DEAD_LETTER_QUEUE_URL</code>).</li>
 <li class="md-github"><strong class="md-github">Robust Defaults:</strong> Sensible default values prevent misconfiguration.</li>
-<li class="md-github"><strong class="md-github">Event Replay:</strong> Replays S3 object versions to rebuild state.</li>
-<li class="md-github"><strong class="md-github">Real-Time Processing:</strong> S3 events are forwarded to SQS for immediate processing.</li>
-<li class="md-github"><strong class="md-github">GitHub Event Projections:</strong> Processes GitHub event messages to create or update PostgreSQL projections with enhanced retry, logging, and now metrics collection that tracks total events, successful processings, skipped events, and database failures.</li>
+<li class="md-github"><strong class="md-github">Enhanced Retry Logic:</strong> Exponential backoff retry strategy for PostgreSQL connections and queries.</li>
+<li class="md-github"><strong class="md-github">Strict Validation:</strong> Input validation using Zod for GitHub event payloads.</li>
+<li class="md-github"><strong class="md-github">In-Memory Metrics:</strong> Tracks total events, successes, skips, DB failures, retry attempts, and dead-lettered events.</li>
+<li class="md-github"><strong class="md-github">HTTP Endpoints:</strong> <code class="md-github">/metrics</code> and <code class="md-github">/status</code> endpoints for real-time metrics and health checks using Express.</li>
 <li class="md-github"><strong class="md-github">High Availability:</strong> Designed for scalable deployment on AWS Fargate Spot.</li>
 </ul>
-<h2 class="md-github"><a class="md-github__anchor" name="metrics" href="#metrics"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Metrics</h2>
-<p class="md-github">The GitHub Event Projection handler now collects basic in-memory metrics during event processing:</p>
-<ul class="md-github">
-<li class="md-github"><strong class="md-github">totalEvents:</strong> Total number of events received.</li>
-<li class="md-github"><strong class="md-github">successfulEvents:</strong> Number of events processed successfully.</li>
-<li class="md-github"><strong class="md-github">skippedEvents:</strong> Number of events skipped due to invalid JSON or failed validation.</li>
-<li class="md-github"><strong class="md-github">dbFailures:</strong> Number of events that encountered database query failures after retry attempts.</li>
-</ul>
-<p class="md-github">Metrics are logged after processing and can be accessed programmatically via the exported <code class="md-github">getMetrics()</code> function.</p>
 <h2 class="md-github"><a class="md-github__anchor" name="configuration" href="#configuration"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Configuration</h2>
 <p class="md-github">Environment variables configure AWS services and PostgreSQL parameters. Defaults are used if variables are not set:</p>
 <ul class="md-github">
-<li class="md-github">BUCKET_NAME: <code class="md-github">s3-sqs-bridge-bucket-test</code></li>
-<li class="md-github">OBJECT_PREFIX: <code class="md-github">events/</code></li>
-<li class="md-github">REPLAY_QUEUE_URL: <code class="md-github">https://test/000000000000/s3-sqs-bridge-replay-queue-test</code></li>
-<li class="md-github">DIGEST_QUEUE_URL: <code class="md-github">https://test/000000000000/s3-sqs-bridge-digest-queue-test</code></li>
-<li class="md-github">OFFSETS_TABLE_NAME: <code class="md-github">s3-sqs-bridge-offsets-table-test</code></li>
-<li class="md-github">PROJECTIONS_TABLE_NAME: <code class="md-github">s3-sqs-bridge-projections-table-test</code></li>
-<li class="md-github">SOURCE_LAMBDA_FUNCTION_NAME: <code class="md-github">s3-sqs-bridge-source-lambda-test</code></li>
-<li class="md-github">AWS_ENDPOINT: <code class="md-github">https://test</code></li>
+<li class="md-github">BUCKET_NAME</li>
+<li class="md-github">OBJECT_PREFIX</li>
+<li class="md-github">REPLAY_QUEUE_URL</li>
+<li class="md-github">DIGEST_QUEUE_URL</li>
+<li class="md-github">OFFSETS_TABLE_NAME</li>
+<li class="md-github">PROJECTIONS_TABLE_NAME</li>
+<li class="md-github">SOURCE_LAMBDA_FUNCTION_NAME</li>
+<li class="md-github">AWS_ENDPOINT</li>
 </ul>
 <p class="md-github">PostgreSQL specific variables:</p>
 <ul class="md-github">
@@ -73,6 +66,21 @@
 <li class="md-github">PG_MAX_RETRIES: Maximum retry attempts (default: 3)</li>
 <li class="md-github">PG_RETRY_DELAY_MS: Delay in milliseconds between retries (default: 1000)</li>
 </ul>
+<p class="md-github">Dead-letter queue configuration:</p>
+<ul class="md-github">
+<li class="md-github">DEAD_LETTER_QUEUE_URL: SQS queue URL for dead-lettering failed GitHub event projections (optional)</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="metrics" href="#metrics"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Metrics</h2>
+<p class="md-github">The GitHub Event Projection handler now collects basic in-memory metrics during event processing:</p>
+<ul class="md-github">
+<li class="md-github"><strong class="md-github">totalEvents:</strong> Total number of events received.</li>
+<li class="md-github"><strong class="md-github">successfulEvents:</strong> Number of events processed successfully.</li>
+<li class="md-github"><strong class="md-github">skippedEvents:</strong> Number of events skipped due to invalid JSON or failed validation.</li>
+<li class="md-github"><strong class="md-github">dbFailures:</strong> Number of events that encountered database query failures after retry attempts.</li>
+<li class="md-github"><strong class="md-github">dbRetryCount:</strong> Total number of database retry attempts.</li>
+<li class="md-github"><strong class="md-github">deadLetterEvents:</strong> Number of events routed to the dead-letter queue after exhausting retries.</li>
+</ul>
+<p class="md-github">Metrics are logged after processing and can be accessed programmatically via the exported <code class="md-github">getMetrics()</code> function.</p>
 <h2 class="md-github"><a class="md-github__anchor" name="usage" href="#usage"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Usage</h2>
 <h3 class="md-github"><a class="md-github__anchor" name="cli-options" href="#cli-options"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>CLI Options</h3>
 <ul class="md-github">
@@ -81,6 +89,8 @@
 <li class="md-github"><code class="md-github">--replay-projection</code>: Run the Lambda handler for replayed events.</li>
 <li class="md-github"><code class="md-github">--replay</code>: Replay all S3 object versions in order.</li>
 <li class="md-github"><code class="md-github">--healthcheck</code>: Start an HTTP health check server on port 8080.</li>
+<li class="md-github"><code class="md-github">--metrics</code>: Start HTTP metrics endpoint on port defined by <code class="md-github">METRICS_PORT</code> (default 3000).</li>
+<li class="md-github"><code class="md-github">--status-endpoint</code>: Start HTTP status endpoint on port defined by <code class="md-github">STATUS_PORT</code> (default 3000).</li>
 </ul>
 <h3 class="md-github"><a class="md-github__anchor" name="running-locally" href="#running-locally"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Running Locally</h3>
 <p class="md-github">Use the following npm scripts:</p>
@@ -90,17 +100,16 @@
 <li class="md-github"><code class="md-github">npm run replay</code> to replay S3 events.</li>
 </ul>
 <p class="md-github">Note: When running locally with a dummy event (i.e. no records), the handler will short-circuit and return success without attempting a database connection.</p>
-<p class="md-github">For GitHub event projections, deploy the Lambda function using your preferred method (e.g., AWS CDK, Serverless Framework) after setting the required PostgreSQL environment variables.</p>
 <h2 class="md-github"><a class="md-github__anchor" name="testing" href="#testing"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Testing</h2>
 <p class="md-github">This project uses Vitest for unit testing. Run the tests with:</p>
-<pre class="md-github"><code class="md-github">npm test
+<pre class="md-github"><code class="md-github language-bash">npm test
 </code></pre>
 <h2 class="md-github"><a class="md-github__anchor" name="license" href="#license"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>License</h2>
 <p class="md-github">Distributed under the MIT License. See <a href="LICENSE" class="md-github">LICENSE</a> for details.</p>
 
   </section>
   <footer>
-    <p>Generated on 2025-04-30T12:25:59.304Z</p>
+    <p>Generated on 2025-05-01T00:42:13.075Z</p>
   </footer>
 </body>
 </html>
