@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>agentic-lib</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; background-color: #f9f9f9; color: #333; }
+    header { padding-bottom: 1em; border-bottom: 2px solid #ccc; margin-bottom: 1em; }
+    h1 { font-size: 2em; }
+    section { margin-bottom: 1.5em; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 0.5em 0; }
+    .label { font-weight: bold; }
+    footer { margin-top: 2em; font-size: 0.9em; color: #777; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>agentic-lib</h1>
+    <p><a href="https://github.com/xn-intenton-z2a/agentic-lib">repository</a> - <a href="https://xn-intenton-z2a.github.io/agentic-lib/latest.html">latest stats</a> - <a href="https://xn-intenton-z2a.github.io/agentic-lib/all.html">all stats</a></p>
+  </header>
+  <section>
+    <h1 class="md-github"><a class="md-github__anchor" name="cdk_core" href="#cdk_core"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>CDK_CORE</h1>
+<h2 class="md-github"><a class="md-github__anchor" name="crawl-summary" href="#crawl-summary"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Crawl Summary</h2>
+<p class="md-github">Installation: package.json peerDependencies aws-cdk-lib ^2.38.0 constructs ^10.0.0 devDependencies aws-cdk-lib 2.38.0. For apps dependencies aws-cdk-lib ^2.38.0 constructs ^10.0.0
+Imports: classic import import { Stack App aws_s3 as s3 } from aws-cdk-lib; barrel import import {App Stack} from aws-cdk-lib import {Bucket} from aws-cdk-lib/aws-s3
+StackProps: env {account:string region:string} synthesizer IStackSynthesizer terminationProtection:boolean description:string crossRegionReferences:boolean
+Synthesizers: DefaultStackSynthesizer(props:{fileAssetsBucketName?:string;cloudAssemblyArtifact?:string;qualifier?:string}); LegacyStackSynthesizer(); CliCredentialsStackSynthesizer()
+Nested &amp; cross-stack refs: use cfn.NestedStack; automatic CloudFormation Export/Import; crossRegionReferences=true uses SSM Parameter custom resource, name '/cdk/exports/${consumingStack}/${export-name}'
+Duration: static factories seconds, minutes, hours, days, parse; plus plus and minus methods
+Size: static factories kibibytes, mebibytes, gibibytes, tebibytes, pebibytes; toKibibytes and toMebibytes(routing)
+SecretValue: sources unsafePlainText, secretsManager(secretId,jsonField?,versionId?,versionStage?), ssmSecure, cfnParameter, cfnDynamicReference, resourceAttribute
+ARN: Stack.formatArn({service,resource,arnFormat?,resourceName?,region?,account?}); Stack.splitArn(arn,arnFormat?)
+Dependencies: constructA.node.addDependency(constructB) or use DependencyGroup; stackA.addDependency(stackB)
+CustomResource: CustomResource(props:{resourceType:string,serviceToken:string,properties?}); CustomResourceProvider.getOrCreate(scope,type,props); customresources.Provider(props:{onEventHandler,isCompleteHandler?})
+CloudFormation low-level: CfnOutput, CfnParameter, Fn functions base64,conditionEquals,conditionAnd,toJsonString,split; CfnMapping mapping and lazy sections</p>
+<h2 class="md-github"><a class="md-github__anchor" name="normalised-extract" href="#normalised-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Normalised Extract</h2>
+<p class="md-github">Table of Contents
+1 Installation &amp; Versioning
+2 Import Patterns
+3 Stack Definition &amp; StackProps
+4 Synthesizers
+5 Nested Stacks &amp; Cross-Stack References
+6 Duration &amp; Size
+7 SecretValue Sources
+8 ARN Manipulation
+9 Dependencies
+10 Custom Resource &amp; Providers
+11 Low-Level CloudFormation</p>
+<p class="md-github">1 Installation &amp; Versioning
+peerDependencies
+aws-cdk-lib: ^2.38.0
+constructs: ^10.0.0
+devDependencies
+aws-cdk-lib: 2.38.0</p>
+<p class="md-github">dependencies
+aws-cdk-lib: ^2.38.0
+constructs: ^10.0.0</p>
+<p class="md-github">2 Import Patterns
+Classic: import { Stack App aws_s3 as s3 } from 'aws-cdk-lib'
+Barrel: import { App Stack } from 'aws-cdk-lib'
+import { Bucket } from 'aws-cdk-lib/aws-s3'</p>
+<p class="md-github">3 Stack Definition &amp; StackProps
+class MyStack extends Stack
+constructor(scope: Construct, id: string, props?: StackProps)</p>
+<p class="md-github">StackProps fields
+env?                    { account?: string; region?: string }
+synthesizer?            IStackSynthesizer
+terminationProtection?  boolean
+description?            string
+crossRegionReferences?  boolean</p>
+<p class="md-github">4 Synthesizers
+new DefaultStackSynthesizer({ fileAssetsBucketName?: string, cloudAssemblyArtifact?: string, qualifier?: string })
+new LegacyStackSynthesizer()
+new CliCredentialsStackSynthesizer()</p>
+<p class="md-github">5 Nested Stacks &amp; Cross-Stack References
+class MyNestedStack extends cfn.NestedStack
+NestedStackProps extends StackProps
+Automatic cross-stack export/import for same account/region
+Enable crossRegionReferences to true to allow cross-region via SSM parameters
+SSM parameter path /cdk/exports/${consumingStackName}/${export-name}</p>
+<p class="md-github">6 Duration &amp; Size
+Duration.seconds(n:number): Duration
+Duration.minutes(n:number): Duration
+Duration.hours(n:number): Duration
+Duration.days(n:number): Duration
+Duration.parse(iso:string): Duration
+Duration.plus(other: Duration): Duration
+Duration.minus(other: Duration): Duration</p>
+<p class="md-github">Size.kibibytes(n:number): Size
+Size.mebibytes(n:number): Size
+Size.gibibytes(n:number): Size
+Size.tebibytes(n:number): Size
+Size.pebibytes(n:number): Size
+Size.toKibibytes(options?:{ rounding: SizeRoundingBehavior }): number
+Size.toMebibytes(options?:{ rounding: SizeRoundingBehavior }): number</p>
+<p class="md-github">7 SecretValue Sources
+SecretValue.unsafePlainText(value:string): SecretValue
+SecretValue.secretsManager(secretId:string, opts?:{ jsonField?: string, versionId?: string, versionStage?: string }): SecretValue
+SecretValue.ssmSecure(parameterName:string, version?: string): SecretValue
+SecretValue.cfnParameter(parameterName:string): SecretValue
+SecretValue.cfnDynamicReference(reference:string): SecretValue
+SecretValue.resourceAttribute(attrName:string): SecretValue</p>
+<p class="md-github">8 ARN Manipulation
+Stack.formatArn({ service:string, resource:string, arnFormat?:ArnFormat, resourceName?:string, region?:string, account?:string }): string
+Stack.splitArn(arn:string, arnFormat?:ArnFormat): ArnComponents</p>
+<p class="md-github">9 Dependencies
+constructA.node.addDependency(constructB:IConstruct): void
+const depGroup = new DependencyGroup(); depGroup.add(constructB)
+constructA.node.addDependency(depGroup)
+stackA.addDependency(stackB:Stack): void</p>
+<p class="md-github">10 Custom Resources &amp; Providers
+new CustomResource(this,id:string,{ resourceType:string, serviceToken:string, properties?: {[key:string]:any} })</p>
+<p class="md-github">CustomResourceProvider.getOrCreate(
+scope:Construct,
+type:string,
+props:{ codeDirectory:string, runtime:CustomResourceProviderRuntime, description?:string }
+): string</p>
+<p class="md-github">new Provider(this,id:string,{ onEventHandler:Function, isCompleteHandler?:Function }): customresources.Provider</p>
+<p class="md-github">11 Low-Level CloudFormation
+new CfnOutput(this,id:string,{ value:any, description?:string, exportName?:string })
+new CfnParameter(this,id:string,{ type:string, default?:any, allowedValues?:any[] })</p>
+<p class="md-github">Fn.base64(data:string): string
+Fn.conditionEquals(left:any,right:any): CfnCondition
+Fn.conditionAnd(...conditions:IResolvable[]): CfnCondition
+Fn.toJsonString(value:any): string
+Fn.split(sep:string,source:any[]): string[]</p>
+<p class="md-github">new CfnMapping(this,id:string,{ mapping:{ [key:string]:{ [key:string]:any } }, lazy?:boolean })</p>
+<h2 class="md-github"><a class="md-github__anchor" name="supplementary-details" href="#supplementary-details"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Supplementary Details</h2>
+<p class="md-github">Installation
+peerDependencies.aws-cdk-lib.minVersion=2.38.0 peerDependencies.constructs.minVersion=10.0.0 devDependencies.aws-cdk-lib=2.38.0</p>
+<p class="md-github">dependencies.aws-cdk-lib=^2.38.0 dependencies.constructs=^10.0.0</p>
+<p class="md-github">StackProps
+env.account type string default undefined env.region type string default undefined
+synthesizer type IStackSynthesizer default DefaultStackSynthesizer
+terminationProtection type boolean default false
+description type string default undefined
+crossRegionReferences type boolean default false (experimental flag '@aws-cdk/core:newStyleStackSynthesis')</p>
+<p class="md-github">Synthesizer Props
+DefaultStackSynthesizerProps
+fileAssetsBucketName type string default undefined
+cloudAssemblyArtifact type string default 'Assembly'
+qualifier type string default auto-generated</p>
+<p class="md-github">NestedStackProps extends StackProps no extra fields</p>
+<p class="md-github">Cross-Region References
+when crossRegionReferences=true, CDK emits a Custom Resource Provider creating SSM parameters under /cdk/exports/{consumingStack}/{exportName}. Consuming stacks reference via SSM dynamic references and import custom resource to lock export.</p>
+<p class="md-github">Duration
+internal storage nanoseconds. toUnit conversion enforces integral by default. override integral via options.rounding=SizeRoundingBehavior.FLOOR or CEILING</p>
+<p class="md-github">SecretValue
+secretsManager fetch: CloudFormation template e.g. {{resolve:secretsmanager:secretId:jsonField:versionStage:versionId}} ssmsSecure: {{resolve:ssm-secure:parameterName:version}}</p>
+<p class="md-github">ARNUtils
+ArnFormat enum values COLON_RESOURCE_NAME, SLASH_RESOURCE_NAME, etc. formatArn enforces sep and account region defaults to stack</p>
+<p class="md-github">Dependencies
+node.addDependency uses low-level addDependsOn on CfnResource or adds cross-stack metadata</p>
+<p class="md-github">CustomResourceProvider.getOrCreate ensures singleton by logical ID = resource type string
+provider.roleArn property available after provider instantiation
+provider.addToRolePolicy(policy: PolicyDocument) uses raw JSON for IAM statements</p>
+<p class="md-github">CfnMapping
+lazy mode: only emit mapping section if keys unresolved or default not found</p>
+<h2 class="md-github"><a class="md-github__anchor" name="reference-details" href="#reference-details"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Reference Details</h2>
+<p class="md-github">Class aws-cdk-lib.Stack
+constructor(scope: Construct, id: string, props?: StackProps)</p>
+<p class="md-github">Interface StackProps
+readonly env?: { account?: string; region?: string }
+readonly synthesizer?: IStackSynthesizer
+readonly terminationProtection?: boolean
+readonly description?: string
+readonly crossRegionReferences?: boolean</p>
+<p class="md-github">Interface IStackSynthesizer
+synthesize(stack: Stack, session: ISynthesisSession): void</p>
+<p class="md-github">DefaultStackSynthesizer
+constructor(props?: { fileAssetsBucketName?: string; cloudAssemblyArtifact?: string; qualifier?: string })</p>
+<p class="md-github">LegacyStackSynthesizer
+constructor(props?: {})</p>
+<p class="md-github">CliCredentialsStackSynthesizer
+constructor()</p>
+<p class="md-github">Class cfn.NestedStack
+constructor(scope: Construct, id: string, props?: cfn.NestedStackProps)
+Interface NestedStackProps extends StackProps</p>
+<p class="md-github">Class Duration
+static seconds(value: number): Duration
+static minutes(value: number): Duration
+static hours(value: number): Duration
+static days(value: number): Duration
+static parse(iso8601: string): Duration
+plus(other: Duration): Duration
+minus(other: Duration): Duration
+readonly toSeconds(): number
+readonly toMinutes(): number</p>
+<p class="md-github">Class Size
+static kibibytes(value: number): Size
+static mebibytes(value: number): Size
+static gibibytes(value: number): Size
+static tebibytes(value: number): Size
+static pebibytes(value: number): Size
+toKibibytes(options?: { rounding: SizeRoundingBehavior }): number
+toMebibytes(options?: { rounding: SizeRoundingBehavior }): number</p>
+<p class="md-github">Enum SizeRoundingBehavior { FAIL, FLOOR, CEILING }</p>
+<p class="md-github">Class SecretValue
+static unsafePlainText(secret: string): SecretValue
+static secretsManager(secretId: string, opts?: { jsonField?: string; versionId?: string; versionStage?: string }): SecretValue
+static ssmSecure(parameterName: string, version?: string): SecretValue
+static cfnParameter(parameterName: string): SecretValue
+static cfnDynamicReference(dynref: string): SecretValue
+static resourceAttribute(attr: string): SecretValue</p>
+<p class="md-github">Class CustomResource
+constructor(scope: Construct, id: string, props: { resourceType: string; serviceToken: string; properties?: { [key: string]: any } })</p>
+<p class="md-github">Class CustomResourceProvider
+static getOrCreate(scope: Construct, type: string, props: { codeDirectory: string; runtime: CustomResourceProviderRuntime; description?: string }): string
+static getOrCreateProvider(scope: Construct, type: string, props: { codeDirectory: string; runtime: CustomResourceProviderRuntime; }): CustomResourceProvider
+property roleArn: string
+method addToRolePolicy(policy: any): void</p>
+<p class="md-github">Enum CustomResourceProviderRuntime { NODEJS_12_X, NODEJS_14_X, NODEJS_16_X, NODEJS_18_X }</p>
+<p class="md-github">Class customresources.Provider
+constructor(scope: Construct, id: string, props: { onEventHandler: Function; isCompleteHandler?: Function })
+property serviceToken: string</p>
+<p class="md-github">Function stack.formatArn(options: { service: string; resource: string; arnFormat?: ArnFormat; resourceName?: string; region?: string; account?: string }): string
+Function stack.splitArn(arn: string, arnFormat?: ArnFormat): ArnComponents</p>
+<p class="md-github">Enum ArnFormat { COLON_RESOURCE_NAME, SLASH_RESOURCE_NAME, NO_RESOURCE_NAME }
+Interface ArnComponents { partition: string; service: string; region: string; account: string; resource: string; resourceName?: string }</p>
+<p class="md-github">Construct dependencies
+construct.node.addDependency(dependency:IConstruct|IDependable): void
+DependencyGroup
+add(dependency:IConstruct|IDependable): void</p>
+<p class="md-github">Stack dependencies
+stack.addDependency(other: Stack): void</p>
+<p class="md-github">CfnOutput
+constructor(scope: Construct, id: string, props: { value: any; description?: string; exportName?: string })</p>
+<p class="md-github">CfnParameter
+constructor(scope: Construct, id: string, props: { type: string; default?: any; allowedValues?: any[]; minValue?: number; maxValue?: number })</p>
+<p class="md-github">Class Fn
+static base64(data: string): string
+static conditionEquals(left: any, right: any): FnCondition
+static conditionAnd(...conditions: FnCondition[]): FnCondition
+static conditionNot(condition: FnCondition): FnCondition
+static toJsonString(value: any): string
+static split(delimiter: string, source: string): string[]</p>
+<p class="md-github">CfnMapping
+constructor(scope: Construct, id: string, props: { mapping: { [key: string]: { [key: string]: any } }; lazy?: boolean })
+method findInMap(topLevelKey: string|IResolvable, secondLevelKey: string|IResolvable, defaultValue?: any): IResolvable</p>
+<p class="md-github">Troubleshooting
+To break cross-stack reference deletion error:
+1 call exportValue on producer: exportValue(resource.attribute)
+2 deploy both stacks
+3 remove resource and exportValue() call
+4 deploy producer stack only</p>
+<p class="md-github">Suppress template indentation
+context key @aws-cdk/core:suppressTemplateIndentation=true or StackProps.suppressTemplateIndentation=true</p>
+<p class="md-github">Set stackResourceLimit
+context key @aws-cdk/core:stackResourceLimit=N</p>
+<h2 class="md-github"><a class="md-github__anchor" name="information-dense-extract" href="#information-dense-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Information Dense Extract</h2>
+<p class="md-github">peerDependencies aws-cdk-lib:^2.38.0 constructs:^10.0.0 devDependencies aws-cdk-lib:2.38.0 dependencies aws-cdk-lib:^2.38.0 constructs:^10.0.0</p>
+<p class="md-github">Import patterns classic and barrel</p>
+<p class="md-github">StackProps env:{account?,region?} synthesizer:IStackSynthesizer terminationProtection:boolean description:string crossRegionReferences:boolean</p>
+<p class="md-github">DefaultStackSynthesizer(props:{fileAssetsBucketName?,cloudAssemblyArtifact?,qualifier?}) LegacyStackSynthesizer() CliCredentialsStackSynthesizer()</p>
+<p class="md-github">NestedStack extends cfn.NestedStack props:NestedStackProps exports via CFN parameters cross-region via SSM custom resource under /cdk/exports/consumingStack/exportName</p>
+<p class="md-github">Duration static factories seconds,minutes,hours,days,parse plus minus
+Size static factories kibibytes,mebibytes,gibibytes,tebibytes,pebibytes toKibibytes(toMebibytes)(rounding)</p>
+<p class="md-github">SecretValue methods unsafePlainText, secretsManager(secretId,opts), ssmSecure(name,version), cfnParameter(name), cfnDynamicReference(ref), resourceAttribute(attr)</p>
+<p class="md-github">Stack.formatArn({service,resource,arnFormat?,resourceName?,region?,account?}) Stack.splitArn(arn,arnFormat?)</p>
+<p class="md-github">construct.node.addDependency(dep) DependencyGroup.add(dep) stack.addDependency(stack)</p>
+<p class="md-github">CustomResource(scope,id,{resourceType,serviceToken,properties?})
+CustomResourceProvider.getOrCreate(scope,type,{codeDirectory,runtime,description?}) getOrCreateProvider -&gt; provider.roleArn addToRolePolicy(policyJSON)
+customresources.Provider(scope,id,{onEventHandler,isCompleteHandler?}).serviceToken</p>
+<p class="md-github">CfnOutput(scope,id,{value,description?,exportName?}) CfnParameter(scope,id,{type,default?,allowedValues?,minValue?,maxValue?})
+Fn.base64(data) Fn.conditionEquals(left,right) Fn.conditionAnd(...conds) Fn.conditionNot(cond) Fn.toJsonString(v) Fn.split(sep,src)
+CfnMapping(scope,id,{mapping:{},lazy?}).findInMap(key1,key2,default?)</p>
+<p class="md-github">Troubleshoot cross-stack removal via exportValue and two-stage deploy
+Suppress indentation via context key or StackProps
+Stack resource limit via context key</p>
+<h2 class="md-github"><a class="md-github__anchor" name="sanitised-extract" href="#sanitised-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Sanitised Extract</h2>
+<p class="md-github">Table of Contents
+1 Installation &amp; Versioning
+2 Import Patterns
+3 Stack Definition &amp; StackProps
+4 Synthesizers
+5 Nested Stacks &amp; Cross-Stack References
+6 Duration &amp; Size
+7 SecretValue Sources
+8 ARN Manipulation
+9 Dependencies
+10 Custom Resource &amp; Providers
+11 Low-Level CloudFormation</p>
+<p class="md-github">1 Installation &amp; Versioning
+peerDependencies
+aws-cdk-lib: ^2.38.0
+constructs: ^10.0.0
+devDependencies
+aws-cdk-lib: 2.38.0</p>
+<p class="md-github">dependencies
+aws-cdk-lib: ^2.38.0
+constructs: ^10.0.0</p>
+<p class="md-github">2 Import Patterns
+Classic: import { Stack App aws_s3 as s3 } from 'aws-cdk-lib'
+Barrel: import { App Stack } from 'aws-cdk-lib'
+import { Bucket } from 'aws-cdk-lib/aws-s3'</p>
+<p class="md-github">3 Stack Definition &amp; StackProps
+class MyStack extends Stack
+constructor(scope: Construct, id: string, props?: StackProps)</p>
+<p class="md-github">StackProps fields
+env?                    { account?: string; region?: string }
+synthesizer?            IStackSynthesizer
+terminationProtection?  boolean
+description?            string
+crossRegionReferences?  boolean</p>
+<p class="md-github">4 Synthesizers
+new DefaultStackSynthesizer({ fileAssetsBucketName?: string, cloudAssemblyArtifact?: string, qualifier?: string })
+new LegacyStackSynthesizer()
+new CliCredentialsStackSynthesizer()</p>
+<p class="md-github">5 Nested Stacks &amp; Cross-Stack References
+class MyNestedStack extends cfn.NestedStack
+NestedStackProps extends StackProps
+Automatic cross-stack export/import for same account/region
+Enable crossRegionReferences to true to allow cross-region via SSM parameters
+SSM parameter path /cdk/exports/${consumingStackName}/${export-name}</p>
+<p class="md-github">6 Duration &amp; Size
+Duration.seconds(n:number): Duration
+Duration.minutes(n:number): Duration
+Duration.hours(n:number): Duration
+Duration.days(n:number): Duration
+Duration.parse(iso:string): Duration
+Duration.plus(other: Duration): Duration
+Duration.minus(other: Duration): Duration</p>
+<p class="md-github">Size.kibibytes(n:number): Size
+Size.mebibytes(n:number): Size
+Size.gibibytes(n:number): Size
+Size.tebibytes(n:number): Size
+Size.pebibytes(n:number): Size
+Size.toKibibytes(options?:{ rounding: SizeRoundingBehavior }): number
+Size.toMebibytes(options?:{ rounding: SizeRoundingBehavior }): number</p>
+<p class="md-github">7 SecretValue Sources
+SecretValue.unsafePlainText(value:string): SecretValue
+SecretValue.secretsManager(secretId:string, opts?:{ jsonField?: string, versionId?: string, versionStage?: string }): SecretValue
+SecretValue.ssmSecure(parameterName:string, version?: string): SecretValue
+SecretValue.cfnParameter(parameterName:string): SecretValue
+SecretValue.cfnDynamicReference(reference:string): SecretValue
+SecretValue.resourceAttribute(attrName:string): SecretValue</p>
+<p class="md-github">8 ARN Manipulation
+Stack.formatArn({ service:string, resource:string, arnFormat?:ArnFormat, resourceName?:string, region?:string, account?:string }): string
+Stack.splitArn(arn:string, arnFormat?:ArnFormat): ArnComponents</p>
+<p class="md-github">9 Dependencies
+constructA.node.addDependency(constructB:IConstruct): void
+const depGroup = new DependencyGroup(); depGroup.add(constructB)
+constructA.node.addDependency(depGroup)
+stackA.addDependency(stackB:Stack): void</p>
+<p class="md-github">10 Custom Resources &amp; Providers
+new CustomResource(this,id:string,{ resourceType:string, serviceToken:string, properties?: {[key:string]:any} })</p>
+<p class="md-github">CustomResourceProvider.getOrCreate(
+scope:Construct,
+type:string,
+props:{ codeDirectory:string, runtime:CustomResourceProviderRuntime, description?:string }
+): string</p>
+<p class="md-github">new Provider(this,id:string,{ onEventHandler:Function, isCompleteHandler?:Function }): customresources.Provider</p>
+<p class="md-github">11 Low-Level CloudFormation
+new CfnOutput(this,id:string,{ value:any, description?:string, exportName?:string })
+new CfnParameter(this,id:string,{ type:string, default?:any, allowedValues?:any[] })</p>
+<p class="md-github">Fn.base64(data:string): string
+Fn.conditionEquals(left:any,right:any): CfnCondition
+Fn.conditionAnd(...conditions:IResolvable[]): CfnCondition
+Fn.toJsonString(value:any): string
+Fn.split(sep:string,source:any[]): string[]</p>
+<p class="md-github">new CfnMapping(this,id:string,{ mapping:{ [key:string]:{ [key:string]:any } }, lazy?:boolean })</p>
+<h2 class="md-github"><a class="md-github__anchor" name="original-source" href="#original-source"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Original Source</h2>
+<p class="md-github">AWS CDK API Reference
+https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib-readme.html</p>
+<h2 class="md-github"><a class="md-github__anchor" name="digest-of-cdk_core" href="#digest-of-cdk_core"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Digest of CDK_CORE</h2>
+<h1 class="md-github"><a class="md-github__anchor" name="installation-and-versioning" href="#installation-and-versioning"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Installation and Versioning</h1>
+<p class="md-github">To upgrade from CDK 1.x remove all individual AWS CDK dependencies.</p>
+<p class="md-github">Example package.json for a CDK Library:</p>
+<p class="md-github">peerDependencies:
+aws-cdk-lib: ^2.38.0
+constructs: ^10.0.0</p>
+<p class="md-github">devDependencies:
+aws-cdk-lib: 2.38.0</p>
+<p class="md-github">Example package.json for a CDK App:</p>
+<p class="md-github">dependencies:
+aws-cdk-lib: ^2.38.0
+constructs: ^10.0.0</p>
+<h1 class="md-github"><a class="md-github__anchor" name="import-patterns" href="#import-patterns"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Import Patterns</h1>
+<p class="md-github">Classic Import:
+import { Stack App aws_s3 as s3 } from 'aws-cdk-lib'</p>
+<p class="md-github">Barrel Import:
+import { App Stack } from 'aws-cdk-lib'
+import { Bucket } from 'aws-cdk-lib/aws-s3'</p>
+<h1 class="md-github"><a class="md-github__anchor" name="stack-definition--properties" href="#stack-definition--properties"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Stack Definition &amp; Properties</h1>
+<p class="md-github">class MyStack extends Stack {
+constructor(scope: Construct, id: string, props?: StackProps) {
+super(scope, id, props)
+}
+}</p>
+<p class="md-github">StackProps fields:
+env?          { account?: string; region?: string }
+synthesizer?  IStackSynthesizer
+terminationProtection? boolean
+description?  string
+crossRegionReferences? boolean (experimental)</p>
+<h1 class="md-github"><a class="md-github__anchor" name="stack-synthesizers" href="#stack-synthesizers"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Stack Synthesizers</h1>
+<p class="md-github">new DefaultStackSynthesizer({
+fileAssetsBucketName?: string,
+cloudAssemblyArtifact?: string,
+qualifier?: string
+})</p>
+<p class="md-github">new LegacyStackSynthesizer()
+new CliCredentialsStackSynthesizer()</p>
+<h1 class="md-github"><a class="md-github__anchor" name="nested-stacks--cross-stack-references" href="#nested-stacks--cross-stack-references"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Nested Stacks &amp; Cross-Stack References</h1>
+<p class="md-github">class MyNestedStack extends cfn.NestedStack {}
+NestedStackProps extends StackProps</p>
+<p class="md-github">Access resources across stacks in same account/region: automatic export/import via CloudFormation
+crossRegionReferences=true enables cross-region references using SSM Parameter custom resources</p>
+<h1 class="md-github"><a class="md-github__anchor" name="duration--size-types" href="#duration--size-types"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Duration &amp; Size Types</h1>
+<p class="md-github">Duration.seconds(n: number): Duration
+Duration.minutes(n: number): Duration
+Duration.hours(n: number): Duration
+Duration.days(n: number): Duration
+Duration.parse(iso: string): Duration</p>
+<p class="md-github">Size.kibibytes(n: number): Size
+Size.mebibytes(n: number): Size
+Size.gibibytes(n: number): Size
+Size.tebibytes(n: number): Size
+Size.pebibytes(n: number): Size
+Size.toKibibytes(options?: { rounding: SizeRoundingBehavior }): number
+Size.toMebibytes(options?: { rounding: SizeRoundingBehavior }): number</p>
+<h1 class="md-github"><a class="md-github__anchor" name="secretvalue-sources" href="#secretvalue-sources"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>SecretValue Sources</h1>
+<p class="md-github">SecretValue.unsafePlainText(value: string): SecretValue
+SecretValue.secretsManager(secretId: string, opts?: { jsonField?: string; versionId?: string; versionStage?: string }): SecretValue
+SecretValue.ssmSecure(parameterName: string, version?: string): SecretValue
+SecretValue.cfnParameter(parameterName: string): SecretValue
+SecretValue.cfnDynamicReference(reference: string): SecretValue
+SecretValue.resourceAttribute(attrName: string): SecretValue</p>
+<h1 class="md-github"><a class="md-github__anchor" name="arn-manipulation" href="#arn-manipulation"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>ARN Manipulation</h1>
+<p class="md-github">Stack.formatArn(options: {
+service: string;
+resource: string;
+arnFormat?: ArnFormat;
+resourceName?: string;
+region?: string;
+account?: string;
+sep?: string;
+}): string</p>
+<p class="md-github">Stack.splitArn(arn: string, arnFormat?: ArnFormat): ArnComponents</p>
+<h1 class="md-github"><a class="md-github__anchor" name="dependencies" href="#dependencies"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Dependencies</h1>
+<p class="md-github">constructA.node.addDependency(constructB: IConstruct): void
+const group = new DependencyGroup()
+group.add(constructB)
+constructA.node.addDependency(group)</p>
+<p class="md-github">stackA.addDependency(stackB: Stack): void</p>
+<h1 class="md-github"><a class="md-github__anchor" name="custom-resources--providers" href="#custom-resources--providers"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Custom Resources &amp; Providers</h1>
+<p class="md-github">new CustomResource(this, id: string, {
+resourceType: string,
+serviceToken: string,
+properties?: { [key: string]: any }
+})</p>
+<p class="md-github">CustomResourceProvider.getOrCreate(scope: Construct, type: string, props: {
+codeDirectory: string;
+runtime: CustomResourceProviderRuntime;
+description?: string;
+}): string</p>
+<p class="md-github">custom-resources Provider:
+new customresources.Provider(this, id: string, {
+onEventHandler: Function,
+isCompleteHandler?: Function,
+})</p>
+<h1 class="md-github"><a class="md-github__anchor" name="cloudformation-low-level-features" href="#cloudformation-low-level-features"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>CloudFormation Low-Level Features</h1>
+<p class="md-github">new CfnOutput(this, id: string, {
+value: any,
+description?: string,
+exportName?: string
+})</p>
+<p class="md-github">new CfnParameter(this, id: string, {
+type: string,
+default?: any,
+allowedValues?: any[]
+})</p>
+<p class="md-github">Fn functions: base64(data: string): string
+conditionEquals(left: any, right: any): CfnCondition
+conditionAnd(...conds: IResolvable[]): CfnCondition
+toJsonString(value: any): string
+split(sep: string, source: any[]): string[]</p>
+<p class="md-github">new CfnMapping(this, id: string, {
+mapping: { [key: string]: { [key: string]: any } },
+lazy?: boolean
+})</p>
+<h2 class="md-github"><a class="md-github__anchor" name="attribution" href="#attribution"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Attribution</h2>
+<ul class="md-github">
+<li class="md-github">Source: AWS CDK API Reference</li>
+<li class="md-github">URL: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib-readme.html</li>
+<li class="md-github">License: License: Apache 2.0</li>
+<li class="md-github">Crawl Date: 2025-05-01T04:50:16.825Z</li>
+<li class="md-github">Data Size: 544992 bytes</li>
+<li class="md-github">Links Found: 321228</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="retrieved" href="#retrieved"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Retrieved</h2>
+<p class="md-github">2025-05-01</p>
+
+  </section>
+  <footer>
+    <p>Generated on 2025-05-01T12:25:43.529Z</p>
+  </footer>
+</body>
+</html>

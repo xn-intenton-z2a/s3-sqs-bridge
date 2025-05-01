@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>agentic-lib</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; background-color: #f9f9f9; color: #333; }
+    header { padding-bottom: 1em; border-bottom: 2px solid #ccc; margin-bottom: 1em; }
+    h1 { font-size: 2em; }
+    section { margin-bottom: 1.5em; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 0.5em 0; }
+    .label { font-weight: bold; }
+    footer { margin-top: 2em; font-size: 0.9em; color: #777; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>agentic-lib</h1>
+    <p><a href="https://github.com/xn-intenton-z2a/agentic-lib">repository</a> - <a href="https://xn-intenton-z2a.github.io/agentic-lib/latest.html">latest stats</a> - <a href="https://xn-intenton-z2a.github.io/agentic-lib/all.html">all stats</a></p>
+  </header>
+  <section>
+    <h1 class="md-github"><a class="md-github__anchor" name="github_webhooks" href="#github_webhooks"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>GITHUB_WEBHOOKS</h1>
+<h2 class="md-github"><a class="md-github__anchor" name="crawl-summary" href="#crawl-summary"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Crawl Summary</h2>
+<p class="md-github">Payload capped at 25 MB; dropped if larger.  Delivery headers: X-GitHub-Hook-ID (int), X-GitHub-Event (string), X-GitHub-Delivery (GUID), X-Hub-Signature (sha1), X-Hub-Signature-256 (sha256), User-Agent (GitHub-Hookshot/), X-GitHub-Hook-Installation-Target-Type (string), X-GitHub-Hook-Installation-Target-ID (int).  Example POST request with JSON payload for issues event.</p>
+<h2 class="md-github"><a class="md-github__anchor" name="normalised-extract" href="#normalised-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Normalised Extract</h2>
+<p class="md-github">Table of Contents:</p>
+<ol class="md-github">
+<li class="md-github">
+<p class="md-github">Payload Cap</p>
+</li>
+<li class="md-github">
+<p class="md-github">Delivery Headers</p>
+</li>
+<li class="md-github">
+<p class="md-github">Example Delivery</p>
+</li>
+<li class="md-github">
+<p class="md-github">Event Payload Structure</p>
+</li>
+<li class="md-github">
+<p class="md-github">Payload Cap
+limit 25 MB; drop payloads &gt;25 MB; monitor with Content-Length header</p>
+</li>
+<li class="md-github">
+<p class="md-github">Delivery Headers
+X-GitHub-Hook-ID: int
+X-GitHub-Event: string
+X-GitHub-Delivery: GUID
+X-Hub-Signature: sha1=HEX
+X-Hub-Signature-256: sha256=HEX
+User-Agent: GitHub-Hookshot/ID
+X-GitHub-Hook-Installation-Target-Type: repository|organization
+X-GitHub-Hook-Installation-Target-ID: int</p>
+</li>
+<li class="md-github">
+<p class="md-github">Example Delivery
+Method: POST
+Endpoint: /payload
+Headers: see Delivery Headers
+Content-Type: application/json
+Body: JSON with action, payload objects: issue.number int, repository.id int, repository.full_name string, sender.login string, sender.id int</p>
+</li>
+<li class="md-github">
+<p class="md-github">Event Payload Structure (issues)
+action: string Required e.g. opened|edited|deleted
+issue: object { url string, number int, title string, body string, user { login string, id int }, labels array }
+repository: object { id int, full_name string, owner { login string, id int }, private boolean }
+sender: object { login string, id int }</p>
+</li>
+</ol>
+<h2 class="md-github"><a class="md-github__anchor" name="supplementary-details" href="#supplementary-details"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Supplementary Details</h2>
+<ol class="md-github">
+<li class="md-github">Header Verification Steps:  compute HMAC-SHA256 of raw body with secret: openssl dgst -sha256 -hmac &quot;SECRET&quot; | cut -d ' ' -f2 compare to X-Hub-Signature-256 header</li>
+<li class="md-github">Subscribing: Create webhook via REST API POST /repos/:owner/:repo/hooks body: { name: &quot;web&quot;, active: true, events: [&quot;issues&quot;], config: { url: &quot;https://example.com/payload&quot;, content_type: &quot;json&quot;, secret: &quot;SECRET&quot;, insecure_ssl: &quot;0&quot; } }</li>
+<li class="md-github">Handling large payloads: use server-side buffer limits; reject if Content-Length &gt; 25<em class="md-github">1024</em>1024</li>
+</ol>
+<h2 class="md-github"><a class="md-github__anchor" name="reference-details" href="#reference-details"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Reference Details</h2>
+<p class="md-github">REST API: Create webhook
+POST /repos/{owner}/{repo}/hooks
+Parameters:
+owner (string) required
+repo (string) required
+name (string) required: &quot;web&quot;
+active (boolean) default true
+events (array[string]) e.g. [&quot;issues&quot;]
+config (object) {
+url (string) required, content_type (string) &quot;json&quot; or &quot;form&quot;, secret (string), insecure_ssl (string) &quot;0&quot; or &quot;1&quot;
+}
+Returns: Hook object { id int, type string, name string, active boolean, events array, config object }</p>
+<p class="md-github">Webhook Payload Example for issues:
+action (string) opened|edited|deleted
+issue (object) { url string, number int, title string, user object { login string, id int }, state string open|closed }
+repository (object) { id int, name string, full_name string, private boolean }
+sender (object) { login string, id int }</p>
+<p class="md-github">Best Practices:</p>
+<ul class="md-github">
+<li class="md-github">Subscribe only to needed events</li>
+<li class="md-github">Verify signatures before processing</li>
+<li class="md-github">Respond 200 within 10s, else redelivery after 5 min</li>
+</ul>
+<p class="md-github">Troubleshooting:
+Check signature:
+RAW_BODY=$(cat request.body)
+SIGNATURE=$(echo -n &quot;$RAW_BODY&quot; | openssl dgst -sha256 -hmac &quot;$SECRET&quot; | cut -d ' ' -f2)
+if [ &quot;$SIGNATURE&quot; != &quot;${HTTP_X_HUB_SIGNATURE_256#sha256=}&quot; ]; then exit 1; fi
+Check logs: return code 2xx, inspect X-GitHub-Delivery header for troubleshooting in GitHub UI</p>
+<h2 class="md-github"><a class="md-github__anchor" name="information-dense-extract" href="#information-dense-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Information Dense Extract</h2>
+<p class="md-github">payload_limit=25MB;headers=[X-GitHub-Hook-ID:int,X-GitHub-Event:str,X-GitHub-Delivery:GUID,X-Hub-Signature:sha1=HEX,X-Hub-Signature-256:sha256=HEX,User-Agent:GitHub-Hookshot/,X-GitHub-Hook-Installation-Target-Type:str,X-GitHub-Hook-Installation-Target-ID:int];REST:create webhook POST /repos/{owner}/{repo}/hooks{name:web,active:true,events:[...],config:{url:str,content_type:json,secret:str,insecure_ssl:0}};issues_payload={action:str,issue:{url:str,number:int,title:str,user:{login:str,id:int},state:str},repository:{id:int,name:str,full_name:str,private:bool},sender:{login:str,id:int}};verify_sig:openssl dgst -sha256 -hmac SECRET|cut -d ' ' -f2 vs header;respond_200&lt;10s;redeliver_after=5min</p>
+<h2 class="md-github"><a class="md-github__anchor" name="sanitised-extract" href="#sanitised-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Sanitised Extract</h2>
+<p class="md-github">Table of Contents:</p>
+<ol class="md-github">
+<li class="md-github">
+<p class="md-github">Payload Cap</p>
+</li>
+<li class="md-github">
+<p class="md-github">Delivery Headers</p>
+</li>
+<li class="md-github">
+<p class="md-github">Example Delivery</p>
+</li>
+<li class="md-github">
+<p class="md-github">Event Payload Structure</p>
+</li>
+<li class="md-github">
+<p class="md-github">Payload Cap
+limit 25 MB; drop payloads &gt;25 MB; monitor with Content-Length header</p>
+</li>
+<li class="md-github">
+<p class="md-github">Delivery Headers
+X-GitHub-Hook-ID: int
+X-GitHub-Event: string
+X-GitHub-Delivery: GUID
+X-Hub-Signature: sha1=HEX
+X-Hub-Signature-256: sha256=HEX
+User-Agent: GitHub-Hookshot/ID
+X-GitHub-Hook-Installation-Target-Type: repository|organization
+X-GitHub-Hook-Installation-Target-ID: int</p>
+</li>
+<li class="md-github">
+<p class="md-github">Example Delivery
+Method: POST
+Endpoint: /payload
+Headers: see Delivery Headers
+Content-Type: application/json
+Body: JSON with action, payload objects: issue.number int, repository.id int, repository.full_name string, sender.login string, sender.id int</p>
+</li>
+<li class="md-github">
+<p class="md-github">Event Payload Structure (issues)
+action: string Required e.g. opened|edited|deleted
+issue: object { url string, number int, title string, body string, user { login string, id int }, labels array }
+repository: object { id int, full_name string, owner { login string, id int }, private boolean }
+sender: object { login string, id int }</p>
+</li>
+</ol>
+<h2 class="md-github"><a class="md-github__anchor" name="original-source" href="#original-source"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Original Source</h2>
+<p class="md-github">GitHub API and Webhooks Documentation
+https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads</p>
+<h2 class="md-github"><a class="md-github__anchor" name="digest-of-github_webhooks" href="#digest-of-github_webhooks"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Digest of GITHUB_WEBHOOKS</h2>
+<h1 class="md-github"><a class="md-github__anchor" name="payload-cap" href="#payload-cap"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Payload Cap</h1>
+<p class="md-github">Max payload size: 25 MB.  If a generated payload exceeds 25 MB, delivery is dropped.  Monitor payload size.  On create events with many refs, use filtering or smaller payloads.</p>
+<h1 class="md-github"><a class="md-github__anchor" name="delivery-headers" href="#delivery-headers"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Delivery Headers</h1>
+<p class="md-github">Each HTTP POST includes:</p>
+<p class="md-github">X-GitHub-Hook-ID      integer   Unique webhook identifier
+X-GitHub-Event        string    Event name (e.g. issues, push)
+X-GitHub-Delivery     GUID      Unique delivery identifier
+X-Hub-Signature       sha1=HEX  HMAC-SHA1 digest of request body, secret as key (legacy)
+X-Hub-Signature-256   sha256=HEX  HMAC-SHA256 digest of request body, secret as key
+User-Agent            string    Always starts with GitHub-Hookshot/
+X-GitHub-Hook-Installation-Target-Type string  Type of installation resource (repository, organization)
+X-GitHub-Hook-Installation-Target-ID   integer  Installation resource ID</p>
+<h1 class="md-github"><a class="md-github__anchor" name="example-webhook-delivery" href="#example-webhook-delivery"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Example Webhook Delivery</h1>
+<p class="md-github">POST /payload HTTP/1.1
+X-GitHub-Delivery: 72d3162e-cc78-11e3-81ab-4c9367dc0958
+X-Hub-Signature: sha1=7d38cdd689735b008b3c702edd92eea23791c5f6
+X-Hub-Signature-256: sha256=d57c68ca6f92289e6987922ff26938930f6e66a2d161ef06abdf1859230aa23c
+User-Agent: GitHub-Hookshot/044aadd
+Content-Type: application/json; charset=utf-8
+Content-Length: 6615
+X-GitHub-Event: issues
+X-GitHub-Hook-ID: 292430182
+X-GitHub-Hook-Installation-Target-ID: 79929171
+X-GitHub-Hook-Installation-Target-Type: repository</p>
+<p class="md-github">{
+&quot;action&quot;: &quot;opened&quot;,
+&quot;issue&quot;: { &quot;url&quot;: &quot;https://api.github.com/repos/octocat/Hello-World/issues/1347&quot;, &quot;number&quot;: 1347, ... },
+&quot;repository&quot;: { &quot;id&quot;: 1296269, &quot;full_name&quot;: &quot;octocat/Hello-World&quot;, &quot;owner&quot;: { &quot;login&quot;: &quot;octocat&quot;, &quot;id&quot;: 1 } },
+&quot;sender&quot;: { &quot;login&quot;: &quot;octocat&quot;, &quot;id&quot;: 1 }
+}</p>
+<h2 class="md-github"><a class="md-github__anchor" name="attribution" href="#attribution"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Attribution</h2>
+<ul class="md-github">
+<li class="md-github">Source: GitHub API and Webhooks Documentation</li>
+<li class="md-github">URL: https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads</li>
+<li class="md-github">License: License: Not Applicable</li>
+<li class="md-github">Crawl Date: 2025-05-01T11:21:03.900Z</li>
+<li class="md-github">Data Size: 3711731 bytes</li>
+<li class="md-github">Links Found: 12814</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="retrieved" href="#retrieved"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Retrieved</h2>
+<p class="md-github">2025-05-01</p>
+
+  </section>
+  <footer>
+    <p>Generated on 2025-05-01T12:25:44.000Z</p>
+  </footer>
+</body>
+</html>
