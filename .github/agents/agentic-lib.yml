@@ -61,3 +61,6 @@ attemptsPerIssue: 1
 
 # Web publishing
 docRoot: 'public'
+
+discussionBot:
+  seedDiscussionFilepath: 'SEED_DISCUSSION.md'
