@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>agentic-lib</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; background-color: #f9f9f9; color: #333; }
+    header { padding-bottom: 1em; border-bottom: 2px solid #ccc; margin-bottom: 1em; }
+    h1 { font-size: 2em; }
+    section { margin-bottom: 1.5em; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 0.5em 0; }
+    .label { font-weight: bold; }
+    footer { margin-top: 2em; font-size: 0.9em; color: #777; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>agentic-lib</h1>
+    <p><a href="https://github.com/xn-intenton-z2a/agentic-lib">repository</a> - <a href="https://xn-intenton-z2a.github.io/agentic-lib/latest.html">latest stats</a> - <a href="https://xn-intenton-z2a.github.io/agentic-lib/all.html">all stats</a></p>
+  </header>
+  <section>
+    <h1 class="md-github"><a class="md-github__anchor" name="node_js" href="#node_js"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>NODE_JS</h1>
+<h2 class="md-github"><a class="md-github__anchor" name="crawl-summary" href="#crawl-summary"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Crawl Summary</h2>
+<p class="md-github">Topics: HTTP Server API, Asynchronous Event Loop, Installation Methods, Configuration Options, Versioning, Security Best Practices, Troubleshooting. Key points include usage of createServer with callback signature (req, res), server.listen configuration (port: 3000, hostname: 127.0.0.1), non-blocking asynchronous I/O, proper use of official installation channels, and guidelines to select production-ready LTS releases.</p>
+<h2 class="md-github"><a class="md-github__anchor" name="normalised-extract" href="#normalised-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Normalised Extract</h2>
+<p class="md-github">Table of Contents:</p>
+<ol class="md-github">
+<li class="md-github">HTTP Server API
+<ul class="md-github">
+<li class="md-github">Method: createServer(requestListener: (req: http.IncomingMessage, res: http.ServerResponse) =&gt; void) returns http.Server</li>
+<li class="md-github">Usage: Import from node:http, create server instance, set response headers and end response.</li>
+</ul>
+</li>
+<li class="md-github">Event Loop &amp; Asynchronous I/O
+<ul class="md-github">
+<li class="md-github">Node.js uses a single-threaded event loop to handle asynchronous operations through non-blocking I/O primitives. This avoids thread-based blocking.</li>
+</ul>
+</li>
+<li class="md-github">Installation &amp; Configuration
+<ul class="md-github">
+<li class="md-github">Install via official binaries, package managers or nvm. Command-line options allow experimental feature enabling and ECMAScript version control.</li>
+</ul>
+</li>
+<li class="md-github">Versioning and Release Schedule
+<ul class="md-github">
+<li class="md-github">Even-numbered releases are Active LTS with 30 month support; odd-numbered releases become unsupported after 6 months.</li>
+</ul>
+</li>
+<li class="md-github">Security and Best Practices
+<ul class="md-github">
+<li class="md-github">Use official sources, proper error handling, and avoid synchronous I/O. Debugging via Node.js inspector.
+Detailed Information:
+HTTP Server API: Import using 'import { createServer } from &quot;node:http&quot;'. Call createServer with a callback that receives req and res objects. Example: set res.statusCode=200, call res.setHeader to specify content type, and use res.end to send the response.
+Event Loop: Executes callbacks when I/O operations complete; no explicit loop start is needed as Node enters loop after executing the script.
+Installation: Official methods require official binaries; community methods must support major OS distributions. Configuration is done via command-line flags and environment variables.
+Versioning: LTS and Current release details are provided on nodejs.org with full changelogs and GitHub release schedules.
+Security Best Practices: Always verify official installers, handle errors using try/catch or callback error parameters, and monitor performance with diagnostic channels.</li>
+</ul>
+</li>
+</ol>
+<h2 class="md-github"><a class="md-github__anchor" name="supplementary-details" href="#supplementary-details"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Supplementary Details</h2>
+<p class="md-github">Technical Specifications:</p>
+<ul class="md-github">
+<li class="md-github">API Method: createServer(callback: (req: http.IncomingMessage, res: http.ServerResponse) =&gt; void): http.Server</li>
+<li class="md-github">Server Listening: listen(port: number, hostname: string, callback?: () =&gt; void): void, example values: port=3000, hostname='127.0.0.1'</li>
+<li class="md-github">Configuration Options: Experimental features enabled via command-line (e.g., --experimental-modules), environment variable NODE_ENV set to production for performance optimizations.</li>
+<li class="md-github">Release Process: Node.js v23.11.0 (Current) and v22.15.0 (LTS) with version schedule details available via GitHub. Odd releases unsupported after 6 months; even releases maintain 30-month support.</li>
+<li class="md-github">Implementation Steps: Write server code in a file server.mjs or server.js; execute using node command; monitor output for verification; use debugger and inspector as necessary.</li>
+<li class="md-github">Troubleshooting: If server does not start, check port conflicts, ensure correct Node version with 'node -v', and run with verbose logging (--trace-warnings).</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="reference-details" href="#reference-details"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Reference Details</h2>
+<p class="md-github">API Specifications:</p>
+<ol class="md-github">
+<li class="md-github">HTTP Module:
+<ul class="md-github">
+<li class="md-github">Function: createServer
+Signature: createServer(requestListener: (req: http.IncomingMessage, res: http.ServerResponse) =&gt; void): http.Server
+Throws: Runtime exceptions if listener function fails</li>
+<li class="md-github">Method: listen
+Signature: listen(port: number, hostname?: string, backlog?: number, callback?: () =&gt; void): void
+Example Code:
+import { createServer } from 'node:http';
+const server = createServer((req: http.IncomingMessage, res: http.ServerResponse): void =&gt; {
+res.statusCode = 200; // Set HTTP status
+res.setHeader('Content-Type', 'text/plain'); // Set header
+res.end('Hello World\n'); // End response
+});
+server.listen(3000, '127.0.0.1', (): void =&gt; {
+console.log('Listening on 127.0.0.1:3000');
+});
+Implementation Patterns:</li>
+<li class="md-github">Always validate input using error-first callbacks or try/catch</li>
+<li class="md-github">Use asynchronous non-blocking I/O patterns to ensure scalability
+Configuration Options:</li>
+<li class="md-github">Port: Default 3000 (modifiable via server.listen method)</li>
+<li class="md-github">Hostname: Typically '127.0.0.1' for local development
+Best Practices:</li>
+<li class="md-github">Use official documentation and binaries</li>
+<li class="md-github">Monitor and log performance using diagnostic channels</li>
+<li class="md-github">Avoid usage of synchronous methods in production
+Troubleshooting Procedures:</li>
+<li class="md-github">Command: node server.mjs
+Expected Output: 'Listening on 127.0.0.1:3000'</li>
+<li class="md-github">If error occurs, check for port conflicts, Node.js version using 'node -v', and verify proper installation</li>
+<li class="md-github">Use command: node --trace-warnings server.mjs for detailed warnings</li>
+<li class="md-github">Refer to official Node.js diagnostic channels on GitHub for further guidance.</li>
+</ul>
+</li>
+</ol>
+<h2 class="md-github"><a class="md-github__anchor" name="information-dense-extract" href="#information-dense-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Information Dense Extract</h2>
+<p class="md-github">Node.js HTTP API: createServer((req: http.IncomingMessage, res: http.ServerResponse) =&gt; void) returns http.Server; listen(port: number, hostname: string, callback?: () =&gt; void); Asynchronous event loop design; Non-blocking I/O; Official installation via binaries/package managers/nvm; Versioning: even (LTS, 30-month), odd (unsupported after 6 months); Configuration: port=3000, host='127.0.0.1'; Best practices: error handling, using inspector, avoid sync I/O; Troubleshooting: node server.mjs, node -v, --trace-warnings; API complete method signature and usage details available in Node.js v23.11.0 documentation.</p>
+<h2 class="md-github"><a class="md-github__anchor" name="sanitised-extract" href="#sanitised-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Sanitised Extract</h2>
+<p class="md-github">Table of Contents:</p>
+<ol class="md-github">
+<li class="md-github">HTTP Server API
+<ul class="md-github">
+<li class="md-github">Method: createServer(requestListener: (req: http.IncomingMessage, res: http.ServerResponse) =&gt; void) returns http.Server</li>
+<li class="md-github">Usage: Import from node:http, create server instance, set response headers and end response.</li>
+</ul>
+</li>
+<li class="md-github">Event Loop &amp; Asynchronous I/O
+<ul class="md-github">
+<li class="md-github">Node.js uses a single-threaded event loop to handle asynchronous operations through non-blocking I/O primitives. This avoids thread-based blocking.</li>
+</ul>
+</li>
+<li class="md-github">Installation &amp; Configuration
+<ul class="md-github">
+<li class="md-github">Install via official binaries, package managers or nvm. Command-line options allow experimental feature enabling and ECMAScript version control.</li>
+</ul>
+</li>
+<li class="md-github">Versioning and Release Schedule
+<ul class="md-github">
+<li class="md-github">Even-numbered releases are Active LTS with 30 month support; odd-numbered releases become unsupported after 6 months.</li>
+</ul>
+</li>
+<li class="md-github">Security and Best Practices
+<ul class="md-github">
+<li class="md-github">Use official sources, proper error handling, and avoid synchronous I/O. Debugging via Node.js inspector.
+Detailed Information:
+HTTP Server API: Import using 'import { createServer } from 'node:http''. Call createServer with a callback that receives req and res objects. Example: set res.statusCode=200, call res.setHeader to specify content type, and use res.end to send the response.
+Event Loop: Executes callbacks when I/O operations complete; no explicit loop start is needed as Node enters loop after executing the script.
+Installation: Official methods require official binaries; community methods must support major OS distributions. Configuration is done via command-line flags and environment variables.
+Versioning: LTS and Current release details are provided on nodejs.org with full changelogs and GitHub release schedules.
+Security Best Practices: Always verify official installers, handle errors using try/catch or callback error parameters, and monitor performance with diagnostic channels.</li>
+</ul>
+</li>
+</ol>
+<h2 class="md-github"><a class="md-github__anchor" name="original-source" href="#original-source"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Original Source</h2>
+<p class="md-github">Node.js Official Documentation
+https://nodejs.org/en/docs/</p>
+<h2 class="md-github"><a class="md-github__anchor" name="digest-of-node_js" href="#digest-of-node_js"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Digest of NODE_JS</h2>
+<h1 class="md-github"><a class="md-github__anchor" name="http-server-and-core-nodejs-api" href="#http-server-and-core-nodejs-api"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>HTTP SERVER AND CORE NODE.JS API</h1>
+<h2 class="md-github"><a class="md-github__anchor" name="http-server-api" href="#http-server-api"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>HTTP Server API</h2>
+<p class="md-github">The Node.js HTTP module provides the createServer method. Example usage:</p>
+<p class="md-github">import { createServer } from 'node:http';</p>
+<p class="md-github">const server = createServer((req, res) =&gt; {
+// Set status code
+res.statusCode = 200;
+// Set header
+res.setHeader('Content-Type', 'text/plain');
+// Send response body
+res.end('Hello World\n');
+});</p>
+<p class="md-github">// Start server listening on port 3000 and host 127.0.0.1
+server.listen(3000, '127.0.0.1', () =&gt; {
+console.log('Listening on 127.0.0.1:3000');
+});</p>
+<h2 class="md-github"><a class="md-github__anchor" name="method-signature-details" href="#method-signature-details"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Method Signature Details</h2>
+<ul class="md-github">
+<li class="md-github">createServer(requestListener: (req: http.IncomingMessage, res: http.ServerResponse) =&gt; void) : http.Server</li>
+<li class="md-github">server.listen(port: number, hostname: string, callback?: () =&gt; void) : void</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="asynchronous-io-and-event-loop" href="#asynchronous-io-and-event-loop"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Asynchronous I/O and Event Loop</h2>
+<p class="md-github">Node.js uses non-blocking asynchronous I/O through its event loop and this design allows handling thousands of concurrent connections with a single thread.</p>
+<h2 class="md-github"><a class="md-github__anchor" name="installation-and-versioning" href="#installation-and-versioning"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Installation and Versioning</h2>
+<p class="md-github">Node.js supports multiple installation methods including official binaries, package managers (brew, apt, etc.) and version managers (nvm). The versioning follows a schedule where even releases (Active LTS) guarantee fixes for up to 30 months while odd releases become unsupported after 6 months.</p>
+<h2 class="md-github"><a class="md-github__anchor" name="configuration-options" href="#configuration-options"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Configuration Options</h2>
+<ul class="md-github">
+<li class="md-github">Port and host configuration via server.listen. Default example: port=3000, host='127.0.0.1'.</li>
+<li class="md-github">Command-line flags to enable experimental features and ECMAScript version selection.</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="security-best-practices" href="#security-best-practices"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Security Best Practices</h2>
+<ul class="md-github">
+<li class="md-github">Always use the official binaries from nodejs.org.</li>
+<li class="md-github">Use proper error handling and avoid synchronous methods in production.</li>
+<li class="md-github">For debugging, run with the Node.js inspector and enable diagnostic channels.</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="troubleshooting-procedures" href="#troubleshooting-procedures"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Troubleshooting Procedures</h2>
+<ul class="md-github">
+<li class="md-github">Run with <code class="md-github">node server.mjs</code> and verify log output &quot;Listening on 127.0.0.1:3000&quot;.</li>
+<li class="md-github">Check for blocked I/O if synchronous methods are used.</li>
+<li class="md-github">Use built-in modules (e.g., http, fs) correctly to avoid common pitfalls.</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="retrieval-metadata" href="#retrieval-metadata"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Retrieval Metadata</h2>
+<ul class="md-github">
+<li class="md-github">Source Date: 2023-10-05</li>
+<li class="md-github">Data Size: 220318 bytes</li>
+<li class="md-github">Number of links crawled: 3005</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="attribution" href="#attribution"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Attribution</h2>
+<ul class="md-github">
+<li class="md-github">Source: Node.js Official Documentation</li>
+<li class="md-github">URL: https://nodejs.org/en/docs/</li>
+<li class="md-github">License: License: MIT</li>
+<li class="md-github">Crawl Date: 2025-04-25T20:28:41.993Z</li>
+<li class="md-github">Data Size: 220318 bytes</li>
+<li class="md-github">Links Found: 3005</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="retrieved" href="#retrieved"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Retrieved</h2>
+<p class="md-github">2025-04-25</p>
+
+  </section>
+  <footer>
+    <p>Generated on 2025-05-04T00:41:51.568Z</p>
+  </footer>
+</body>
+</html>

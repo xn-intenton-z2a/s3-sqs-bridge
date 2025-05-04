@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>agentic-lib</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2em; background-color: #f9f9f9; color: #333; }
+    header { padding-bottom: 1em; border-bottom: 2px solid #ccc; margin-bottom: 1em; }
+    h1 { font-size: 2em; }
+    section { margin-bottom: 1.5em; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 0.5em 0; }
+    .label { font-weight: bold; }
+    footer { margin-top: 2em; font-size: 0.9em; color: #777; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>agentic-lib</h1>
+    <p><a href="https://github.com/xn-intenton-z2a/agentic-lib">repository</a> - <a href="https://xn-intenton-z2a.github.io/agentic-lib/latest.html">latest stats</a> - <a href="https://xn-intenton-z2a.github.io/agentic-lib/all.html">all stats</a></p>
+  </header>
+  <section>
+    <h1 class="md-github"><a class="md-github__anchor" name="github_rest" href="#github_rest"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>GITHUB_REST</h1>
+<h2 class="md-github"><a class="md-github__anchor" name="crawl-summary" href="#crawl-summary"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Crawl Summary</h2>
+<p class="md-github">Authentication via personal tokens and GitHub App; CLI usage with gh auth login and gh api commands; Octokit.js SDK usage with new Octokit({ auth: 'YOUR-TOKEN' }) and octokit.request('GET /repos/{owner}/{repo}/issues', {owner, repo}); curl commands with proper headers including Accept and Authorization; API version specified with X-GitHub-Api-Version header; configuration details for GitHub Actions workflows that include steps for token generation and usage; troubleshooting via error.status and response error messages.</p>
+<h2 class="md-github"><a class="md-github__anchor" name="normalised-extract" href="#normalised-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Normalised Extract</h2>
+<p class="md-github">Table of Contents:</p>
+<ol class="md-github">
+<li class="md-github">Authentication Methods
+<ul class="md-github">
+<li class="md-github">Use personal access tokens, GitHub App tokens with app ID and private key.</li>
+<li class="md-github">Header format: Authorization: Bearer YOUR-TOKEN.</li>
+</ul>
+</li>
+<li class="md-github">GitHub CLI Usage
+<ul class="md-github">
+<li class="md-github">Install: gh (available for macOS, Windows, Linux).</li>
+<li class="md-github">Authenticate: gh auth login; specify domain if not GitHub.com.</li>
+<li class="md-github">Example: gh api /octocat --method GET</li>
+</ul>
+</li>
+<li class="md-github">Octokit.js SDK Usage
+<ul class="md-github">
+<li class="md-github">Install: npm install octokit</li>
+<li class="md-github">Import: import { Octokit } from &quot;octokit&quot;;</li>
+<li class="md-github">Initialization: const octokit = new Octokit({ auth: 'YOUR-TOKEN' });</li>
+<li class="md-github">Request: await octokit.request(&quot;GET /repos/{owner}/{repo}/issues&quot;, { owner: &quot;octocat&quot;, repo: &quot;Spoon-Knife&quot; });</li>
+</ul>
+</li>
+<li class="md-github">curl Command Examples
+<ul class="md-github">
+<li class="md-github">Command: curl --request GET --url &quot;https://api.github.com/repos/octocat/Spoon-Knife/issues&quot; --header &quot;Accept: application/vnd.github+json&quot; --header &quot;Authorization: Bearer YOUR-TOKEN&quot;</li>
+</ul>
+</li>
+<li class="md-github">API Versioning
+<ul class="md-github">
+<li class="md-github">Specify version using: X-GitHub-Api-Version:2022-11-28</li>
+<li class="md-github">Default version: 2022-11-28 if header omitted.</li>
+</ul>
+</li>
+<li class="md-github">Configuration Best Practices
+<ul class="md-github">
+<li class="md-github">Use environment variable GH_TOKEN or GITHUB_TOKEN in workflows.</li>
+<li class="md-github">Store secrets securely (APP_PEM for GitHub App private key).</li>
+</ul>
+</li>
+<li class="md-github">Troubleshooting
+<ul class="md-github">
+<li class="md-github">Validate tool installations (gh --version, curl --version).</li>
+<li class="md-github">In Octokit, catch errors and log error.status and error.response.data.message.</li>
+</ul>
+</li>
+</ol>
+<p class="md-github">Each section contains exact commands, API endpoints, configuration parameters, and complete code usage patterns for direct implementation.</p>
+<h2 class="md-github"><a class="md-github__anchor" name="supplementary-details" href="#supplementary-details"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Supplementary Details</h2>
+<p class="md-github">Authentication: Token must be passed as 'Authorization: Bearer YOUR-TOKEN'. GitHub CLI: 'gh auth login' and 'gh api /endpoint --method METHOD'. Octokit Initialization: new Octokit({ auth: 'YOUR-TOKEN' }); Request format: await octokit.request('METHOD /repos/{owner}/{repo}/issues', { owner: 'octocat', repo: 'Spoon-Knife' });</p>
+<p class="md-github">API Versioning: Use header X-GitHub-Api-Version with value 2022-11-28. Curl usage commands need proper headers:
+--header &quot;Accept: application/vnd.github+json&quot;
+--header &quot;Authorization: Bearer YOUR-TOKEN&quot;</p>
+<p class="md-github">Configuration in GitHub Actions: Environments should set GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}. Sample YAML steps include checkout, setup-node (node-version: '16.17.0', cache: npm), installation of dependencies, token generation using actions/create-github-app-token@v1 with parameters app-id and private-key.</p>
+<p class="md-github">Best practices: Use GITHUB_TOKEN over personal tokens when possible; secure token storage; verify CLI installation and environment variables. Troubleshooting: Run commands from CLI and check error output. Use try/catch in scripts; log error status using error.status and error.response.data.message.</p>
+<p class="md-github">Exact parameters:</p>
+<ul class="md-github">
+<li class="md-github">Octokit.request accepts: method string, parameters object with required fields (owner: string, repo: string).</li>
+<li class="md-github">GitHub App token generation requires variables: vars.APP_ID, secrets.APP_PEM.</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="reference-details" href="#reference-details"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Reference Details</h2>
+<p class="md-github">API Specifications:</p>
+<ol class="md-github">
+<li class="md-github">GET /repos/{owner}/{repo}/issues
+<ul class="md-github">
+<li class="md-github">Method: GET</li>
+<li class="md-github">Parameters: owner (string), repo (string)</li>
+<li class="md-github">Return: JSON array of issues with fields like title, user.id, state, etc.</li>
+</ul>
+</li>
+</ol>
+<p class="md-github">SDK Method Signature:
+Function: octokit.request(endpoint: string, parameters: { owner: string, repo: string, ... }): Promise<Response>
+Example:
+const octokit = new Octokit({ auth: 'YOUR-TOKEN' });
+await octokit.request(&quot;GET /repos/{owner}/{repo}/issues&quot;, { owner: &quot;octocat&quot;, repo: &quot;Spoon-Knife&quot; });</p>
+<p class="md-github">CLI Usage:
+Command: gh api /octocat --method GET
+Environment: Set GH_TOKEN or use gh auth login for authentication.</p>
+<p class="md-github">Curl Example:
+curl --request GET <br>
+--url &quot;https://api.github.com/repos/octocat/Spoon-Knife/issues&quot; <br>
+--header &quot;Accept: application/vnd.github+json&quot; <br>
+--header &quot;Authorization: Bearer YOUR-TOKEN&quot;</p>
+<p class="md-github">Configuration Options:</p>
+<ul class="md-github">
+<li class="md-github">Header: X-GitHub-Api-Version: 2022-11-28 (ensures API versioning)</li>
+<li class="md-github">Environment Variables: GH_TOKEN, GITHUB_TOKEN for secure token passing</li>
+<li class="md-github">Actions Workflow YAML: steps include checkout (actions/checkout@v4), node setup (actions/setup-node@v4), dependency installation, and token generation using actions/create-github-app-token@v1</li>
+</ul>
+<p class="md-github">Implementation Pattern for GitHub Actions using Octokit.js:</p>
+<ol class="md-github">
+<li class="md-github">Checkout repository</li>
+<li class="md-github">Setup Node with specified version ('16.17.0')</li>
+<li class="md-github">Run 'npm install octokit'</li>
+<li class="md-github">Execute script with node, using environment variable TOKEN</li>
+</ol>
+<p class="md-github">Troubleshooting Procedures:</p>
+<ul class="md-github">
+<li class="md-github">Command to check CLI: gh --version</li>
+<li class="md-github">Check Node version: node -v</li>
+<li class="md-github">For Octokit errors, use try/catch and log: console.log(<code class="md-github">Error! Status: ${error.status}. Message: ${error.response.data.message}</code>)</li>
+<li class="md-github">Verify token validity by manually testing curl command and checking for 200 OK response</li>
+</ul>
+<p class="md-github">Full Code Example (JavaScript):
+import { Octokit } from &quot;octokit&quot;;</p>
+<p class="md-github">const octokit = new Octokit({ auth: process.env.TOKEN });</p>
+<p class="md-github">async function fetchIssues() {
+try {
+const result = await octokit.request(&quot;GET /repos/{owner}/{repo}/issues&quot;, {
+owner: &quot;octocat&quot;,
+repo: &quot;Spoon-Knife&quot;,
+});
+const issues = result.data.map(issue =&gt; ({ title: issue.title, authorID: issue.user.id }));
+console.log(issues);
+} catch (error) {
+console.log(<code class="md-github">Error! Status: ${error.status}. Message: ${error.response.data.message}</code>);
+}
+}</p>
+<p class="md-github">fetchIssues();</p>
+<p class="md-github">This set of specifications can be directly integrated into development environments.</p>
+<h2 class="md-github"><a class="md-github__anchor" name="information-dense-extract" href="#information-dense-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Information Dense Extract</h2>
+<p class="md-github">Authentication: 'Authorization: Bearer YOUR-TOKEN', GitHub App: use app-id and private-key; CLI: 'gh auth login' then 'gh api /octocat --method GET'; Octokit: new Octokit({ auth: 'YOUR-TOKEN' }), method: octokit.request('GET /repos/{owner}/{repo}/issues', {owner: 'octocat', repo: 'Spoon-Knife'}); Curl: curl --request GET --url 'https://api.github.com/repos/octocat/Spoon-Knife/issues' --header 'Accept: application/vnd.github+json' --header 'Authorization: Bearer YOUR-TOKEN'; API Version: X-GitHub-Api-Version:2022-11-28; GitHub Actions YAML: uses actions/checkout@v4, actions/setup-node@v4 (node-version: '16.17.0', cache: npm), actions/create-github-app-token@v1 with app-id and private-key; Troubleshooting: check via gh --version, node -v, use try/catch logging error.status and error.response.data.message.</p>
+<h2 class="md-github"><a class="md-github__anchor" name="sanitised-extract" href="#sanitised-extract"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Sanitised Extract</h2>
+<p class="md-github">Table of Contents:</p>
+<ol class="md-github">
+<li class="md-github">Authentication Methods
+<ul class="md-github">
+<li class="md-github">Use personal access tokens, GitHub App tokens with app ID and private key.</li>
+<li class="md-github">Header format: Authorization: Bearer YOUR-TOKEN.</li>
+</ul>
+</li>
+<li class="md-github">GitHub CLI Usage
+<ul class="md-github">
+<li class="md-github">Install: gh (available for macOS, Windows, Linux).</li>
+<li class="md-github">Authenticate: gh auth login; specify domain if not GitHub.com.</li>
+<li class="md-github">Example: gh api /octocat --method GET</li>
+</ul>
+</li>
+<li class="md-github">Octokit.js SDK Usage
+<ul class="md-github">
+<li class="md-github">Install: npm install octokit</li>
+<li class="md-github">Import: import { Octokit } from 'octokit';</li>
+<li class="md-github">Initialization: const octokit = new Octokit({ auth: 'YOUR-TOKEN' });</li>
+<li class="md-github">Request: await octokit.request('GET /repos/{owner}/{repo}/issues', { owner: 'octocat', repo: 'Spoon-Knife' });</li>
+</ul>
+</li>
+<li class="md-github">curl Command Examples
+<ul class="md-github">
+<li class="md-github">Command: curl --request GET --url 'https://api.github.com/repos/octocat/Spoon-Knife/issues' --header 'Accept: application/vnd.github+json' --header 'Authorization: Bearer YOUR-TOKEN'</li>
+</ul>
+</li>
+<li class="md-github">API Versioning
+<ul class="md-github">
+<li class="md-github">Specify version using: X-GitHub-Api-Version:2022-11-28</li>
+<li class="md-github">Default version: 2022-11-28 if header omitted.</li>
+</ul>
+</li>
+<li class="md-github">Configuration Best Practices
+<ul class="md-github">
+<li class="md-github">Use environment variable GH_TOKEN or GITHUB_TOKEN in workflows.</li>
+<li class="md-github">Store secrets securely (APP_PEM for GitHub App private key).</li>
+</ul>
+</li>
+<li class="md-github">Troubleshooting
+<ul class="md-github">
+<li class="md-github">Validate tool installations (gh --version, curl --version).</li>
+<li class="md-github">In Octokit, catch errors and log error.status and error.response.data.message.</li>
+</ul>
+</li>
+</ol>
+<p class="md-github">Each section contains exact commands, API endpoints, configuration parameters, and complete code usage patterns for direct implementation.</p>
+<h2 class="md-github"><a class="md-github__anchor" name="original-source" href="#original-source"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Original Source</h2>
+<p class="md-github">GitHub REST API Documentation
+https://docs.github.com/en/rest</p>
+<h2 class="md-github"><a class="md-github__anchor" name="digest-of-github_rest" href="#digest-of-github_rest"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Digest of GITHUB_REST</h2>
+<h1 class="md-github"><a class="md-github__anchor" name="github-rest-api-documentation" href="#github-rest-api-documentation"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>GitHub REST API Documentation</h1>
+<p class="md-github">Retrieved: 2023-10-06</p>
+<h2 class="md-github"><a class="md-github__anchor" name="overview" href="#overview"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Overview</h2>
+<p class="md-github">The GitHub REST API allows integration with GitHub for creating integrations, obtaining data, and automating workflows. The API is versioned (e.g., 2022-11-28) with breaking and additive changes defined. This document includes detailed method calls, authentication techniques, CLI usage, and SDK patterns, with full code examples and configuration parameters.</p>
+<h2 class="md-github"><a class="md-github__anchor" name="table-of-contents" href="#table-of-contents"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Table of Contents</h2>
+<ol class="md-github">
+<li class="md-github">Authentication Methods</li>
+<li class="md-github">GitHub CLI Usage</li>
+<li class="md-github">Octokit.js SDK Usage</li>
+<li class="md-github">curl Command Examples</li>
+<li class="md-github">API Versioning and Headers</li>
+<li class="md-github">Configuration and Best Practices</li>
+<li class="md-github">Troubleshooting Procedures</li>
+</ol>
+<h2 class="md-github"><a class="md-github__anchor" name="1-authentication-methods" href="#1-authentication-methods"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>1. Authentication Methods</h2>
+<h3 class="md-github"><a class="md-github__anchor" name="personal-access-token--oauth" href="#personal-access-token--oauth"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Personal Access Token / OAuth</h3>
+<ul class="md-github">
+<li class="md-github">Use a token with required scopes. Example header: Authorization: Bearer YOUR-TOKEN.</li>
+</ul>
+<h3 class="md-github"><a class="md-github__anchor" name="github-app-authentication" href="#github-app-authentication"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>GitHub App Authentication</h3>
+<ul class="md-github">
+<li class="md-github">Create installation token using app id and private key. Token expires in 60 minutes.</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="2-github-cli-usage" href="#2-github-cli-usage"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>2. GitHub CLI Usage</h2>
+<h3 class="md-github"><a class="md-github__anchor" name="installation-and-login" href="#installation-and-login"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Installation and Login</h3>
+<ul class="md-github">
+<li class="md-github">Install GitHub CLI for macOS/Windows/Linux.</li>
+<li class="md-github">Authenticate using: gh auth login</li>
+<li class="md-github">For GitHub domains different from github.com, select Other and provide hostname.</li>
+</ul>
+<h3 class="md-github"><a class="md-github__anchor" name="api-request-example-using-cli" href="#api-request-example-using-cli"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>API Request Example using CLI</h3>
+<p class="md-github">Command:
+gh api /octocat --method GET</p>
+<p class="md-github">For GitHub Actions workflows:</p>
+<ul class="md-github">
+<li class="md-github">Set environment variable GH_TOKEN (often GITHUB_TOKEN) and use:
+gh api https://api.github.com/repos/octocat/Spoon-Knife/issues</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="3-octokitjs-sdk-usage" href="#3-octokitjs-sdk-usage"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>3. Octokit.js SDK Usage</h2>
+<h3 class="md-github"><a class="md-github__anchor" name="installation-and-import" href="#installation-and-import"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Installation and Import</h3>
+<ul class="md-github">
+<li class="md-github">Install via npm: npm install octokit</li>
+<li class="md-github">Import using: import { Octokit } from &quot;octokit&quot;;</li>
+</ul>
+<h3 class="md-github"><a class="md-github__anchor" name="creating-instance-and-request" href="#creating-instance-and-request"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Creating Instance and Request</h3>
+<p class="md-github">Method signature:
+const octokit = new Octokit({ auth: 'YOUR-TOKEN' });
+Example request:
+await octokit.request(&quot;GET /repos/{owner}/{repo}/issues&quot;, { owner: &quot;octocat&quot;, repo: &quot;Spoon-Knife&quot; });</p>
+<h3 class="md-github"><a class="md-github__anchor" name="in-github-actions" href="#in-github-actions"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>In GitHub Actions</h3>
+<p class="md-github">Workflow steps include setting up Node, installing octokit, and running a script using process.env.TOKEN.</p>
+<h2 class="md-github"><a class="md-github__anchor" name="4-curl-command-examples" href="#4-curl-command-examples"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>4. curl Command Examples</h2>
+<h3 class="md-github"><a class="md-github__anchor" name="direct-command" href="#direct-command"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Direct Command</h3>
+<ul class="md-github">
+<li class="md-github">Example command:
+curl --request GET <br>
+--url &quot;https://api.github.com/repos/octocat/Spoon-Knife/issues&quot; <br>
+--header &quot;Accept: application/vnd.github+json&quot; <br>
+--header &quot;Authorization: Bearer YOUR-TOKEN&quot;</li>
+</ul>
+<h3 class="md-github"><a class="md-github__anchor" name="in-github-actions-1" href="#in-github-actions-1"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>In GitHub Actions</h3>
+<ul class="md-github">
+<li class="md-github">Use environment variable GH_TOKEN and similar curl command as above.</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="5-api-versioning-and-headers" href="#5-api-versioning-and-headers"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>5. API Versioning and Headers</h2>
+<h3 class="md-github"><a class="md-github__anchor" name="specifying-api-version" href="#specifying-api-version"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Specifying API Version</h3>
+<ul class="md-github">
+<li class="md-github">Use header: X-GitHub-Api-Version:2022-11-28</li>
+<li class="md-github">Command example:
+curl --header &quot;X-GitHub-Api-Version:2022-11-28&quot; https://api.github.com/zen</li>
+</ul>
+<h3 class="md-github"><a class="md-github__anchor" name="handling-version-changes" href="#handling-version-changes"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Handling Version Changes</h3>
+<ul class="md-github">
+<li class="md-github">Breaking changes include parameter renaming, type changes, new required parameters etc.</li>
+<li class="md-github">Additive changes are backward compatible.</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="6-configuration-and-best-practices" href="#6-configuration-and-best-practices"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>6. Configuration and Best Practices</h2>
+<h3 class="md-github"><a class="md-github__anchor" name="github-cli--octokit-configuration" href="#github-cli--octokit-configuration"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>GitHub CLI &amp; Octokit Configuration</h3>
+<ul class="md-github">
+<li class="md-github">CLI: Configure authentication once with gh auth login.</li>
+<li class="md-github">Octokit: Configure via new Octokit({ auth: process.env.TOKEN })</li>
+</ul>
+<h3 class="md-github"><a class="md-github__anchor" name="security-best-practices" href="#security-best-practices"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Security Best Practices</h3>
+<ul class="md-github">
+<li class="md-github">Store tokens as secrets (e.g. GH_TOKEN, APP_PEM).</li>
+<li class="md-github">Use GITHUB_TOKEN where possible for automatic authentication.</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="7-troubleshooting-procedures" href="#7-troubleshooting-procedures"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>7. Troubleshooting Procedures</h2>
+<h3 class="md-github"><a class="md-github__anchor" name="common-troubleshooting-steps" href="#common-troubleshooting-steps"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Common Troubleshooting Steps</h3>
+<ul class="md-github">
+<li class="md-github">For CLI errors: Verify installation with gh --version and check authentication status.</li>
+<li class="md-github">For Octokit requests: Catch errors, log error.status and error.response.data.message.</li>
+<li class="md-github">Example JS error handling:
+try {
+const result = await octokit.request(...);
+} catch (error) {
+console.log(<code class="md-github">Error! Status: ${error.status}. Message: ${error.response.data.message}</code>);
+}</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="attribution" href="#attribution"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Attribution</h2>
+<p class="md-github">Data size during crawl: 1363454 bytes. Links found: 13331. No errors reported.</p>
+<h2 class="md-github"><a class="md-github__anchor" name="attribution-1" href="#attribution-1"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Attribution</h2>
+<ul class="md-github">
+<li class="md-github">Source: GitHub REST API Documentation</li>
+<li class="md-github">URL: https://docs.github.com/en/rest</li>
+<li class="md-github">License: License: Not Applicable</li>
+<li class="md-github">Crawl Date: 2025-04-25T19:41:56.817Z</li>
+<li class="md-github">Data Size: 1363454 bytes</li>
+<li class="md-github">Links Found: 13331</li>
+</ul>
+<h2 class="md-github"><a class="md-github__anchor" name="retrieved" href="#retrieved"><svg class="md-github__octicon md-github__octicon-link" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Retrieved</h2>
+<p class="md-github">2025-04-25</p>
+
+  </section>
+  <footer>
+    <p>Generated on 2025-05-04T00:41:51.006Z</p>
+  </footer>
+</body>
+</html>
