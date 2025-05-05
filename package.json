@@ -59,7 +59,7 @@
     "pg": "^8.15.6",
     "prettier": "^3.5.3",
     "vitest": "^3.1.2",
-    "supertest": "^6.3.4"
+    "supertest": "^7.1.0"
   },
   "overrides": {
     "rimraf": "^4.0.0",
