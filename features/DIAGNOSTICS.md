@@ -1,39 +1,47 @@
 # Overview
 
-Introduce a unified diagnostics server that consolidates health metrics status and API version metadata endpoints under a single CLI flag. Operators can start one HTTP server on a configurable port to expose
-- GET /health readiness check returns status ok
-- GET /metrics in memory metrics snapshot
-- GET /status same payload as metrics for compatibility
-- GET /meta installed version and supported api versions by reading API_VERSIONS.md
+Introduce a unified diagnostics server that consolidates health, metrics, status, and metadata endpoints under a single CLI flag. Operators can start one HTTP server on a configurable port to expose:
 
-# Source File Updates (src/lib/main.js)
+- GET /health readiness check returns { status: 'ok' }
+- GET /metrics in-memory metrics snapshot
+- GET /status same payload as /metrics for compatibility
+- GET /meta installed version and supported API versions by reading API_VERSIONS.md and package.json
 
-Add function createDiagnosticsServer that returns an Express app with the four routes above
-Add function startDiagnosticsEndpoint that reads DIAGNOSTICS_PORT default 3000 and starts the server logging startup via logInfo
-Modify CLI handling to detect --diagnostics flag When present invoke startDiagnosticsEndpoint and keep process running until termination
-Detect legacy flags --metrics --status-endpoint and --healthcheck and log deprecation warning then invoke startDiagnosticsEndpoint for backward compatibility
-Ensure graceful shutdown closes the diagnostics server and database pool on SIGINT and SIGTERM
+This replaces separate metrics, status, and health endpoints and deprecates legacy CLI flags in favor of `--diagnostics`.
 
-# Test File Updates (tests/unit/main.test.js)
+# Implementation Details
 
-Add Supertest tests for GET /health returns 200 and payload status ok
-Add tests for GET /metrics GET /status and GET /meta matching default values
-Add a unit test simulating --diagnostics flag invokes startDiagnosticsEndpoint on configured port without blocking other logic
-Add tests that legacy flags --metrics --status-endpoint and --healthcheck trigger the unified diagnostics server with deprecation warnings
+1. **Express Server**
+   - Implement createDiagnosticsServer in src/lib/main.js that returns an Express app with routes for /health, /metrics, /status, and /meta.
+   - For /health respond with JSON { status: 'ok' }.
+   - For /metrics and /status respond with JSON metrics from getMetrics().
+   - For /meta read API_VERSIONS.md and package.json version to build { installed_version: string, supported_api_versions: [string] }.
 
-# Documentation Updates (README.md and docs/USAGE.md)
+2. **Server Startup**
+   - Add startDiagnosticsEndpoint in src/lib/main.js that reads DIAGNOSTICS_PORT (default 3000) and starts the Express app.
+   - Log startup with logInfo.
 
-In CLI options document --diagnostics flag starts unified diagnostics server on DIAGNOSTICS_PORT default 3000
-Replace separate metrics and status endpoint entries with diagnostics entry
-Provide examples
-node src/lib/main.js --diagnostics
-curl http://localhost:3000/health
-curl http://localhost:3000/meta
-Update USAGE section in docs to include diagnostics flag and available endpoints
+3. **CLI Flag Handling**
+   - Detect `--diagnostics` in process.argv, invoke startDiagnosticsEndpoint, and keep process running until termination.
+   - Detect legacy flags `--metrics`, `--status-endpoint`, and `--healthcheck`, log a deprecation warning, then invoke startDiagnosticsEndpoint for backward compatibility.
+
+4. **Graceful Shutdown**
+   - On SIGINT and SIGTERM, close the diagnostics server and database pool before exiting.
+
+# Testing and Documentation
+
+- **Unit Tests:**
+  - Use Supertest to verify GET /health, GET /metrics, GET /status, and GET /meta return expected payloads and HTTP 200.
+  - Test that `--diagnostics` flag starts the diagnostics server on DIAGNOSTICS_PORT without blocking other logic.
+  - Test legacy flags trigger deprecation warnings and start the diagnostics server.
+
+- **Documentation Updates:**
+  - Update README.md and docs/USAGE.md to document the `--diagnostics` flag, DIAGNOSTICS_PORT, and available endpoints.
+  - Mark `--metrics`, `--status-endpoint`, and `--healthcheck` as deprecated in CLI reference.
 
 # Benefits
 
-Simplifies operational tooling by exposing a single endpoint for readiness health metrics and version information
-Reduces port allocations and flag collisions
-Improves discoverability for monitoring probes and tooling integration
-Maintains backward compatibility with legacy flags
+- Simplifies operational tooling by exposing all diagnostics endpoints under one server.
+- Reduces port and flag collisions by consolidating multiple endpoints.
+- Improves discoverability for monitoring probes and tooling integration.
+- Maintains backward compatibility and clear deprecation path for existing flags.
