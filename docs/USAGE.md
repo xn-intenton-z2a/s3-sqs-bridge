@@ -10,7 +10,7 @@ Use the following npm scripts:
 
 You can also directly run the application with Node:
 
-```
+```bash
 node src/lib/main.js
 ```
 
@@ -44,6 +44,8 @@ This strategy helps to reduce the load on the database during intermittent failu
 You can configure connection pooling for PostgreSQL to improve performance and resource utilization:
 
 - **PG_POOL_SIZE**: Maximum number of clients in the pool (default: 10).
+- **PG_MAX_RETRIES**: Maximum number of retry attempts for obtaining a connection or executing queries (default: 3).
+- **PG_RETRY_DELAY_MS**: Delay in milliseconds between retries (default: 1000).
 
 Example usage:
 
