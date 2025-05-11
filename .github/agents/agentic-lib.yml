@@ -63,4 +63,4 @@ attemptsPerIssue: 1
 docRoot: 'public'
 
 discussionBot:
-  seedDiscussionFilepath: 'SEED_DISCUSSION.md'
+  seedDiscussionFilepath: 'intentïon.md'
