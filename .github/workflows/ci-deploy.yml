@@ -274,7 +274,7 @@ jobs:
         if: steps.mvn.outputs.pomXmlExists == 'true'
         shell: bash
         run: |
-          synth=$(jq -r '.deployStacks' cdk.json)
+          synth=$(jq -r '.synthStacks' cdk.json)
           deploy=$(jq -r '.deployStacks' cdk.json)
           echo "deploy=${deploy?}" | tee -a "${GITHUB_OUTPUT?}"
           echo "synth=${synth?}" | tee -a "${GITHUB_OUTPUT?}"
