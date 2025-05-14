@@ -6,6 +6,7 @@
     "s3WriterArnPrinciple": "arn:aws:iam::541134664601:user/polycode-deploy",
     "s3WriterRoleName": "s3-sqs-bridge-bucket-writer-role",
     "s3BucketName": "s3-sqs-bridge-bucket",
+    "cloudTrailEnabled": "false",
     "s3ObjectPrefix": "events/",
     "s3UseExistingBucket": "false",
     "s3RetainBucket": "false",

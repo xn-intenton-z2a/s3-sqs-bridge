@@ -13,7 +13,7 @@ public class S3SqsBridgeApp {
                 .s3WriterRoleName(System.getenv("S3_WRITER_ROLE_NAME"))
                 .s3BucketName(System.getenv("BUCKET_NAME"))
                 // TODO: S3 LogGroup prefix
-                // TODO: S3 bucket enable/disable cloudtrail
+                .cloudTrailEnabled(Boolean.parseBoolean(System.getenv("CLOUD_TRAIL_ENABLED")))
                 .s3ObjectPrefix(System.getenv("OBJECT_PREFIX"))
                 .s3UseExistingBucket(Boolean.parseBoolean(System.getenv("USE_EXISTING_BUCKET")))
                 .s3RetainBucket(Boolean.parseBoolean(System.getenv("RETAIN_BUCKET"))) // TODO: Switch to removal policy

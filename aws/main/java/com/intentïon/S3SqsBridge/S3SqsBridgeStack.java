@@ -68,6 +68,7 @@ public class S3SqsBridgeStack extends Stack {
         public String s3WriterArnPrinciple;
         public String s3WriterRoleName;
         public String s3BucketName;
+        public boolean cloudTrailEnabled;
         public String s3ObjectPrefix;
         public boolean s3UseExistingBucket;
         public boolean s3RetainBucket;
@@ -115,6 +116,11 @@ public class S3SqsBridgeStack extends Stack {
 
         public Builder s3BucketName(String s3BucketName) {
             this.s3BucketName = s3BucketName;
+            return this;
+        }
+
+        public Builder cloudTrailEnabled(boolean cloudTrailEnabled) {
+            this.cloudTrailEnabled = cloudTrailEnabled;
             return this;
         }
 
@@ -226,6 +232,7 @@ public class S3SqsBridgeStack extends Stack {
         String s3ObjectPrefix = this.getConfigValue(builder.s3ObjectPrefix, "s3ObjectPrefix");
         boolean s3UseExistingBucket = Boolean.parseBoolean(this.getConfigValue(Boolean.toString(builder.s3UseExistingBucket), "s3UseExistingBucket"));
         boolean s3RetainBucket = Boolean.parseBoolean(this.getConfigValue(Boolean.toString(builder.s3RetainBucket), "s3RetainBucket"));
+        boolean cloudTrailEnabled = Boolean.parseBoolean(this.getConfigValue(Boolean.toString(builder.cloudTrailEnabled), "cloudTrailEnabled"));
         String s3WriterRoleName = this.getConfigValue(builder.s3WriterRoleName, "s3WriterRoleName");
         String s3WriterArnPrinciple = this.getConfigValue(builder.s3WriterArnPrinciple, "s3WriterArnPrinciple");
         String sqsSourceQueueName = this.getConfigValue(builder.sqsSourceQueueName, "sqsSourceQueueName");
@@ -253,6 +260,9 @@ public class S3SqsBridgeStack extends Stack {
                     .removalPolicy(s3RetainBucket ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY)
                     .autoDeleteObjects(!s3RetainBucket)
                     .build();
+        }
+
+        if(cloudTrailEnabled) {
             this.eventsBucketLogGroup = LogGroup.Builder.create(this, "EventsBucketLogGroup")
                     .logGroupName("/aws/s3/" + this.eventsBucket.getBucketName())
                     .retention(RetentionDays.THREE_DAYS)
@@ -265,7 +275,6 @@ public class S3SqsBridgeStack extends Stack {
                     .includeGlobalServiceEvents(false)
                     .isMultiRegionTrail(false)
                     .build();
-
             this.eventsBucketTrail.addS3EventSelector(Arrays.asList(S3EventSelector.builder()
                     .bucket(this.eventsBucket)
                     .objectPrefix(s3ObjectPrefix)

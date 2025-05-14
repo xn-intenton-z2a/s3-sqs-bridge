@@ -14,6 +14,7 @@ public class S3SqsBridgeStackTest {
                 .s3WriterArnPrinciple("arn:aws:iam::123456789012:user/test")
                 .s3WriterRoleName("s3-sqs-bridge-bucket-writer-role-test")
                 .s3BucketName("s3-sqs-bridge-bucket-test")
+                .cloudTrailEnabled(true)
                 .s3ObjectPrefix("test/")
                 .s3UseExistingBucket(false)
                 .s3RetainBucket(false)

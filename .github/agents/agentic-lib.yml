@@ -8,22 +8,18 @@ paths:
     path: 'MISSION.md'
   librarySourcesFilepath:
     path: 'SOURCES.md'
-    permissions: ['write']
     limit: 8
   libraryDocumentsPath:
     path: 'library/'
-    permissions: ['write']
     limit: 8
   featuresPath:
     path: 'features/'
-    permissions: ['write']
     limit: 0
 
   # Filepaths for engineer workflows
   contributingFilepath:
     path: 'CONTRIBUTING.md'
   targetTestsPath:
-    permissions: ['write']
     path: 'tests/unit/'
   otherTestsPaths:
     paths: []
