@@ -2,6 +2,8 @@
 
 s3-sqs-bridge integrates Amazon S3 with AWS SQS to enable versioned event replay and real-time processing using Lambda backed by a resilient PostgreSQL projection system. The GitHub Event Projections Lambda handler now features robust connection retries, enhanced logging with sensitive data masking, strict schema validation using Zod, basic in-memory metrics collection to track event processing performance, and optional dead-letter queue support for failed records.
 
+NOTED: This does not deploy stand-alone. The ci-deploy.yml workflow is disabled.
+
 This repository includes:
 
 - AWS CloudFormation/CDK stacks for setting up the necessary AWS infrastructure.
