@@ -58,5 +58,6 @@ attemptsPerIssue: 1
 # Web publishing
 docRoot: 'public'
 
-discussionBot:
-  seedDiscussionFilepath: 'intentïon.md'
+# The intention is associated with the bot's discussion thread.
+intentionBot:
+  intentionFilepath: 'intentïon.md'
