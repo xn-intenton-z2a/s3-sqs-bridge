@@ -47,9 +47,9 @@
   },
   "devDependencies": {
     "@microsoft/eslint-formatter-sarif": "^3.1.0",
-    "@vitest/coverage-v8": "^3.1.2",
+    "@vitest/coverage-v8": "^3.1.4",
     "aws-cdk": "^2.1013.0",
-    "esbuild": "^0.25.4",
+    "esbuild": "^0.25.5",
     "eslint": "^9.26.0",
     "express": "^5.1.0",
     "markdown-it-github": "^0.5.0",
@@ -58,7 +58,7 @@
     "openai": "^4.96.2",
     "pg": "^8.15.6",
     "prettier": "^3.5.3",
-    "vitest": "^3.1.2",
+    "vitest": "^3.1.4",
     "supertest": "^7.1.1"
   },
   "overrides": {
